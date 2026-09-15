@@ -1,13 +1,22 @@
-import { execFileSync } from 'node:child_process'
 import { expect, test } from '../support/fixtures.ts'
 
 test.describe('systems strip telemetry', () => {
   test('reports real build, document, and worker state', async ({ page }) => {
     await page.goto('/')
 
-    const sha = execFileSync('git', ['rev-parse', '--short=7', 'HEAD'], { encoding: 'utf8' }).trim()
-    await expect(page.getByTestId('strip-build')).toHaveText(new RegExp(`^BUILD: ${sha}\\*?$`))
+    const strip = page.getByTestId('strip-build')
+    await expect(strip).toHaveText(/^BUILD: [0-9a-f]{7}\*?$/)
     await expect(page.getByTestId('strip-sw')).toHaveText('SW: CONTROLLING')
+
+    // Page and worker come from the same build. (dist/ may predate HEAD locally, so don't compare with git here.)
+    const [, sha, dirty] = /^BUILD: ([0-9a-f]{7})(\*?)$/.exec((await strip.textContent()) ?? '') ?? []
+    await expect(page.getByTestId('sw-build')).toHaveText(new RegExp(`^${sha}${dirty ? '-dirty' : ''}\\+[0-9a-f]{8}$`))
+
+    // In CI the build runs right before the tests, from a clean checkout of the commit under test.
+    if (process.env.GITHUB_SHA) {
+      expect(sha).toBe(process.env.GITHUB_SHA.slice(0, 7))
+      expect(dirty).toBe('')
+    }
 
     // The test server speaks HTTP/1.1; all three engines expose nextHopProtocol.
     await expect(page.getByTestId('strip-protocol')).toHaveText('PROTO: HTTP/1.1')
