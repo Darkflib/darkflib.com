@@ -15,8 +15,8 @@ const HELLO_TIMEOUT_MS = 3000
 type Source = 'page' | 'service-worker'
 
 /** What a log line is about, so the log can hide categories. */
-export type LogTag = 'lifecycle' | 'control' | 'fetch'
-export const LOG_TAGS: readonly LogTag[] = ['lifecycle', 'control', 'fetch']
+export type LogTag = 'lifecycle' | 'control' | 'fetch' | 'fault'
+export const LOG_TAGS: readonly LogTag[] = ['lifecycle', 'control', 'fetch', 'fault']
 
 export interface LogEntry {
   id: number
@@ -298,14 +298,25 @@ export function startServiceWorker() {
       log('lifecycle', 'service-worker', level, name, detail, time)
     } else if (message.type === 'sw:requests') {
       append(
-        message.requests.map((request) => ({
-          tag: 'fetch' as const,
-          source: 'service-worker' as const,
-          level: 'info' as const,
-          event: 'fetch',
-          detail: describeRequest(request),
-          time: request.time,
-        })),
+        message.requests.map((request) =>
+          request.fault
+            ? {
+                tag: 'fault' as const,
+                source: 'service-worker' as const,
+                level: 'warn' as const,
+                event: `fault:${request.fault.mode}`,
+                detail: `${describeRequest(request).replace(/ · [^·]+$/, '')} · ${request.fault.detail}`,
+                time: request.time,
+              }
+            : {
+                tag: 'fetch' as const,
+                source: 'service-worker' as const,
+                level: 'info' as const,
+                event: 'fetch',
+                detail: describeRequest(request),
+                time: request.time,
+              },
+        ),
       )
     }
   })

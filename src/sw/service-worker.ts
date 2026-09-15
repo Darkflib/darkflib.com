@@ -1,5 +1,6 @@
-// Lifecycle telemetry, a version handshake, and a passive fetch observer. The fetch listener never calls respondWith,
-// so every request is performed by the browser exactly as it would be without this worker.
+// Lifecycle telemetry, a version handshake, a fetch observer, and the Fault Lab. The fetch listener answers a request
+// only when it matches a Fault Lab rule set by the requesting tab; every other request passes through untouched.
+import { activeRuleCount, describeFault, faultedResponse, pruneRules, ruleFor, setRules } from './fault-engine'
 import {
   isClientMessage,
   type LogLevel,
@@ -74,7 +75,7 @@ async function deliver(clientId: string): Promise<void> {
   const batch = pending.get(clientId)
   pending.delete(clientId)
   if (!batch?.length) return
-  const message: WorkerMessage = { type: 'sw:requests', requests: batch }
+  const message: WorkerMessage = { type: 'sw:requests', requests: batch, activeFaults: activeRuleCount(clientId) }
   client.postMessage(message)
 }
 
@@ -92,25 +93,52 @@ self.addEventListener('fetch', (event) => {
   const clientId = event.resultingClientId || event.clientId
   if (!clientId) return
   const { request } = event
-  enqueue(clientId, {
+  const observed: ObservedRequest = {
     time: Date.now(),
     method: request.method,
     url: request.url,
     destination: request.destination,
     mode: request.mode,
-  })
-  // waitUntil only keeps the worker alive until the batch is delivered. There is deliberately no respondWith.
+  }
+
+  // Faults are scoped to the tab that set them (event.clientId), and ruleFor never matches a navigation.
+  const rule = ruleFor(event.clientId, request)
+  if (rule) {
+    observed.fault = { mode: rule.mode, detail: describeFault(rule) }
+    event.respondWith(faultedResponse(request, rule))
+  }
+  // Without a matching rule there is no respondWith, and the browser performs the request itself.
+
+  enqueue(clientId, observed)
+  // waitUntil only keeps the worker alive until the batch is delivered.
   event.waitUntil(scheduleFlush())
 })
 
 self.addEventListener('message', (event) => {
-  if (!isClientMessage(event.data)) return
+  const message: unknown = event.data
+  if (!isClientMessage(message)) return
   const [port] = event.ports
-  if (port) {
-    const reply: WorkerMessage = { type: 'sw:hello:reply', version: VERSION, capabilities: WORKER_CAPABILITIES }
-    port.postMessage(reply)
-  }
-  // A page's hello means it is listening: hand over anything that was waiting for it, such as its own navigation.
   const source = event.source
-  if (source && 'id' in source) event.waitUntil(deliver(source.id))
+  const clientId = source && 'id' in source ? source.id : null
+
+  if (message.type === 'sw:hello') {
+    if (port) {
+      const reply: WorkerMessage = { type: 'sw:hello:reply', version: VERSION, capabilities: WORKER_CAPABILITIES }
+      port.postMessage(reply)
+    }
+    // A page's hello means it is listening: hand over anything that was waiting for it, such as its own navigation.
+    if (clientId) event.waitUntil(deliver(clientId))
+    return
+  }
+
+  // fault:set. Rules belong to the sending tab; a message without a window client behind it cannot hold any.
+  if (!clientId || !port) return
+  const update = setRules(clientId, message.rules, self.location.origin)
+  const ack: WorkerMessage = { type: 'fault:ack', rules: update.rules, rejected: update.rejected }
+  port.postMessage(ack)
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: 'window' })
+      .then((clients) => pruneRules(new Set(clients.map((client) => client.id)))),
+  )
 })

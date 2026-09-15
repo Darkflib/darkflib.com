@@ -78,3 +78,58 @@ export async function checkForUpdate(page: Page) {
     await registration.update()
   })
 }
+
+export interface FaultAck {
+  rules: { origin: string; mode: string }[]
+  rejected: { origin: string; reason: string }[]
+}
+
+/** Send `fault:set` to the controlling worker and return its acknowledgement (the rules it actually holds). */
+export async function setFaults(page: Page, rules: unknown[]): Promise<FaultAck> {
+  return page.evaluate(
+    (candidates) =>
+      new Promise<FaultAck>((resolve, reject) => {
+        const controller = navigator.serviceWorker.controller
+        if (!controller) {
+          reject(new Error('page is not controlled'))
+          return
+        }
+        const channel = new MessageChannel()
+        const timer = setTimeout(() => reject(new Error('no fault:ack within 3 s')), 3000)
+        channel.port1.onmessage = (event) => {
+          clearTimeout(timer)
+          const { rules, rejected } = event.data as FaultAck
+          resolve({ rules, rejected })
+        }
+        controller.postMessage({ type: 'fault:set', rules: candidates }, [channel.port2])
+      }),
+    rules,
+  )
+}
+
+/** fetch() a URL from the page and report what came back, including a network error. */
+export async function pageFetch(page: Page, url: string, options: { timeoutMs?: number } = {}) {
+  return page.evaluate(
+    async ({ target, timeoutMs }) => {
+      const started = performance.now()
+      try {
+        const response = await fetch(target, {
+          cache: 'no-store',
+          signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined,
+        })
+        const body = await response.text()
+        return {
+          ok: true as const,
+          status: response.status,
+          retryAfter: response.headers.get('retry-after'),
+          simulated: response.headers.get('x-simulated-fault'),
+          body,
+          elapsedMs: performance.now() - started,
+        }
+      } catch (error) {
+        return { ok: false as const, error: (error as Error).name, elapsedMs: performance.now() - started }
+      }
+    },
+    { target: url, timeoutMs: options.timeoutMs },
+  )
+}

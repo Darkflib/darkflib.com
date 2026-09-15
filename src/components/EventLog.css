@@ -88,6 +88,10 @@
   color: #c9a8ff;
 }
 
+.event-panel li .tag-fault {
+  color: #ff6fae;
+}
+
 .event-panel li.level-warn strong {
   color: #ffd27a;
 }

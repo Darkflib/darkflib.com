@@ -6,5 +6,5 @@
     "types": ["vite/client"]
   },
   "include": ["src"],
-  "exclude": ["src/sw/service-worker.ts"]
+  "exclude": ["src/sw/service-worker.ts", "src/sw/fault-engine.ts"]
 }
