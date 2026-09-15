@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ConnectPanel } from './components/ConnectPanel'
 import { EventLog } from './components/EventLog'
+import { FaultLab } from './components/FaultLab'
 import { Footer } from './components/Footer'
 import { Hero } from './components/Hero'
 import { ProjectDialog } from './components/ProjectDialog'
@@ -31,6 +32,7 @@ export function App() {
             <ServiceWorkerPanel logOpen={logOpen} onToggleLog={() => setLogOpen((open) => !open)} />
           </div>
         </div>
+        <FaultLab />
         {logOpen && <EventLog />}
       </main>
       <Footer />

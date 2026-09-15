@@ -10,6 +10,8 @@ export interface RequestSample {
   cached: boolean
   /** Edge cache status from Server-Timing, if the host proxy reported one. Stale when `cached`. */
   edge: string | null
+  /** Same origin as the page. Cross-origin requests (the Fault Lab origins) are separate systems. */
+  sameOrigin: boolean
 }
 
 export const REQUEST_HISTORY = 62
@@ -24,6 +26,7 @@ function toSample(entry: PerformanceResourceTiming): RequestSample {
     durationMs: Math.round(entry.duration),
     cached: entry.transferSize === 0,
     edge: edgeStatus(entry),
+    sameOrigin: url.origin === window.location.origin,
   }
 }
 

@@ -58,6 +58,37 @@ Every value in the strip under the hero is read from the browser or the build, n
 The bars will pick up Fault Lab latency injection with no extra wiring, since injected delays show up in Resource
 Timing. The slogan on the right is just decoration.
 
+## Fault Lab
+
+A `FAULT_LAB` section below the dashboard lets a visitor break things and watch the page recover. Everything happens in
+their own browser: the service worker injects faults into that tab's requests only, and the origins stay healthy for
+everyone else.
+
+- **The system under test** (`src/lab/statusClient.ts`) polls a status document from `api.darkflib.com`, fails over to
+  `api.darkflib.dev` (a different registrable domain, so genuinely cross-site), and probes `media.darkflib.com`. It
+  applies per-attempt timeouts, retries with exponential backoff and full jitter, honours `Retry-After` (waiting out
+  short ones, and backing off entirely for long ones), opens a circuit breaker per origin after consecutive failures,
+  and serves the last good data when both APIs are down. It never talks to the worker: faults reach it only as failed
+  requests.
+- **The fault engine** (`src/sw/fault-engine.ts`) holds rules per tab and answers only matching requests: `offline`
+  (network error, no request sent), `latency` (a delay, then the real request), and `status` (a synthetic 429 or 503 with
+  `Retry-After`, no request sent), each with a probability. It refuses the site's own origin and never touches page
+  loads, so the lab cannot break the page that runs it.
+- **Control** (`src/lab/faultControl.ts`) sends `fault:set` and shows what the worker acknowledged, not what it sent.
+  Rules live in worker memory, so it re-sends them when a batch arrives from a new worker instance (restarted or
+  replaced). The panel stays disabled, and says why, unless the controlling worker reports `fault-injection`.
+- **Observability:** the event log's `FAULT` rows (injections) and `CLIENT` rows (retries, circuit changes, failover,
+  state) form one timeline, and the lab's polls feed the strip's latency bars. `EDGE` counts same-origin requests only.
+- **Origins** serve static JSON from `lab/origins/` through the same Caddy image, with CORS and `Timing-Allow-Origin` for
+  the site and `no-store`. `/lab/config.json` lists them, along with the client's timings; `enabled: false` switches
+  polling off. The CSP's `connect-src` must list the same origins, and `smoke.sh` checks that it does.
+
+`tests/e2e/fault-engine.spec.ts` drives the worker directly: each mode, what reaches the origin (counted by the test
+server's stand-in origins), clearing, rejections, and per-tab scope. `tests/e2e/fault-lab.spec.ts` drives the panel:
+failover, circuit open, half-open, and close, stale data, Retry-After handling, timeouts, reset, the outdated-worker
+state, and re-sending rules after a worker restart (Chromium only, since stopping a worker needs DevTools). The test
+server shortens the client's clock through the config, and enables polling only for these tests.
+
 ## Service worker
 
 `src/sw/service-worker.ts` is bundled by `build/serviceWorkerPlugin.ts` with esbuild into a single classic script at

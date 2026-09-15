@@ -17,8 +17,11 @@ the CSP and cache policy always ship with the code they describe.
 | ----------------------------------- | ------------------------------------------------------------ |
 | `darkflib.com`                      | the site                                                     |
 | `www.darkflib.com`                  | 301 to `https://darkflib.com`                                |
-| `darkflib.dev`, `www.darkflib.dev`  | 302 to `https://darkflib.com`, until the Fault Lab uses them |
-| any other `*.darkflib.com` / `.dev` | 404 (reserved for Fault Lab origins)                         |
+| `api.darkflib.com`                  | Fault Lab primary API: static JSON, CORS for the site        |
+| `api.darkflib.dev`                  | Fault Lab secondary API (cross-site)                         |
+| `media.darkflib.com`                | Fault Lab media origin                                       |
+| `darkflib.dev`, `www.darkflib.dev`  | 302 to `https://darkflib.com`                                |
+| any other `*.darkflib.com` / `.dev` | 404                                                          |
 
 Host port 8082 comes from `~/dev/backend-allocations.md`.
 

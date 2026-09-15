@@ -26,7 +26,8 @@ export function summariseEdge(
   document: { edge: string | null; fromCache: boolean | null },
   samples: readonly RequestSample[],
 ): EdgeSummary {
-  const reported = samples.filter((sample) => sample.edge !== null)
+  // The site's own edge cache only: the Fault Lab origins pass through the same nginx but are never cached.
+  const reported = samples.filter((sample) => sample.sameOrigin && sample.edge !== null)
   if (document.edge === null && reported.length === 0) {
     return { label: '—', detail: 'No edge cache reports on this origin' }
   }

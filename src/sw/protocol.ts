@@ -71,10 +71,12 @@ export type WorkerMessage =
   | { type: 'sw:log'; entry: WorkerLogEntry }
   // capabilities is absent from workers deployed before it existed; treat that as none.
   | { type: 'sw:hello:reply'; version: string; capabilities?: Capabilities }
-  // activeFaults: rules the worker holds for this tab when it sent the batch, so the page can notice a worker restart
-  // (rules live in worker memory) and re-send. Absent from workers without fault-injection.
-  | { type: 'sw:requests'; requests: ObservedRequest[]; activeFaults?: number }
-  | { type: 'fault:ack'; rules: FaultRule[]; rejected: { origin: string; reason: string }[] }
+  // instance identifies this run of the worker script (a restart or a replacement gets a new one). Fault rules live in
+  // worker memory, so a batch from a different instance than the one that acknowledged the rules means they are gone.
+  // Unlike a rule count, a batch that was already in flight when the rules changed cannot trip it. Absent from workers
+  // without fault-injection.
+  | { type: 'sw:requests'; requests: ObservedRequest[]; instance?: string }
+  | { type: 'fault:ack'; rules: FaultRule[]; rejected: { origin: string; reason: string }[]; instance: string }
 
 /** Upper bound on a single `sw:requests` batch; the worker never sends more. */
 export const MAX_REQUEST_BATCH = 200
@@ -173,10 +175,11 @@ export function isWorkerMessage(value: unknown): value is WorkerMessage {
         Array.isArray(value.requests) &&
         value.requests.length <= MAX_REQUEST_BATCH &&
         value.requests.every(isObservedRequest) &&
-        (value.activeFaults === undefined || Number.isInteger(value.activeFaults))
+        (value.instance === undefined || typeof value.instance === 'string')
       )
     case 'fault:ack':
       return (
+        typeof value.instance === 'string' &&
         Array.isArray(value.rules) &&
         value.rules.every(isFaultRule) &&
         Array.isArray(value.rejected) &&

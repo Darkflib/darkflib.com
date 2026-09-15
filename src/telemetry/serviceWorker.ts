@@ -15,8 +15,8 @@ const HELLO_TIMEOUT_MS = 3000
 type Source = 'page' | 'service-worker'
 
 /** What a log line is about, so the log can hide categories. */
-export type LogTag = 'lifecycle' | 'control' | 'fetch' | 'fault'
-export const LOG_TAGS: readonly LogTag[] = ['lifecycle', 'control', 'fetch', 'fault']
+export type LogTag = 'lifecycle' | 'control' | 'fetch' | 'fault' | 'client'
+export const LOG_TAGS: readonly LogTag[] = ['lifecycle', 'control', 'fetch', 'fault', 'client']
 
 export interface LogEntry {
   id: number
@@ -49,6 +49,8 @@ export interface ServiceWorkerSnapshot {
   controllerCapabilities: Capabilities | null
   /** Capabilities this page build expects that its controller lacks (or has at an older version). */
   missingCapabilities: readonly string[]
+  /** Worker script instance behind the latest request batch; null until one arrives (see WorkerMessage). */
+  reportedWorkerInstance: string | null
   entries: readonly LogEntry[]
 }
 
@@ -59,6 +61,7 @@ let state: ServiceWorkerSnapshot = {
   controllerVersion: null,
   controllerCapabilities: null,
   missingCapabilities: [],
+  reportedWorkerInstance: null,
   entries: [],
 }
 
@@ -110,6 +113,22 @@ function append(batch: readonly NewEntry[]) {
 
 function log(tag: LogTag, source: Source, level: LogLevel, event: string, detail?: string, time?: number) {
   append([{ tag, source, level, event, detail, time }])
+}
+
+/** Add a page-side event to the shared timeline (the Fault Lab client's retries, circuit changes, and failovers). */
+export function recordEvent(tag: LogTag, level: LogLevel, event: string, detail?: string) {
+  log(tag, 'page', level, event, detail)
+}
+
+/** Current snapshot, for modules that react outside React. */
+export function getServiceWorkerSnapshot(): ServiceWorkerSnapshot {
+  return state
+}
+
+/** Subscribe outside React; returns an unsubscribe function. */
+export function subscribeServiceWorker(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
 }
 
 function describeRequest(request: ObservedRequest): string {
@@ -297,6 +316,9 @@ export function startServiceWorker() {
       const { time, level, event: name, detail } = message.entry
       log('lifecycle', 'service-worker', level, name, detail, time)
     } else if (message.type === 'sw:requests') {
+      if (message.instance !== undefined && message.instance !== state.reportedWorkerInstance) {
+        publish({ reportedWorkerInstance: message.instance })
+      }
       append(
         message.requests.map((request) =>
           request.fault

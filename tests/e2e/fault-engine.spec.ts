@@ -24,10 +24,9 @@ test.describe('fault engine', () => {
     const ack = await setFaults(page, [{ origin: primary, mode: 'offline', probability: 1 }])
     expect(ack).toEqual({ rules: [{ origin: primary, mode: 'offline', probability: 1 }], rejected: [] })
 
-    const before = server.labRequests('api-primary')
-    const result = await pageFetch(page, `${primary}/v1/status.json`)
+    const result = await pageFetch(page, `${primary}/v1/status.json?case=offline`)
     expect(result).toMatchObject({ ok: false, error: 'TypeError' })
-    expect(server.labRequests('api-primary')).toBe(before)
+    expect(server.labRequests('api-primary', 'case=offline')).toBe(0)
 
     // Other origins are untouched.
     const secondary = await pageFetch(page, `${server.labOrigins['api-secondary']}/v1/status.json`)
@@ -41,7 +40,9 @@ test.describe('fault engine', () => {
         expect.objectContaining({
           tag: 'fault',
           event: 'fault:offline',
-          detail: expect.stringMatching(/^GET .*\/v1\/status\.json · simulated network failure; no request sent$/),
+          detail: expect.stringMatching(
+            /^GET .*\/v1\/status\.json\?case=offline · simulated network failure; no request sent$/,
+          ),
         }),
       )
   })
@@ -49,32 +50,29 @@ test.describe('fault engine', () => {
   test('status: a synthetic 503 with Retry-After, and nothing reaches the origin', async ({ page, server }) => {
     const primary = server.labOrigins['api-primary']
     await setFaults(page, [{ origin: primary, mode: 'status', status: 503, retryAfterSeconds: 7, probability: 1 }])
-    const before = server.labRequests('api-primary')
-    const result = await pageFetch(page, `${primary}/v1/status.json`)
+    const result = await pageFetch(page, `${primary}/v1/status.json?case=status`)
     expect(result).toMatchObject({ ok: true, status: 503, retryAfter: '7', simulated: 'status' })
-    expect(server.labRequests('api-primary')).toBe(before)
+    expect(server.labRequests('api-primary', 'case=status')).toBe(0)
   })
 
   test('latency: the real response, after the delay', async ({ page, server }) => {
     const primary = server.labOrigins['api-primary']
     await setFaults(page, [{ origin: primary, mode: 'latency', latencyMs: 600, probability: 1 }])
-    const before = server.labRequests('api-primary')
-    const result = await pageFetch(page, `${primary}/v1/status.json`)
+    const result = await pageFetch(page, `${primary}/v1/status.json?case=latency`)
     expect(result).toMatchObject({ ok: true, status: 200 })
     expect(result.elapsedMs).toBeGreaterThanOrEqual(580)
     expect(result.ok && JSON.parse(result.body).origin).toBe('api-primary')
-    expect(server.labRequests('api-primary')).toBe(before + 1)
+    expect(server.labRequests('api-primary', 'case=latency')).toBe(1)
   })
 
   test('latency: a client timeout fails the request, as a slow origin would', async ({ page, server }) => {
     const primary = server.labOrigins['api-primary']
     await setFaults(page, [{ origin: primary, mode: 'latency', latencyMs: 1500, probability: 1 }])
-    const before = server.labRequests('api-primary')
-    const result = await pageFetch(page, `${primary}/v1/status.json`, { timeoutMs: 300 })
+    const result = await pageFetch(page, `${primary}/v1/status.json?case=timeout`, { timeoutMs: 300 })
     // WebKit reports AbortSignal.timeout() as AbortError; Chromium and Firefox as TimeoutError.
     expect(result).toMatchObject({ ok: false, error: expect.stringMatching(/^(TimeoutError|AbortError)$/) })
     // Browsers do not propagate the page's abort into the worker, so the delayed request still goes out, once.
-    await expect.poll(() => server.labRequests('api-primary'), { timeout: 4000 }).toBe(before + 1)
+    await expect.poll(() => server.labRequests('api-primary', 'case=timeout'), { timeout: 4000 }).toBe(1)
   })
 
   test('probability 0 never applies; an empty rule set clears the faults', async ({ page, server }) => {

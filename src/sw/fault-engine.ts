@@ -38,10 +38,6 @@ export function setRules(clientId: string, candidates: unknown[], siteOrigin: st
   return { rules, rejected }
 }
 
-export function activeRuleCount(clientId: string): number {
-  return rulesByClient.get(clientId)?.length ?? 0
-}
-
 /** Drop rules for tabs that no longer exist. */
 export function pruneRules(liveClientIds: ReadonlySet<string>) {
   for (const clientId of rulesByClient.keys()) {

@@ -32,8 +32,17 @@ export interface TestServer {
   setServiceWorkerOverride(source: string | null): void
   /** Local stand-ins for the Fault Lab origins, each on its own port; /lab/config.json points the page at these. */
   labOrigins: Record<LabTarget, string>
-  /** Requests that actually reached a lab origin since the last reset: what a fault stopped shows up here. */
-  labRequests(target: LabTarget): number
+  /**
+   * Requests that actually reached a lab origin since the last reset, optionally only those whose URL contains
+   * `marker`: what a fault stopped shows up here. Use a marker per request when precision matters, since a latency
+   * fault's delayed request from a previous test can still arrive.
+   */
+  labRequests(target: LabTarget, marker?: string): number
+  /**
+   * Whether the page's status client polls (off by default). It polls continuously, which would keep Playwright's
+   * networkidle from ever settling and add requests to origin counts, so only tests of the lab itself switch it on.
+   */
+  setLabClientEnabled(enabled: boolean): void
   reset(): void
   close(): Promise<void>
 }
@@ -44,9 +53,14 @@ async function listen(server: Server): Promise<string> {
 }
 
 /** A lab origin as deploy/Caddyfile's lab_origin serves it: static JSON, CORS and timing for the site, never cached. */
-function labOriginServer(target: LabTarget, siteOrigin: () => string, count: () => void): Server {
+function labOriginServer(
+  target: LabTarget,
+  siteOrigin: () => string,
+  record: (url: string) => void,
+  edgeTiming: () => boolean,
+): Server {
   return createServer(async (req, res) => {
-    count()
+    record(req.url ?? '/')
     const { pathname } = new URL(req.url ?? '/', 'http://localhost')
     const headers = {
       'Access-Control-Allow-Origin': siteOrigin(),
@@ -54,6 +68,8 @@ function labOriginServer(target: LabTarget, siteOrigin: () => string, count: () 
       'Timing-Allow-Origin': siteOrigin(),
       'Cross-Origin-Resource-Policy': 'cross-origin',
       'Cache-Control': 'no-store',
+      // Host nginx adds its cache status to every proxied response, lab origins included (always a MISS).
+      ...(edgeTiming() ? { 'Server-Timing': 'edge;desc=MISS' } : {}),
     }
     try {
       const body = await readFile(join(LAB_ORIGINS, target, normalize(pathname).replace(/^\/+/, '')))
@@ -70,14 +86,19 @@ export async function startServer(): Promise<TestServer> {
   let edgeTiming = true
   let workerOverride: string | null = null
   let siteUrl = ''
-  const labCounts = Object.fromEntries(LAB_TARGETS.map((target) => [target, 0])) as Record<LabTarget, number>
+  let labClientEnabled = false
+  const labSeen = Object.fromEntries(LAB_TARGETS.map((target) => [target, [] as string[]])) as Record<
+    LabTarget,
+    string[]
+  >
   const labServers = LAB_TARGETS.map((target) =>
     labOriginServer(
       target,
       () => siteUrl,
-      () => {
-        labCounts[target] += 1
+      (url) => {
+        labSeen[target].push(url)
       },
+      () => edgeTiming,
     ),
   )
   const labUrls = await Promise.all(labServers.map(listen))
@@ -91,8 +112,22 @@ export async function startServer(): Promise<TestServer> {
     const file = pathname === '/' ? 'index.html' : normalize(pathname).replace(/^\/+/, '')
     if (file === 'lab/config.json') {
       // The production config, with each target's origin swapped for its local stand-in.
-      const config = JSON.parse(await readFile(LAB_CONFIG, 'utf8')) as { targets: { id: LabTarget; origin: string }[] }
+      const config = JSON.parse(await readFile(LAB_CONFIG, 'utf8')) as {
+        client: Record<string, number | boolean>
+        targets: { id: LabTarget; origin: string }[]
+      }
       for (const target of config.targets) target.origin = labOrigins[target.id]
+      // Same behaviour, shorter clock: tests should not wait out a 15 s circuit.
+      config.client = {
+        ...config.client,
+        enabled: labClientEnabled,
+        pollIntervalMs: 300,
+        requestTimeoutMs: 800,
+        backoffBaseMs: 40,
+        backoffCapMs: 160,
+        maxRetryAfterMs: 1500,
+        circuitOpenMs: 2500,
+      }
       res
         .writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' })
         .end(JSON.stringify(config))
@@ -126,7 +161,11 @@ export async function startServer(): Promise<TestServer> {
   return {
     url: siteUrl,
     labOrigins,
-    labRequests: (target) => labCounts[target],
+    labRequests: (target, marker) =>
+      labSeen[target].filter((url) => marker === undefined || url.includes(marker)).length,
+    setLabClientEnabled: (enabled) => {
+      labClientEnabled = enabled
+    },
     bumpServiceWorker: () => {
       bump += 1
     },
@@ -140,7 +179,8 @@ export async function startServer(): Promise<TestServer> {
       bump = 0
       edgeTiming = true
       workerOverride = null
-      for (const target of LAB_TARGETS) labCounts[target] = 0
+      labClientEnabled = false
+      for (const target of LAB_TARGETS) labSeen[target] = []
     },
     close: async () => {
       await Promise.all(

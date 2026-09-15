@@ -1,6 +1,6 @@
 // Lifecycle telemetry, a version handshake, a fetch observer, and the Fault Lab. The fetch listener answers a request
 // only when it matches a Fault Lab rule set by the requesting tab; every other request passes through untouched.
-import { activeRuleCount, describeFault, faultedResponse, pruneRules, ruleFor, setRules } from './fault-engine'
+import { describeFault, faultedResponse, pruneRules, ruleFor, setRules } from './fault-engine'
 import {
   isClientMessage,
   type LogLevel,
@@ -14,6 +14,8 @@ declare const self: ServiceWorkerGlobalScope
 declare const __SW_VERSION__: string
 
 const VERSION = __SW_VERSION__
+/** This run of the worker script. The browser may stop an idle worker and start a fresh one, losing in-memory state. */
+const INSTANCE = crypto.randomUUID()
 
 /** Batch observed requests briefly so a page load becomes a few messages rather than one per request. */
 const FLUSH_DELAY_MS = 50
@@ -75,7 +77,7 @@ async function deliver(clientId: string): Promise<void> {
   const batch = pending.get(clientId)
   pending.delete(clientId)
   if (!batch?.length) return
-  const message: WorkerMessage = { type: 'sw:requests', requests: batch, activeFaults: activeRuleCount(clientId) }
+  const message: WorkerMessage = { type: 'sw:requests', requests: batch, instance: INSTANCE }
   client.postMessage(message)
 }
 
@@ -134,7 +136,7 @@ self.addEventListener('message', (event) => {
   // fault:set. Rules belong to the sending tab; a message without a window client behind it cannot hold any.
   if (!clientId || !port) return
   const update = setRules(clientId, message.rules, self.location.origin)
-  const ack: WorkerMessage = { type: 'fault:ack', rules: update.rules, rejected: update.rejected }
+  const ack: WorkerMessage = { type: 'fault:ack', rules: update.rules, rejected: update.rejected, instance: INSTANCE }
   port.postMessage(ack)
   event.waitUntil(
     self.clients
