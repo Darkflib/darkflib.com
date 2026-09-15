@@ -47,13 +47,11 @@ export function Hero() {
           </a>
         </div>
         <p>
-          BETTER
+          FAILURE
           <br />
-          SOFTWARE.
+          IS JUST
           <br />
-          BRIGHTER
-          <br />
-          TOMORROW.
+          DATA.
         </p>
       </aside>
       <div className="hero-copy" id="about">
@@ -70,7 +68,7 @@ export function Hero() {
         </h1>
         <div className="kana">ダークフリブ</div>
         <div className="hero-role">
-          CREATIVE DEVELOPER <span>/</span> DIGITAL EXPLORER <span>/</span> BUILDING A BRIGHTER TOMORROW
+          CREATIVE DEVELOPER <span>/</span> DIGITAL EXPLORER <span>/</span> BREAKING THINGS ON PURPOSE
         </div>
         <p className="hero-description">
           I design and build digital experiences
