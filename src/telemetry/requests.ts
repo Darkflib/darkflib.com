@@ -1,3 +1,4 @@
+import { edgeStatus } from './edge'
 import { createStore } from './externalStore'
 
 export interface RequestSample {
@@ -7,6 +8,8 @@ export interface RequestSample {
   durationMs: number
   /** No bytes over the network: HTTP cache hit, or a cross-origin response without Timing-Allow-Origin. */
   cached: boolean
+  /** Edge cache status from Server-Timing, if the host proxy reported one. Stale when `cached`. */
+  edge: string | null
 }
 
 export const REQUEST_HISTORY = 62
@@ -20,6 +23,7 @@ function toSample(entry: PerformanceResourceTiming): RequestSample {
     name: url.origin === window.location.origin ? url.pathname : `${url.host}${url.pathname}`,
     durationMs: Math.round(entry.duration),
     cached: entry.transferSize === 0,
+    edge: edgeStatus(entry),
   }
 }
 

@@ -1,5 +1,6 @@
 import { useClock } from '../hooks/useClock'
 import { buildInfo, buildLabel } from '../telemetry/build'
+import { summariseEdge } from '../telemetry/edge'
 import { useNavigationTelemetry } from '../telemetry/navigation'
 import { REQUEST_HISTORY, type RequestSample, useRequestSamples } from '../telemetry/requests'
 import { type ServiceWorkerSnapshot, useServiceWorker } from '../telemetry/serviceWorker'
@@ -49,7 +50,7 @@ function LatencyBars({ samples }: { samples: readonly RequestSample[] }) {
           key={sample.id}
           className={[sample.cached ? 'cached' : '', sample.durationMs >= SLOW_MS ? 'slow' : ''].join(' ').trim()}
           style={{ height: `${barHeight(sample.durationMs)}px` }}
-          title={`${sample.name} ${sample.durationMs} ms${sample.cached ? ' (cached)' : ''}`}
+          title={`${sample.name} ${sample.durationMs} ms${sample.cached ? ' (browser cache)' : sample.edge ? ` (edge ${sample.edge})` : ''}`}
         />
       ))}
     </div>
@@ -61,6 +62,7 @@ export function SystemsStrip() {
   const worker = workerStatus(useServiceWorker())
   const navigation = useNavigationTelemetry()
   const samples = useRequestSamples()
+  const edge = summariseEdge(navigation, samples)
 
   return (
     <section className="systems-strip" aria-label="Live site telemetry">
@@ -72,6 +74,9 @@ export function SystemsStrip() {
       </div>
       <div className="strip-wide" data-testid="strip-protocol" title="Protocol negotiated for this document">
         PROTO: {navigation.protocol ?? '—'}
+      </div>
+      <div className="strip-wide" data-testid="strip-edge" title={`Edge cache: ${edge.detail}`}>
+        EDGE: {edge.label}
       </div>
       <div className="strip-medium" data-testid="strip-ttfb" title="Time to first byte for this document">
         TTFB: {navigation.ttfbMs === null ? '—' : `${navigation.ttfbMs} MS`}

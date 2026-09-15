@@ -50,6 +50,7 @@ Every value in the strip under the hero is read from the browser or the build, n
 | `SW`      | Service worker store: controlling, starting, failed, off, or unsupported; flags waiting updates |
 | `BUILD`   | Commit SHA baked in at build time (`*` = dirty tree); build time in the tooltip                |
 | `PROTO`   | `nextHopProtocol` of the document's navigation timing                                          |
+| `EDGE`    | nginx cache status via `Server-Timing: edge`: HITs among subresources that crossed the network (`LOCAL` if all came from the browser cache, whose replayed headers are ignored; `—` with no edge) |
 | `TTFB`    | `responseStart` of the navigation, plus `(CACHE)` when no bytes were transferred               |
 | `UTC`     | Wall clock                                                                                     |
 | Bars      | Resource Timing for the last 62 subresource requests: log-scaled, dim when cached, magenta ≥ 800 ms |

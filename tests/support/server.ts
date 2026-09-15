@@ -22,6 +22,8 @@ export interface TestServer {
   url: string
   /** Serve a byte-different worker reporting `<build>.test<n>`, so the next update check finds a new version. */
   bumpServiceWorker(): void
+  /** Emulate host nginx's `Server-Timing: edge;desc=...` header (on by default). */
+  setEdgeTiming(enabled: boolean): void
   reset(): void
   close(): Promise<void>
 }
@@ -29,6 +31,7 @@ export interface TestServer {
 /** Static server for dist/ with a controllable service worker script. One per Playwright worker, on its own port. */
 export async function startServer(): Promise<TestServer> {
   let bump = 0
+  let edgeTiming = true
 
   const server = createServer(async (req, res) => {
     const { pathname } = new URL(req.url ?? '/', 'http://localhost')
@@ -41,10 +44,13 @@ export async function startServer(): Promise<TestServer> {
         body = code.replace(VERSION_LITERAL, (_match, version: string) => `"${version}.test${bump}"`)
       }
       const revalidate = file === SERVICE_WORKER || file === 'index.html'
-      res.writeHead(200, {
+      const headers: Record<string, string> = {
         'Content-Type': CONTENT_TYPES[extname(file)] ?? 'application/octet-stream',
         'Cache-Control': revalidate ? 'no-cache' : 'public, max-age=3600',
-      })
+      }
+      // As deploy/nginx/darkflib.conf reports it: cacheable responses are edge hits, the rest pass through.
+      if (edgeTiming) headers['Server-Timing'] = `edge;desc=${revalidate ? 'MISS' : 'HIT'}`
+      res.writeHead(200, headers)
       res.end(body)
     } catch (error) {
       const missing = (error as NodeJS.ErrnoException).code === 'ENOENT'
@@ -60,8 +66,12 @@ export async function startServer(): Promise<TestServer> {
     bumpServiceWorker: () => {
       bump += 1
     },
+    setEdgeTiming: (enabled) => {
+      edgeTiming = enabled
+    },
     reset: () => {
       bump = 0
+      edgeTiming = true
     },
     close: () =>
       new Promise<void>((resolve) => {
