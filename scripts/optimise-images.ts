@@ -1,6 +1,6 @@
 // Regenerates public/images from the PNG masters in assets/source. Run with `npm run images`.
 import { mkdir, rm } from 'node:fs/promises'
-import sharp from 'sharp'
+import sharp, { type Sharp } from 'sharp'
 
 const SOURCE = new URL('../assets/source/', import.meta.url)
 const OUT = new URL('../public/images/', import.meta.url)
@@ -8,7 +8,7 @@ const OUT = new URL('../public/images/', import.meta.url)
 const AVIF = { quality: 52, effort: 6 }
 const WEBP = { quality: 80, effort: 6 }
 
-async function emit(image: sharp.Sharp, name: string, widths: number[]) {
+async function emit(image: Sharp, name: string, widths: number[]) {
   for (const width of widths) {
     const resized = image.clone().resize({ width, withoutEnlargement: true })
     const avif = await resized

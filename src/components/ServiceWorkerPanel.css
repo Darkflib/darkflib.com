@@ -26,6 +26,11 @@
   box-shadow: 0 0 11px #75f7b5;
 }
 
+.status-dot.warn {
+  background: #ff5f8f;
+  box-shadow: 0 0 11px #ff3d7a;
+}
+
 .worker-details {
   margin: 8px 14px 0;
 }

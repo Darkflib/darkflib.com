@@ -1,0 +1,230 @@
+import { useSyncExternalStore } from 'react'
+import { type ClientMessage, isWorkerMessage, type LogLevel } from '../sw/protocol'
+
+const SCRIPT_URL = '/service-worker.js'
+export const LOG_CAPACITY = 200
+const HELLO_TIMEOUT_MS = 3000
+
+type Source = 'page' | 'service-worker'
+
+export interface LogEntry {
+  id: number
+  /** ISO 8601, UTC. */
+  timestamp: string
+  source: Source
+  level: LogLevel
+  event: string
+  detail?: string
+}
+
+export type RegistrationStatus = 'pending' | 'registered' | 'unsupported' | 'failed' | 'disabled'
+
+/** State of the worker in each registration slot. An update installs alongside the active worker, then waits. */
+export interface WorkerSlots {
+  installing: ServiceWorkerState | null
+  waiting: ServiceWorkerState | null
+  active: ServiceWorkerState | null
+}
+
+export interface ServiceWorkerSnapshot {
+  registration: RegistrationStatus
+  slots: WorkerSlots
+  /** Whether `navigator.serviceWorker.controller` is set for this page. */
+  controlled: boolean
+  /** Build reported by the controlling worker, once the handshake completes. */
+  controllerVersion: string | null
+  entries: readonly LogEntry[]
+}
+
+let state: ServiceWorkerSnapshot = {
+  registration: 'pending',
+  slots: { installing: null, waiting: null, active: null },
+  controlled: false,
+  controllerVersion: null,
+  entries: [],
+}
+let nextEntryId = 0
+let nextWorkerId = 0
+let started = false
+const listeners = new Set<() => void>()
+const workerIds = new WeakMap<ServiceWorker, number>()
+const observed = new WeakSet<ServiceWorker>()
+
+function publish(patch: Partial<ServiceWorkerSnapshot>) {
+  state = { ...state, ...patch }
+  for (const listener of listeners) listener()
+}
+
+function log(source: Source, level: LogLevel, event: string, detail?: string, time = Date.now()) {
+  const entry: LogEntry = { id: ++nextEntryId, timestamp: new Date(time).toISOString(), source, level, event, detail }
+  // Keep the buffer in emit order: worker messages can arrive after later page-side events.
+  const entries = [...state.entries]
+  let index = entries.length
+  while (index > 0 && entries[index - 1].timestamp > entry.timestamp) index -= 1
+  entries.splice(index, 0, entry)
+  publish({ entries: entries.slice(-LOG_CAPACITY) })
+}
+
+/** Stable per-object label, so concurrent workers during an update are distinguishable in the log. */
+function label(worker: ServiceWorker): string {
+  let id = workerIds.get(worker)
+  if (id === undefined) {
+    id = ++nextWorkerId
+    workerIds.set(worker, id)
+  }
+  return `worker#${id}`
+}
+
+function syncSlots(registration: ServiceWorkerRegistration) {
+  const slots: WorkerSlots = {
+    installing: registration.installing?.state ?? null,
+    waiting: registration.waiting?.state ?? null,
+    active: registration.active?.state ?? null,
+  }
+  publish({ slots })
+}
+
+function observe(registration: ServiceWorkerRegistration) {
+  for (const [slot, worker] of [
+    ['installing', registration.installing],
+    ['waiting', registration.waiting],
+    ['active', registration.active],
+  ] as const) {
+    if (!worker || observed.has(worker)) continue
+    observed.add(worker)
+    log('page', 'info', 'worker:observed', `${label(worker)} ${slot} (${worker.state})`)
+    worker.addEventListener('statechange', () => {
+      log(
+        'page',
+        worker.state === 'redundant' ? 'warn' : 'info',
+        'worker:statechange',
+        `${label(worker)} → ${worker.state}`,
+      )
+      syncSlots(registration)
+    })
+  }
+  syncSlots(registration)
+}
+
+let handshakeFor: ServiceWorker | null = null
+
+async function hello(controller: ServiceWorker): Promise<string> {
+  const channel = new MessageChannel()
+  try {
+    return await new Promise<string>((resolve, reject) => {
+      const timer = window.setTimeout(
+        () => reject(new Error(`no reply within ${HELLO_TIMEOUT_MS} ms`)),
+        HELLO_TIMEOUT_MS,
+      )
+      channel.port1.onmessage = (event) => {
+        window.clearTimeout(timer)
+        const message: unknown = event.data
+        if (isWorkerMessage(message) && message.type === 'sw:hello:reply') resolve(message.version)
+        else reject(new Error('malformed reply'))
+      }
+      const request: ClientMessage = { type: 'sw:hello' }
+      controller.postMessage(request, [channel.port2])
+    })
+  } finally {
+    channel.port1.close()
+  }
+}
+
+function syncController() {
+  const controller = navigator.serviceWorker.controller
+  log('page', 'info', 'controller', controller ? `controlled by ${label(controller)}` : 'page not controlled')
+  if (controller && handshakeFor === controller) return
+
+  publish({ controlled: controller !== null, controllerVersion: null })
+  if (!controller) return
+  handshakeFor = controller
+  hello(controller).then(
+    (version) => {
+      // Ignore replies from a worker that has since been replaced as controller.
+      if (navigator.serviceWorker.controller !== controller) return
+      publish({ controllerVersion: version })
+      log('page', 'info', 'handshake', `${label(controller)} build ${version}`)
+    },
+    (error: unknown) => {
+      if (handshakeFor === controller) handshakeFor = null
+      log('page', 'warn', 'handshake:failed', error instanceof Error ? error.message : String(error))
+    },
+  )
+}
+
+async function disable() {
+  publish({ registration: 'disabled' })
+  const registrations = await navigator.serviceWorker.getRegistrations()
+  const results = await Promise.all(registrations.map((registration) => registration.unregister()))
+  log('page', 'warn', 'disabled', `?sw=off: unregistered ${results.filter(Boolean).length} of ${registrations.length}`)
+}
+
+async function register() {
+  try {
+    log('page', 'info', 'register:start', SCRIPT_URL)
+    // updateViaCache 'none': update checks always bypass the HTTP cache for the worker script.
+    const registration = await navigator.serviceWorker.register(SCRIPT_URL, { scope: '/', updateViaCache: 'none' })
+    publish({ registration: 'registered' })
+    log('page', 'info', 'register:complete', `scope ${new URL(registration.scope).pathname}`)
+    observe(registration)
+    registration.addEventListener('updatefound', () => {
+      log('page', 'info', 'updatefound')
+      observe(registration)
+    })
+    syncController()
+    const ready = await navigator.serviceWorker.ready
+    log('page', 'info', 'ready', ready.active ? `${label(ready.active)} ${ready.active.state}` : 'no active worker')
+    observe(ready)
+  } catch (error) {
+    publish({ registration: 'failed' })
+    log('page', 'error', 'register:failed', error instanceof Error ? error.message : String(error))
+  }
+}
+
+export function startServiceWorker() {
+  if (started) return
+  started = true
+
+  if (!('serviceWorker' in navigator)) {
+    publish({ registration: 'unsupported' })
+    log('page', 'warn', 'unsupported', 'Service workers are unavailable in this browser.')
+    return
+  }
+
+  const container = navigator.serviceWorker
+  container.addEventListener('controllerchange', () => {
+    log('page', 'info', 'controllerchange')
+    syncController()
+  })
+  container.addEventListener('message', (event: MessageEvent) => {
+    const message: unknown = event.data
+    if (!isWorkerMessage(message) || message.type !== 'sw:log') return
+    const { time, level, event: name, detail } = message.entry
+    log('service-worker', level, name, detail, time)
+  })
+  // addEventListener alone does not start delivery before the document has loaded.
+  container.startMessages()
+
+  if (new URLSearchParams(window.location.search).get('sw') === 'off') {
+    void disable()
+    return
+  }
+
+  // Register after load so installation does not compete with first-paint resources.
+  if (document.readyState === 'complete') void register()
+  else window.addEventListener('load', () => void register(), { once: true })
+}
+
+export function clearServiceWorkerLog() {
+  publish({ entries: [] })
+}
+
+export function useServiceWorker(): ServiceWorkerSnapshot {
+  return useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    },
+    () => state,
+  )
+}

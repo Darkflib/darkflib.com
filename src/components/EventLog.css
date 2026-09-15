@@ -52,6 +52,14 @@
   color: #f68ce4;
 }
 
+.event-panel li.level-warn strong {
+  color: #ffd27a;
+}
+
+.event-panel li.level-error strong {
+  color: #ff6f9a;
+}
+
 .event-panel .empty-log {
   display: block;
 }

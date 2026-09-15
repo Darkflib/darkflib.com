@@ -1,13 +1,52 @@
 # Darkflib
 
-An initial React, Vite, TypeScript, and Tailwind implementation of the cyberpunk personal-page mockup. The original generated mockup is at `public/images/design-reference.png`; separate generated artwork is used for the hero and project cards so page text and controls remain accessible HTML.
+Personal site for the Darkflib persona: a cyberpunk interface backed by real browser telemetry, heading towards a
+client-side Fault Lab (see `docs/conversation.json` for the design discussion and `docs/mockup.png` for the original
+visual). React 19, Vite, and TypeScript; no CSS framework.
 
 ```sh
 npm install
-npm run dev
-npm run build
+npm run dev          # http://127.0.0.1:5173
+npm run build        # typecheck (app, worker, node) + production build to dist/
+npm run preview      # serve dist/
+npm run lint         # Biome lint + format check
+npm run format       # apply Biome fixes
+npm run test:e2e     # build, then Playwright across Chromium, Firefox, and WebKit
+npm run images       # regenerate public/images from assets/source
 ```
 
-The service-worker panel is the first functional milestone from the linked design conversation. It registers `/service-worker.js`, observes lifecycle changes, checks whether the worker controls the current page, and displays a bounded 200-entry in-memory event log. The worker has no `fetch` listener and does not inject faults yet.
+Playwright browsers are a one-off `npx playwright install chromium firefox webkit`.
 
-The three projects and tech-stack items reflect the visual mockup and are concept content. Project dialogs say so explicitly. Contact details and real project links still need confirmed destinations before publication.
+## Layout
+
+| Path                            | What                                                                        |
+| ------------------------------- | --------------------------------------------------------------------------- |
+| `src/components/`               | One component per panel, each with its own CSS file                         |
+| `src/styles/`                   | Reset, self-hosted font faces, and global tokens and primitives             |
+| `src/content.ts`                | Placeholder content from the mockup, pending real material                  |
+| `src/sw/`                       | Service worker entry and the page↔worker message protocol                   |
+| `src/telemetry/`                | Page-side telemetry sources, including the service worker store             |
+| `build/`                        | Vite plugin that bundles the worker; build metadata                         |
+| `tests/e2e/`, `tests/support/`  | Playwright specs and a per-worker static server for `dist/`                 |
+| `assets/source/`                | PNG masters for generated imagery (not shipped)                             |
+
+## Service worker
+
+`src/sw/service-worker.ts` is bundled by `build/serviceWorkerPlugin.ts` with esbuild into a single classic script at
+`/service-worker.js`: a stable URL, with no content hash, outside Vite's module graph. Dev serves a fresh bundle per
+request, so editing the worker exercises the browser's real update flow. The worker reports its build as
+`<sha>[-dirty]+<bundle hash>`; unchanged source produces identical bytes, so rebuilds never cause spurious updates.
+
+Current scope is v0: registration, lifecycle observation, control detection, a `MessageChannel` version handshake,
+and a bounded, emit-ordered event log. There is no `fetch` listener, so nothing is intercepted. There is deliberately
+no `skipWaiting()`: an update waits until no page uses the old worker.
+
+- Registration happens after `load` and in dev as well as production.
+- `?sw=off` unregisters every registration for the origin and skips registering. Use it to clear a stale worker
+  locally.
+- Serve `/service-worker.js` with `Cache-Control: no-cache` in production. The page also registers with
+  `updateViaCache: 'none'`.
+
+`tests/e2e/service-worker.spec.ts` covers first visit (control without reload), reload (no reinstall), update (new
+worker waits, old keeps control, takeover after the last tab closes), multiple tabs, and the kill switch. The test
+server can serve a byte-different worker on demand to drive the update cases.
