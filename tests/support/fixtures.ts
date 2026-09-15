@@ -28,9 +28,19 @@ export const test = base.extend<{ server: TestServer }, { workerServer: TestServ
 
 export interface LogRow {
   source: string
+  tag: string
   event: string
   detail: string
 }
+
+/**
+ * Playwright's patched Firefox leaves a page uncontrolled when a navigation goes through a service worker whose fetch
+ * listener does not call respondWith. Real Firefox (Developer Edition 156) keeps it controlled, as the spec requires:
+ * checked with puppeteer-core against this test server, including the navigation's observed-request row. Tests that
+ * need a worker-routed navigation to leave the page controlled skip that project with this reason.
+ */
+export const FIREFOX_PASSIVE_NAVIGATION =
+  "Playwright's Firefox leaves pages uncontrolled after a navigation the worker observes without responding; real Firefox does not"
 
 export async function openEventLog(page: Page) {
   const toggle = page.getByRole('button', { name: /EVENT LOG/ })
@@ -44,6 +54,7 @@ export async function readEventLog(page: Page): Promise<LogRow[]> {
     .evaluateAll((items) =>
       items.map((item) => ({
         source: item.querySelector('span')?.textContent ?? '',
+        tag: (item as HTMLElement).dataset.tag ?? '',
         event: item.querySelector('strong')?.textContent ?? '',
         detail: item.querySelector('em')?.textContent ?? '',
       })),

@@ -65,11 +65,23 @@ Timing. The slogan on the right is just decoration.
 request, so editing the worker exercises the browser's real update flow. The worker reports its build as
 `<sha>[-dirty]+<bundle hash>`; unchanged source produces identical bytes, so rebuilds never cause spurious updates.
 
-Current scope is v0: registration, lifecycle observation, control detection, a `MessageChannel` version handshake,
-and a bounded, emit-ordered event log. There is no `fetch` listener, so nothing is intercepted. There is deliberately
-no `skipWaiting()`: an update waits until no page uses the old worker.
+Current scope: registration, lifecycle observation, control detection, a `MessageChannel` version handshake, and a
+**passive fetch observer**, all feeding one bounded, emit-ordered event log. There is deliberately no `skipWaiting()`:
+an update waits until no page uses the old worker.
 
-- Registration happens after `load` and in dev as well as production.
+The fetch listener never calls `respondWith`, so the browser performs every request exactly as it would without the
+worker; responses, Resource Timing, and the strip's `EDGE` and latency bars are unaffected. It records method, URL,
+destination, and mode, batches them for 50 ms, and delivers each batch only to the tab that made the requests. A
+page load's own row waits in the worker until its new page exists. Status and timings come from the page's Resource
+Timing rather than the worker.
+
+- A fetch listener routes every page load through the worker. When the worker is already running the cost measured
+  sub-millisecond locally; a worker woken from idle costs more. The strip's `TTFB` tooltip shows the startup time
+  (`fetchStart - workerStart`) for each visit, so it is measured on real page loads rather than assumed.
+- Log rows are tagged `LIFECYCLE`, `CONTROL`, or `FETCH`, and each tag can be hidden (remembered per browser). When
+  the log is full, request rows are dropped before lifecycle and control history.
+- `startServiceWorker()` runs at module load in `main.tsx`, so the message listener exists before the page's message
+  queue opens; registration still waits for `load`, and happens in dev as well as production.
 - `?sw=off` unregisters every registration for the origin and skips registering. Use it to clear a stale worker
   locally.
 - Serve `/service-worker.js` with `Cache-Control: no-cache` in production. The page also registers with
@@ -77,4 +89,10 @@ no `skipWaiting()`: an update waits until no page uses the old worker.
 
 `tests/e2e/service-worker.spec.ts` covers first visit (control without reload), reload (no reinstall), update (new
 worker waits, old keeps control, takeover after the last tab closes), multiple tabs, and the kill switch. The test
-server can serve a byte-different worker on demand to drive the update cases.
+server can serve a byte-different worker on demand to drive the update cases. `tests/e2e/fetch-observer.spec.ts`
+covers passivity (the network answers), the page-load row, per-tab delivery, tag filtering, and eviction order.
+
+Playwright's patched Firefox leaves a page uncontrolled after a navigation that the worker observes without
+responding; real Firefox keeps it controlled, as the spec requires (checked against Developer Edition with
+puppeteer-core). Tests that depend on a worker-routed navigation therefore skip the Firefox project; the rest,
+including first-visit observation, run in all three engines.

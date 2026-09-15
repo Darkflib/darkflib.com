@@ -1,4 +1,12 @@
-import { checkForUpdate, expect, expectControlled, openEventLog, readEventLog, test } from '../support/fixtures.ts'
+import {
+  checkForUpdate,
+  expect,
+  expectControlled,
+  FIREFOX_PASSIVE_NAVIGATION,
+  openEventLog,
+  readEventLog,
+  test,
+} from '../support/fixtures.ts'
 
 test.describe('service worker lifecycle', () => {
   test('first visit registers, activates, and takes control without a reload', async ({ page }) => {
@@ -22,7 +30,9 @@ test.describe('service worker lifecycle', () => {
       )
   })
 
-  test('reload is controlled from the start and does not reinstall', async ({ page }) => {
+  test('reload is controlled from the start and does not reinstall', async ({ page, browserName }) => {
+    test.skip(browserName === 'firefox', FIREFOX_PASSIVE_NAVIGATION)
+
     await page.goto('/')
     await expectControlled(page)
     const build = await page.getByTestId('sw-build').textContent()
@@ -43,7 +53,10 @@ test.describe('service worker lifecycle', () => {
     page,
     context,
     server,
+    browserName,
   }) => {
+    test.skip(browserName === 'firefox', FIREFOX_PASSIVE_NAVIGATION)
+
     await page.goto('/')
     await expectControlled(page)
     const original = (await page.getByTestId('sw-build').textContent()) ?? ''
@@ -71,7 +84,10 @@ test.describe('service worker lifecycle', () => {
     page,
     context,
     server,
+    browserName,
   }) => {
+    test.skip(browserName === 'firefox', FIREFOX_PASSIVE_NAVIGATION)
+
     await page.goto('/')
     await expectControlled(page)
 

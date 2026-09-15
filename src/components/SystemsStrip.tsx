@@ -78,7 +78,15 @@ export function SystemsStrip() {
       <div className="strip-wide" data-testid="strip-edge" title={`Edge cache: ${edge.detail}`}>
         EDGE: {edge.label}
       </div>
-      <div className="strip-medium" data-testid="strip-ttfb" title="Time to first byte for this document">
+      <div
+        className="strip-medium"
+        data-testid="strip-ttfb"
+        title={`Time to first byte for this document; ${
+          navigation.workerStartupMs === null
+            ? 'not routed through a service worker'
+            : `via service worker, startup ${navigation.workerStartupMs} ms`
+        }`}
+      >
         TTFB: {navigation.ttfbMs === null ? '—' : `${navigation.ttfbMs} MS`}
         {navigation.fromCache ? ' (CACHE)' : ''}
       </div>

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { type ClientMessage, isWorkerMessage, type LogLevel } from '../sw/protocol'
+import { type ClientMessage, isWorkerMessage, type LogLevel, type ObservedRequest } from '../sw/protocol'
 
 const SCRIPT_URL = '/service-worker.js'
 export const LOG_CAPACITY = 200
@@ -7,11 +7,16 @@ const HELLO_TIMEOUT_MS = 3000
 
 type Source = 'page' | 'service-worker'
 
+/** What a log line is about, so the log can hide categories. */
+export type LogTag = 'lifecycle' | 'control' | 'fetch'
+export const LOG_TAGS: readonly LogTag[] = ['lifecycle', 'control', 'fetch']
+
 export interface LogEntry {
   id: number
   /** ISO 8601, UTC. */
   timestamp: string
   source: Source
+  tag: LogTag
   level: LogLevel
   event: string
   detail?: string
@@ -55,14 +60,35 @@ function publish(patch: Partial<ServiceWorkerSnapshot>) {
   for (const listener of listeners) listener()
 }
 
-function log(source: Source, level: LogLevel, event: string, detail?: string, time = Date.now()) {
-  const entry: LogEntry = { id: ++nextEntryId, timestamp: new Date(time).toISOString(), source, level, event, detail }
-  // Keep the buffer in emit order: worker messages can arrive after later page-side events.
+type NewEntry = Omit<LogEntry, 'id' | 'timestamp'> & { time?: number }
+
+function append(batch: readonly NewEntry[]) {
   const entries = [...state.entries]
-  let index = entries.length
-  while (index > 0 && entries[index - 1].timestamp > entry.timestamp) index -= 1
-  entries.splice(index, 0, entry)
-  publish({ entries: entries.slice(-LOG_CAPACITY) })
+  for (const { time = Date.now(), ...fields } of batch) {
+    const entry: LogEntry = { id: ++nextEntryId, timestamp: new Date(time).toISOString(), ...fields }
+    // Keep the buffer in emit order: worker messages can arrive after later page-side events.
+    let index = entries.length
+    while (index > 0 && entries[index - 1].timestamp > entry.timestamp) index -= 1
+    entries.splice(index, 0, entry)
+  }
+  // Over capacity, drop the oldest request rows first: a busy page must not push lifecycle history out of the log.
+  while (entries.length > LOG_CAPACITY) {
+    const oldestFetch = entries.findIndex((entry) => entry.tag === 'fetch')
+    entries.splice(oldestFetch === -1 ? 0 : oldestFetch, 1)
+  }
+  publish({ entries })
+}
+
+function log(tag: LogTag, source: Source, level: LogLevel, event: string, detail?: string, time?: number) {
+  append([{ tag, source, level, event, detail, time }])
+}
+
+function describeRequest(request: ObservedRequest): string {
+  const url = new URL(request.url)
+  const where =
+    url.origin === window.location.origin ? `${url.pathname}${url.search}` : `${url.host}${url.pathname}${url.search}`
+  const kind = request.mode === 'navigate' ? 'navigate' : request.destination || 'fetch'
+  return `${request.method} ${where} · ${kind}`
 }
 
 /** Stable per-object label, so concurrent workers during an update are distinguishable in the log. */
@@ -92,9 +118,10 @@ function observe(registration: ServiceWorkerRegistration) {
   ] as const) {
     if (!worker || observed.has(worker)) continue
     observed.add(worker)
-    log('page', 'info', 'worker:observed', `${label(worker)} ${slot} (${worker.state})`)
+    log('lifecycle', 'page', 'info', 'worker:observed', `${label(worker)} ${slot} (${worker.state})`)
     worker.addEventListener('statechange', () => {
       log(
+        'lifecycle',
         'page',
         worker.state === 'redundant' ? 'warn' : 'info',
         'worker:statechange',
@@ -132,7 +159,13 @@ async function hello(controller: ServiceWorker): Promise<string> {
 
 function syncController() {
   const controller = navigator.serviceWorker.controller
-  log('page', 'info', 'controller', controller ? `controlled by ${label(controller)}` : 'page not controlled')
+  log(
+    'control',
+    'page',
+    'info',
+    'controller',
+    controller ? `controlled by ${label(controller)}` : 'page not controlled',
+  )
   if (controller && handshakeFor === controller) return
 
   publish({ controlled: controller !== null, controllerVersion: null })
@@ -143,11 +176,11 @@ function syncController() {
       // Ignore replies from a worker that has since been replaced as controller.
       if (navigator.serviceWorker.controller !== controller) return
       publish({ controllerVersion: version })
-      log('page', 'info', 'handshake', `${label(controller)} build ${version}`)
+      log('control', 'page', 'info', 'handshake', `${label(controller)} build ${version}`)
     },
     (error: unknown) => {
       if (handshakeFor === controller) handshakeFor = null
-      log('page', 'warn', 'handshake:failed', error instanceof Error ? error.message : String(error))
+      log('control', 'page', 'warn', 'handshake:failed', error instanceof Error ? error.message : String(error))
     },
   )
 }
@@ -156,28 +189,40 @@ async function disable() {
   publish({ registration: 'disabled' })
   const registrations = await navigator.serviceWorker.getRegistrations()
   const results = await Promise.all(registrations.map((registration) => registration.unregister()))
-  log('page', 'warn', 'disabled', `?sw=off: unregistered ${results.filter(Boolean).length} of ${registrations.length}`)
+  log(
+    'lifecycle',
+    'page',
+    'warn',
+    'disabled',
+    `?sw=off: unregistered ${results.filter(Boolean).length} of ${registrations.length}`,
+  )
 }
 
 async function register() {
   try {
-    log('page', 'info', 'register:start', SCRIPT_URL)
+    log('lifecycle', 'page', 'info', 'register:start', SCRIPT_URL)
     // updateViaCache 'none': update checks always bypass the HTTP cache for the worker script.
     const registration = await navigator.serviceWorker.register(SCRIPT_URL, { scope: '/', updateViaCache: 'none' })
     publish({ registration: 'registered' })
-    log('page', 'info', 'register:complete', `scope ${new URL(registration.scope).pathname}`)
+    log('lifecycle', 'page', 'info', 'register:complete', `scope ${new URL(registration.scope).pathname}`)
     observe(registration)
     registration.addEventListener('updatefound', () => {
-      log('page', 'info', 'updatefound')
+      log('lifecycle', 'page', 'info', 'updatefound')
       observe(registration)
     })
     syncController()
     const ready = await navigator.serviceWorker.ready
-    log('page', 'info', 'ready', ready.active ? `${label(ready.active)} ${ready.active.state}` : 'no active worker')
+    log(
+      'lifecycle',
+      'page',
+      'info',
+      'ready',
+      ready.active ? `${label(ready.active)} ${ready.active.state}` : 'no active worker',
+    )
     observe(ready)
   } catch (error) {
     publish({ registration: 'failed' })
-    log('page', 'error', 'register:failed', error instanceof Error ? error.message : String(error))
+    log('lifecycle', 'page', 'error', 'register:failed', error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -187,22 +232,36 @@ export function startServiceWorker() {
 
   if (!('serviceWorker' in navigator)) {
     publish({ registration: 'unsupported' })
-    log('page', 'warn', 'unsupported', 'Service workers are unavailable in this browser.')
+    log('lifecycle', 'page', 'warn', 'unsupported', 'Service workers are unavailable in this browser.')
     return
   }
 
   const container = navigator.serviceWorker
   container.addEventListener('controllerchange', () => {
-    log('page', 'info', 'controllerchange')
+    log('control', 'page', 'info', 'controllerchange')
     syncController()
   })
   container.addEventListener('message', (event: MessageEvent) => {
     const message: unknown = event.data
-    if (!isWorkerMessage(message) || message.type !== 'sw:log') return
-    const { time, level, event: name, detail } = message.entry
-    log('service-worker', level, name, detail, time)
+    if (!isWorkerMessage(message)) return
+    if (message.type === 'sw:log') {
+      const { time, level, event: name, detail } = message.entry
+      log('lifecycle', 'service-worker', level, name, detail, time)
+    } else if (message.type === 'sw:requests') {
+      append(
+        message.requests.map((request) => ({
+          tag: 'fetch' as const,
+          source: 'service-worker' as const,
+          level: 'info' as const,
+          event: 'fetch',
+          detail: describeRequest(request),
+          time: request.time,
+        })),
+      )
+    }
   })
-  // addEventListener alone does not start delivery before the document has loaded.
+  // addEventListener alone does not start delivery before the document has loaded. Call this as early as possible
+  // (main.tsx does, at module load): once the queue opens, a message with no listener yet is simply dropped.
   container.startMessages()
 
   if (new URLSearchParams(window.location.search).get('sw') === 'off') {

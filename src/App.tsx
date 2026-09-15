@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ConnectPanel } from './components/ConnectPanel'
 import { EventLog } from './components/EventLog'
 import { Footer } from './components/Footer'
@@ -10,14 +10,11 @@ import { StackPanel } from './components/StackPanel'
 import { SystemsStrip } from './components/SystemsStrip'
 import { Topbar } from './components/Topbar'
 import type { Project } from './content'
-import { startServiceWorker } from './telemetry/serviceWorker'
 import './App.css'
 
 export function App() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [logOpen, setLogOpen] = useState(false)
-
-  useEffect(() => startServiceWorker(), [])
 
   return (
     <div className="site-shell" id="home">

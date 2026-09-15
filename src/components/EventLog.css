@@ -10,12 +10,34 @@
   margin-left: 8px;
 }
 
+.log-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .event-panel .panel-header button {
   border: 0;
   background: none;
   color: #f397e5;
   font-size: 9px;
   letter-spacing: 0.08em;
+}
+
+.event-panel .panel-header .tag-toggle {
+  border: 1px solid #3c5b73;
+  padding: 2px 6px;
+  color: #6d8aa3;
+}
+
+.event-panel .panel-header .tag-toggle[aria-pressed="true"] {
+  border-color: #6fb8d6;
+  background: #0f2437;
+  color: #bfe9fb;
+}
+
+.event-panel .panel-header .log-clear {
+  margin-left: 6px;
 }
 
 .event-panel ol {
@@ -28,7 +50,7 @@
 
 .event-panel li {
   display: grid;
-  grid-template-columns: 115px 65px minmax(130px, 0.45fr) 1fr;
+  grid-template-columns: 115px 65px 72px minmax(130px, 0.45fr) 1fr;
   gap: 9px;
   align-items: start;
   padding: 4px 0;
@@ -50,6 +72,20 @@
 
 .event-panel li .sw-source {
   color: #f68ce4;
+}
+
+.event-panel li .tag {
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  color: #7fa3bd;
+}
+
+.event-panel li .tag-fetch {
+  color: #6fe0c2;
+}
+
+.event-panel li .tag-control {
+  color: #c9a8ff;
 }
 
 .event-panel li.level-warn strong {
@@ -85,7 +121,16 @@
     font-size: 9px;
   }
 
+  .event-panel li .tag {
+    display: none;
+  }
+
   .event-panel li em {
     grid-column: 3;
+  }
+
+  .log-controls {
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 }
