@@ -20,7 +20,7 @@ the CSP and cache policy always ship with the code they describe.
 | `darkflib.dev`, `www.darkflib.dev`  | 302 to `https://darkflib.com`, until the Fault Lab uses them |
 | any other `*.darkflib.com` / `.dev` | 404 (reserved for Fault Lab origins)                         |
 
-Host port 8082 comes from `~/dev/backend-port-allocation.md`.
+Host port 8082 comes from `~/dev/backend-allocations.md`.
 
 ## Files
 
