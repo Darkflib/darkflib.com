@@ -4,14 +4,27 @@
   z-index: 2;
 }
 
-.lab-badge {
-  margin-left: 10px;
-  padding: 2px 6px;
-  border: 1px solid #ff48ea;
+/* A status label, not a control: no box, so it cannot be mistaken for the RESET LAB button beside it. */
+.panel-header .lab-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 12px;
   color: #ff8df0;
-  font-size: 8px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 400;
   letter-spacing: 0.12em;
   vertical-align: middle;
+}
+
+.panel-header .lab-badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff48ea;
+  box-shadow: 0 0 8px #ff48ea;
 }
 
 .fault-lab .panel-header .lab-reset {
