@@ -1,7 +1,7 @@
 import { ArrowRight, ArrowUpRight } from 'lucide-react'
-import { type Project, projects } from '../content'
+import { PROJECTS_URL, type Project, projectNumber, projects } from '../content'
 import { PanelHeader } from './PanelHeader'
-import { ResponsiveImage } from './ResponsiveImage'
+import { ProjectImage } from './ProjectImage'
 import { TagList } from './TagList'
 import './ProjectsPanel.css'
 
@@ -9,40 +9,36 @@ export function ProjectsPanel({ onSelect }: { onSelect: (project: Project) => vo
   return (
     <section className="panel projects-panel" id="projects" aria-labelledby="projects-title">
       <PanelHeader id="projects-title" title="FEATURED_PROJECTS">
-        <span className="panel-link">
-          SELECTED CONCEPTS <ArrowRight size={14} />
-        </span>
+        <a className="panel-link" href={PROJECTS_URL}>
+          ALL PROJECTS <ArrowRight size={14} />
+        </a>
       </PanelHeader>
-      <div className="project-grid">
+      {/* A scrolling row: three cards in view, the next one peeking so the overflow is discoverable. */}
+      <ul className="project-grid">
         {projects.map((project) => (
-          <button
-            type="button"
-            className="project-card"
-            key={project.number}
-            onClick={() => onSelect(project)}
-            aria-label={`Explore ${project.name}`}
-          >
-            <span className="project-image">
-              <ResponsiveImage
-                base={`projects/${project.image}`}
-                widths={[400, 682]}
-                sizes="(max-width: 560px) 40vw, (max-width: 800px) 31vw, 18vw"
-                width={682}
-                height={768}
-              />
-              <span className="project-number">{project.number}</span>
-            </span>
-            <span className="project-content">
-              <span className="project-heading">
-                {project.name}
-                <ArrowUpRight size={23} strokeWidth={1.4} />
+          <li key={project.slug}>
+            <button
+              type="button"
+              className="project-card"
+              onClick={() => onSelect(project)}
+              aria-label={`Explore ${project.name}`}
+            >
+              <span className="project-image">
+                <ProjectImage project={project} sizes="(max-width: 560px) 40vw, (max-width: 800px) 31vw, 18vw" />
+                <span className="project-number">{projectNumber(project)}</span>
               </span>
-              <span className="project-description">{project.description}</span>
-              <TagList tags={project.tags} />
-            </span>
-          </button>
+              <span className="project-content">
+                <span className="project-heading">
+                  {project.name}
+                  <ArrowUpRight size={23} strokeWidth={1.4} />
+                </span>
+                <span className="project-description">{project.description}</span>
+                <TagList tags={project.tags} />
+              </span>
+            </button>
+          </li>
         ))}
-      </div>
+      </ul>
     </section>
   )
 }

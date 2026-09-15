@@ -4,8 +4,8 @@ test('project dialog opens from a card and closes via Escape, backdrop, and butt
   page,
 }) => {
   await page.goto('/')
-  const card = page.getByRole('button', { name: 'Explore ECHO' })
-  const dialog = page.getByRole('dialog', { name: 'ECHO' })
+  const card = page.getByRole('button', { name: 'Explore ORBIT', exact: true })
+  const dialog = page.getByRole('dialog', { name: 'ORBIT', exact: true })
 
   // Keyboard path: macOS WebKit does not focus buttons on click, so focus restore is only meaningful from the keyboard.
   await card.focus()
@@ -29,6 +29,6 @@ test('project dialog opens from a card and closes via Escape, backdrop, and butt
 
   // Clicks inside the dialog must not dismiss it.
   await card.click()
-  await dialog.getByRole('heading', { name: 'ECHO' }).click()
+  await dialog.getByRole('heading', { name: 'ORBIT', exact: true }).click()
   await expect(dialog).toBeVisible()
 })

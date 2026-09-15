@@ -1,13 +1,28 @@
 .project-grid {
+  list-style: none;
+  margin: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-flow: column;
+  /* Three cards and a sliver of the fourth, so the row reads as scrollable. */
+  grid-auto-columns: calc((100% - 30px) / 3.25);
   gap: 10px;
-  padding: 2px 12px 12px;
+  padding: 6px 12px 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #537a9a transparent;
+}
+
+.project-grid > li {
+  display: flex;
+  scroll-snap-align: start;
 }
 
 .project-card {
   display: flex;
   flex-direction: column;
+  width: 100%;
   padding: 0;
   text-align: left;
   color: inherit;
@@ -44,6 +59,35 @@
 
 .project-image img {
   object-fit: cover;
+}
+
+.project-glyph {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  height: 100%;
+  padding: 0 16px;
+  background:
+    repeating-linear-gradient(to bottom, #ffffff05 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at 30% 40%, #1b3a5a, #060b16 75%);
+  color: #9fd6ef;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.project-glyph b {
+  color: #ff8df0;
+  font-weight: 400;
+}
+
+.project-glyph i {
+  color: #ffd27a;
+  font-style: normal;
+}
+
+.project-glyph .cursor {
+  animation: blink 1.2s step-end infinite;
 }
 
 .project-number {
@@ -108,7 +152,9 @@
 
 @media (max-width: 560px) {
   .project-grid {
-    grid-template-columns: 1fr;
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    overflow-x: visible;
     gap: 10px;
   }
 
@@ -129,6 +175,12 @@
     padding: 12px;
   }
 
+  .project-glyph {
+    justify-content: flex-end;
+    padding: 0 10px 10px;
+    font-size: 9px;
+  }
+
   .project-heading {
     font-size: 18px;
   }
@@ -137,5 +189,9 @@
 @media (prefers-reduced-motion: reduce) {
   .project-card {
     transition: none;
+  }
+
+  .project-glyph .cursor {
+    animation: none;
   }
 }

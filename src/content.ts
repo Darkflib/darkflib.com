@@ -1,5 +1,3 @@
-// Placeholder content carried over from the mockup. Replaced with real material in a later phase.
-
 export const nav = [
   { label: 'HOME', href: '#home' },
   { label: 'ABOUT', href: '#about' },
@@ -8,31 +6,75 @@ export const nav = [
   { label: 'CONTACT', href: '#contact' },
 ] as const
 
-export const projects = [
-  {
-    number: '01',
-    name: 'NEON DISTRICT',
-    description: 'A visual storytelling experience',
-    tags: ['WEB', 'CREATIVE', 'EXPERIMENTAL'],
-    image: 'neon-district',
-  },
-  {
-    number: '02',
-    name: 'ECHO',
-    description: 'AI-powered creative tools',
-    tags: ['AI', 'PRODUCT', 'WEB'],
-    image: 'echo',
-  },
-  {
-    number: '03',
-    name: 'HORIZON',
-    description: 'A minimal theme for modern creators',
-    tags: ['WEB', 'UI/UX', 'OPEN SOURCE'],
-    image: 'horizon',
-  },
-] as const
+export interface Project {
+  slug: string
+  name: string
+  /** One line, shown on the card. */
+  description: string
+  /** A few sentences, shown in the dialog. */
+  summary: string
+  tags: readonly string[]
+  /** Square screenshot under /images/projects, or null for a project with nothing public to show. */
+  image: string | null
+  links: { live?: string; source?: string }
+}
 
-export type Project = (typeof projects)[number]
+export const PROJECTS_URL = 'https://mikepreston.org/projects'
+
+export const projects: readonly Project[] = [
+  {
+    slug: 'orbit',
+    name: 'ORBIT',
+    description: 'Real-time satellite tracking in the browser',
+    summary:
+      'Tracks thirteen thousand satellites on a live globe: Starlink, GNSS, geostationary, and the rest, with re-entry and sky views. Runs entirely client-side from published orbital data.',
+    tags: ['WEB', 'SPACE', 'OPEN SOURCE'],
+    image: 'orbit',
+    links: { live: 'https://darkflib.github.io/orbit/', source: 'https://github.com/Darkflib/orbit' },
+  },
+  {
+    slug: 'orbit-data',
+    name: 'ORBIT DATA',
+    description: 'The data layer behind Orbit',
+    summary:
+      "Fetches CelesTrak's orbital elements within its usage policy, validates them, and publishes a static, cached copy with last-known-good fallback, so Orbit users add no load upstream. Scheduled updaters on Podman Quadlets.",
+    tags: ['PYTHON', 'DATA', 'PODMAN'],
+    image: 'orbit-data',
+    links: { live: 'https://orbit-data.mikepreston.org/', source: 'https://github.com/Darkflib/orbit-data' },
+  },
+  {
+    slug: 'radio-browser',
+    name: 'RADIO BROWSER',
+    description: 'Live internet radio on a 3D globe',
+    summary:
+      'Thousands of stations from radio-browser.info on an interactive vector globe, filtered down to healthy HTTPS streams and played straight in the browser. Vanilla JavaScript, no framework.',
+    tags: ['WEB', 'AUDIO', 'VANILLA JS'],
+    image: 'radio-browser',
+    links: { live: 'https://darkflib.github.io/radio-browser/', source: 'https://github.com/Darkflib/radio-browser' },
+  },
+  {
+    slug: 'sre-tab',
+    name: 'SRE-TAB',
+    description: 'Self-hosted developer news dashboard',
+    summary:
+      'Curated RSS and Atom feeds in one filtered stream, with topics, bookmarks, and read state kept on a server you run. Sign-in is GitHub OAuth against an allow-list, and nothing phones home.',
+    tags: ['FASTAPI', 'REACT', 'SELF-HOSTED'],
+    image: 'sre-tab',
+    links: { live: 'https://sretab.mikepreston.org', source: 'https://github.com/Darkflib/sre-tab' },
+  },
+  {
+    slug: 'idea-tab',
+    name: 'IDEA-TAB',
+    description: 'Writing prompts from a day of news',
+    summary:
+      "Turns a day of sre-tab's feed into ranked, sourced article ideas. Runs are append-only and replayable: the candidate set is an input, so a day can be re-synthesised with a different prompt and the two compared.",
+    tags: ['PYTHON', 'LLM', 'POSTGRES'],
+    image: null,
+    links: {},
+  },
+]
+
+export const projectNumber = (project: Project) => String(projects.indexOf(project) + 1).padStart(2, '0')
 
 export const stack = [
   { mark: '⚛', name: 'React', color: 'cyan' },

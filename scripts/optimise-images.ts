@@ -1,5 +1,5 @@
 // Regenerates public/images from the PNG masters in assets/source. Run with `npm run images`.
-import { mkdir, rm } from 'node:fs/promises'
+import { mkdir, readdir, rm } from 'node:fs/promises'
 import sharp, { type Sharp } from 'sharp'
 
 const SOURCE = new URL('../assets/source/', import.meta.url)
@@ -30,16 +30,7 @@ await mkdir(new URL('projects/', OUT), { recursive: true })
 
 await emit(sharp(new URL('hero-city.png', SOURCE).pathname), 'hero-city', [800, 1280, 1672])
 
-// The triptych is three equal-width panels, one per placeholder project.
-const triptych = sharp(new URL('projects-triptych.png', SOURCE).pathname)
-const { width = 0, height = 0 } = await triptych.metadata()
-const panelWidth = Math.floor(width / 3)
-for (const [index, slug] of ['neon-district', 'echo', 'horizon'].entries()) {
-  const panel = sharp(
-    await triptych
-      .clone()
-      .extract({ left: index * panelWidth, top: 0, width: panelWidth, height })
-      .toBuffer(),
-  )
-  await emit(panel, `projects/${slug}`, [400, panelWidth])
+// Project cards: square masters cropped from screenshots of each project.
+for (const file of (await readdir(new URL('projects/', SOURCE))).filter((name) => name.endsWith('.png'))) {
+  await emit(sharp(new URL(`projects/${file}`, SOURCE).pathname), `projects/${file.replace(/\.png$/, '')}`, [400, 800])
 }

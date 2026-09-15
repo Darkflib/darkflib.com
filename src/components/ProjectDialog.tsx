@@ -1,7 +1,7 @@
-import { Check, X } from 'lucide-react'
+import { ArrowUpRight, Check, X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
-import type { Project } from '../content'
-import { ResponsiveImage } from './ResponsiveImage'
+import { type Project, projectNumber } from '../content'
+import { ProjectImage } from './ProjectImage'
 import { TagList } from './TagList'
 import './ProjectDialog.css'
 
@@ -41,24 +41,30 @@ export function ProjectDialog({ project, onClose }: ProjectDialogProps) {
             <X size={20} />
           </button>
           <div className="modal-image project-image">
-            <ResponsiveImage
-              base={`projects/${project.image}`}
-              widths={[400, 682]}
-              sizes="(max-width: 560px) 100vw, 351px"
-              width={682}
-              height={768}
-            />
+            <ProjectImage project={project} sizes="(max-width: 560px) 100vw, 351px" />
           </div>
           <div className="modal-copy">
-            <span>CONCEPT / {project.number}</span>
+            <span>PROJECT / {projectNumber(project)}</span>
             <h2 id="project-dialog-title">{project.name}</h2>
-            <p>
-              {project.description}. This visual concept is part of the Darkflib interface study; project details and
-              live links will be added as the site takes shape.
-            </p>
+            <p>{project.summary}</p>
             <TagList tags={project.tags} />
-            <button type="button" className="button-secondary" onClick={close}>
-              RETURN TO PROJECTS <Check size={16} />
+            <div className="modal-links">
+              {project.links.live && (
+                <a className="button-primary" href={project.links.live}>
+                  OPEN <ArrowUpRight size={16} />
+                </a>
+              )}
+              {project.links.source && (
+                <a className="button-secondary" href={project.links.source}>
+                  SOURCE <ArrowUpRight size={16} />
+                </a>
+              )}
+              {!project.links.live && !project.links.source && (
+                <span className="modal-private">PRIVATE: NO PUBLIC BUILD OR SOURCE YET</span>
+              )}
+            </div>
+            <button type="button" className="modal-return" onClick={close}>
+              RETURN TO PROJECTS <Check size={14} />
             </button>
           </div>
         </>

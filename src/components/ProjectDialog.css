@@ -63,6 +63,37 @@ dialog.project-dialog[open] {
   margin: 0 0 22px;
 }
 
+.modal-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.modal-private {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: #ffd27a;
+}
+
+.modal-return {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: #a6b8da;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.modal-return:hover {
+  color: #fff;
+}
+
 .modal-close {
   position: absolute;
   right: 12px;
