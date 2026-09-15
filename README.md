@@ -13,6 +13,7 @@ npm run lint         # Biome lint + format check
 npm run format       # apply Biome fixes
 npm run test:e2e     # build, then Playwright across Chromium, Firefox, and WebKit
 npm run images       # regenerate public/images from assets/source
+npm run fonts        # rebuild the Rajdhani files with corrected glyph bounding boxes (needs uv)
 ```
 
 Playwright browsers are a one-off `npx playwright install chromium firefox webkit`.
@@ -32,12 +33,12 @@ docker rm -f darkflib-smoke
 | ------------------------------- | --------------------------------------------------------------------------- |
 | `src/components/`               | One component per panel, each with its own CSS file                         |
 | `src/styles/`                   | Reset, self-hosted font faces, and global tokens and primitives             |
-| `src/content.ts`                | Placeholder content from the mockup, pending real material                  |
+| `src/content.ts`                | Projects, featured posts and tools (linking to mikepreston.org), tech stack  |
 | `src/sw/`                       | Service worker entry and the page↔worker message protocol                   |
 | `src/telemetry/`                | Page-side telemetry sources, including the service worker store             |
 | `build/`                        | Vite plugin that bundles the worker; build metadata                         |
 | `tests/e2e/`, `tests/support/`  | Playwright specs and a per-worker static server for `dist/`                 |
-| `assets/source/`                | PNG masters for generated imagery (not shipped)                             |
+| `assets/source/`                | PNG masters for generated imagery (not shipped); `projects/` are square screenshot crops |
 | `Containerfile`, `deploy/`      | Production image (Caddy + site), Quadlets, nginx vhost, scripts: see `deploy/README.md` |
 | `tests/deploy/`                 | Browser check against the production image under its real headers          |
 
