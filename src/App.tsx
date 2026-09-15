@@ -5,11 +5,13 @@ import { EventLog } from './components/EventLog'
 import { FaultLab } from './components/FaultLab'
 import { Footer } from './components/Footer'
 import { Hero } from './components/Hero'
+import { PostsPanel } from './components/PostsPanel'
 import { ProjectDialog } from './components/ProjectDialog'
 import { ProjectsPanel } from './components/ProjectsPanel'
 import { ServiceWorkerPanel } from './components/ServiceWorkerPanel'
 import { StackPanel } from './components/StackPanel'
 import { SystemsStrip } from './components/SystemsStrip'
+import { ToolsPanel } from './components/ToolsPanel'
 import { Topbar } from './components/Topbar'
 import type { Project } from './content'
 import './App.css'
@@ -58,6 +60,10 @@ export function App() {
             <ServiceWorkerPanel />
             <ControlsPanel labOpen={labOpen} onToggleLab={toggleLab} logOpen={logOpen} onToggleLog={toggleLog} />
           </div>
+        </div>
+        <div className="writing-grid">
+          <PostsPanel />
+          <ToolsPanel />
         </div>
         <FaultLab open={labOpen} onToggle={toggleLab} />
         {logOpen && <EventLog />}

@@ -18,9 +18,31 @@
   flex: 1;
 }
 
+/* Same columns as the dashboard, so the posts span PROJECTS and TECH_STACK and the tools line up under the side column. */
+.writing-grid {
+  display: grid;
+  grid-template-columns: 2.18fr 0.91fr 0.96fr;
+  gap: 10px;
+  padding: 0 1.25% 14px;
+  position: relative;
+  z-index: 2;
+}
+
+.writing-grid .posts-panel {
+  grid-column: span 2;
+}
+
 @media (max-width: 1280px) {
   .dashboard-grid {
     grid-template-columns: 2fr 0.96fr;
+  }
+
+  .writing-grid {
+    grid-template-columns: 2fr 0.96fr;
+  }
+
+  .writing-grid .posts-panel {
+    grid-column: auto;
   }
 
   .side-column {
@@ -35,6 +57,11 @@
     display: flex;
     flex-direction: column;
     padding: 10px 3%;
+  }
+
+  .writing-grid {
+    grid-template-columns: 1fr;
+    padding: 0 3% 14px;
   }
 }
 
