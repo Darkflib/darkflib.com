@@ -19,7 +19,9 @@ openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=darkflib.com" \
     -keyout "$prefix/certs/privkey.pem" -out "$prefix/certs/fullchain.pem" 2>/dev/null
 printf 'ssl_protocols TLSv1.2 TLSv1.3;\n' > "$prefix/conf/tls-snippet.conf"
 
-sed -e "s#/var/cache/nginx/darkflib#$prefix/cache#" \
+# The cache parent is created here because install.sh creates it on the host (check-quadlets.sh asserts that).
+mkdir -p "$prefix/var/cache/nginx"
+sed -e "s#/var/cache/nginx/darkflib#$prefix/var/cache/nginx/darkflib#" \
     -e "s#/etc/nginx/certs/darkflib\.[a-z]*#$prefix/certs#g" \
     -e "s#/etc/nginx/snippets/tls-modern-mozilla.conf#$prefix/conf/tls-snippet.conf#" \
     -e 's#listen 443 ssl;#listen 127.0.0.1:18443 ssl;#' \

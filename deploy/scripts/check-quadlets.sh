@@ -24,6 +24,12 @@ out="$stage/generated"
 QUADLET_UNIT_DIRS="$stage/etc/containers/systemd" "$generator" --dryrun > "$out"
 
 failures=0
+if [ -d "$stage/var/cache/nginx" ]; then
+    echo "  ok    installer creates the nginx cache parent (/var/cache/nginx)"
+else
+    echo "  FAIL  installer does not create /var/cache/nginx; nginx -t fails on Debian's nginx" >&2
+    failures=$((failures + 1))
+fi
 expect() {
     if grep -q -- "$1" "$out"; then echo "  ok    $2"; else echo "  FAIL  $2" >&2; failures=$((failures + 1)); fi
 }

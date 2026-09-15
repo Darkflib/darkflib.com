@@ -4,6 +4,11 @@
 #
 #   deploy/scripts/push-certs.sh [--check] HOST LETSENCRYPT_DIR
 #   deploy/scripts/push-certs.sh ny03.technomonk.net ./letsencrypt
+#   CERT_NAMES="example.org example.net" deploy/scripts/push-certs.sh HOST ./letsencrypt
+#
+# Needs, locally: POSIX sh and tar (GNU or busybox), openssl, ssh, and sudo if the keys are root-owned. Run it as
+# yourself, not under sudo, so ssh uses your identity. On the host: sudo (a password prompt works; ssh -t is used),
+# nginx under systemd, and certificates at /etc/nginx/certs/<name>/{fullchain,privkey}.pem.
 #
 # Interim tooling until certificates live in 1Password or Vault. Run on the certbot host after issuance or renewal.
 #
@@ -17,7 +22,12 @@
 
 set -eu
 
-NAMES="darkflib.com darkflib.dev"
+# certbot certificate names (the directory under live/). Each must cover NAME and *.NAME.
+NAMES=${CERT_NAMES:-darkflib.com darkflib.dev}
+
+for tool in openssl tar ssh; do
+    command -v "$tool" >/dev/null 2>&1 || { echo "error: $tool is required" >&2; exit 1; }
+done
 
 check_only=false
 if [ "${1:-}" = --check ]; then
@@ -28,16 +38,23 @@ fi
 host=$1
 live="$2/live"
 
-stage=$(mktemp -d "${TMPDIR:-/tmp}/darkflib-certs.XXXXXX")
-trap 'rm -rf "$stage"' EXIT
+stage=$(mktemp -d "${TMPDIR:-/tmp}/push-certs.XXXXXX")
 chmod 0700 "$stage"
+# The stage holds private keys: remove it on interrupt as well as on exit.
+trap 'rm -rf "$stage"' EXIT
+trap 'exit 130' INT TERM HUP
 
-# Dereferenced copy, owned by this user, via sudo only if the keys are not readable as-is.
+# Dereferenced copy, owned by this user, via sudo only if a key is not readable as-is.
 read_live() {
-    if [ -r "$live/darkflib.com/privkey.pem" ] && [ -r "$live/darkflib.dev/privkey.pem" ]; then
-        tar -chf - -C "$live" darkflib.com darkflib.dev
+    readable=true
+    for name in $NAMES; do
+        [ -r "$live/$name/privkey.pem" ] || readable=false
+    done
+    # shellcheck disable=SC2086 # NAMES is a space-separated list by design
+    if [ "$readable" = true ]; then
+        tar -chf - -C "$live" $NAMES
     else
-        sudo tar -chf - -C "$live" darkflib.com darkflib.dev
+        sudo tar -chf - -C "$live" $NAMES
     fi
 }
 (umask 077 && read_live | tar -xf - -C "$stage")
@@ -83,7 +100,7 @@ cat > "$stage/apply.sh" <<'EOF'
 #!/bin/sh
 set -eu
 src=$(dirname "$0")
-names="darkflib.com darkflib.dev"
+names=$*
 install -d -m 0755 /etc/nginx/certs
 for name in $names; do
     dest=/etc/nginx/certs/$name
@@ -96,7 +113,9 @@ for name in $names; do
 done
 if nginx -t; then
     systemctl reload nginx
-    rm -f /etc/nginx/certs/darkflib.com/*.previous /etc/nginx/certs/darkflib.dev/*.previous
+    for name in $names; do
+        rm -f "/etc/nginx/certs/$name/fullchain.pem.previous" "/etc/nginx/certs/$name/privkey.pem.previous"
+    done
     echo "certificates installed and nginx reloaded"
 else
     echo "nginx -t failed; restoring the previous certificates" >&2
@@ -109,9 +128,9 @@ else
 fi
 EOF
 
-remote=$(ssh "$host" 'mktemp -d /tmp/darkflib-certs.XXXXXX')
-# shellcheck disable=SC2029 # $remote is deliberately expanded locally
-tar -cf - -C "$stage" darkflib.com darkflib.dev apply.sh | ssh "$host" "umask 077 && tar -xf - -C '$remote'"
+remote=$(ssh "$host" 'mktemp -d /tmp/push-certs.XXXXXX')
+# shellcheck disable=SC2029,SC2086 # $remote is expanded locally; NAMES is a list
+tar -cf - -C "$stage" $NAMES apply.sh | ssh "$host" "umask 077 && tar -xf - -C '$remote'"
 # -t so sudo can prompt; the remote staging directory is removed whether or not the apply succeeds.
 # shellcheck disable=SC2029
-ssh -t "$host" "sudo sh '$remote/apply.sh'; status=\$?; rm -rf '$remote'; exit \$status"
+ssh -t "$host" "sudo sh '$remote/apply.sh' $NAMES; status=\$?; rm -rf '$remote'; exit \$status"

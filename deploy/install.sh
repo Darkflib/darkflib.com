@@ -121,6 +121,9 @@ fi
 
 # --- nginx vhost ----------------------------------------------------------------------------------------------------
 if [ "$install_nginx" = true ]; then
+    # proxy_cache_path creates only its last component. nginx.org packages ship /var/cache/nginx; Debian's nginx does
+    # not, and without it `nginx -t` fails on "mkdir() /var/cache/nginx/darkflib".
+    install -d -m 0755 "$install_root/var/cache/nginx"
     if [ -n "$install_root" ]; then
         install -d -m 0755 "$nginx_dir"
         install -m 0644 "$script_dir/nginx/darkflib.conf" "$nginx_dir/darkflib.conf"
