@@ -295,6 +295,7 @@ a:focus-visible {
 }
 .hero-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 14px;
 }
@@ -822,23 +823,25 @@ a:focus-visible {
 .footer a:hover {
   color: #f45bdb;
 }
-.modal-backdrop {
+dialog.project-dialog {
   position: fixed;
   inset: 0;
-  background: #02050bdc;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  backdrop-filter: blur(8px);
-}
-.project-modal {
-  width: min(780px, 100%);
-  display: grid;
-  grid-template-columns: 45% 55%;
+  margin: auto;
+  padding: 0;
+  width: min(780px, calc(100% - 40px));
+  max-width: none;
+  max-height: calc(100% - 40px);
+  color: inherit;
   min-height: 350px;
   box-shadow: 0 0 50px #e621c94c;
+}
+dialog.project-dialog[open] {
+  display: grid;
+  grid-template-columns: 45% 55%;
+}
+.project-dialog::backdrop {
+  background: #02050bdc;
+  backdrop-filter: blur(8px);
 }
 .modal-image {
   height: 100%;
@@ -1118,7 +1121,7 @@ a:focus-visible {
   .event-panel li em {
     grid-column: 3;
   }
-  .project-modal {
+  dialog.project-dialog[open] {
     display: block;
     max-height: 90vh;
     overflow: auto;

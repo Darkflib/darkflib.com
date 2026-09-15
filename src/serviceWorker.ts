@@ -36,7 +36,7 @@ const observed = new WeakSet<ServiceWorker>()
 
 function publish(patch: Partial<WorkerSnapshot>) {
   state = { ...state, ...patch }
-  listeners.forEach((listener) => listener())
+  for (const listener of listeners) listener()
 }
 
 function log(source: Source, level: Level, event: string, detail?: string) {
