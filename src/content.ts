@@ -36,11 +36,11 @@ export type Project = (typeof projects)[number]
 
 export const stack = [
   { mark: '⚛', name: 'React', color: 'cyan' },
-  { mark: 'N', name: 'Next.js', color: 'white' },
+  { mark: 'bolt', name: 'FastAPI', color: 'green' },
   { mark: 'TS', name: 'TypeScript', color: 'blue' },
   { mark: 'JS', name: 'Node.js', color: 'green' },
   { mark: '≈', name: 'Tailwind', color: 'cyan' },
-  { mark: '●', name: 'Figma', color: 'pink' },
+  { mark: 'K8s', name: 'Kubernetes', color: 'blue' },
   { mark: 'Py', name: 'Python', color: 'yellow' },
   { mark: 'Pg', name: 'PostgreSQL', color: 'blue' },
 ] as const

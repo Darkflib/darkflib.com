@@ -1,3 +1,4 @@
+import { Zap } from 'lucide-react'
 import { stack } from '../content'
 import { PanelHeader } from './PanelHeader'
 import './StackPanel.css'
@@ -9,7 +10,10 @@ export function StackPanel() {
       <div className="stack-grid">
         {stack.map((item) => (
           <div className="stack-item" key={item.name}>
-            <span className={`stack-mark ${item.color}`}>{item.mark}</span>
+            <span className={`stack-mark ${item.color}`}>
+              {/* The ⚡ character renders as a colour emoji on some platforms; draw the bolt instead. */}
+              {item.mark === 'bolt' ? <Zap size={26} strokeWidth={2.2} aria-hidden="true" /> : item.mark}
+            </span>
             <span>{item.name}</span>
           </div>
         ))}
