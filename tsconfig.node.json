@@ -6,5 +6,5 @@
     "types": ["node"],
     "erasableSyntaxOnly": true
   },
-  "include": ["vite.config.ts", "playwright.config.ts", "build", "scripts", "tests"]
+  "include": ["vite.config.ts", "playwright.config.ts", "playwright.deploy.config.ts", "build", "scripts", "tests"]
 }

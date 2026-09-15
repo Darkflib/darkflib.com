@@ -1,0 +1,11 @@
+[Unit]
+Description=darkflib.com container network
+
+[Network]
+Driver=bridge
+# Fixed, so deploy/Caddyfile can name the gateway as its one trusted proxy. 10.89.62.0/24 sits beside orbit-data
+# (10.89.60.0/24) and sre-tab (10.89.61.0/24) on ny03 without colliding.
+Subnet=10.89.62.0/24
+Gateway=10.89.62.1
+# Dynamic allocation stays above .32, leaving the low addresses free to pin, as on sre-tab.network.
+IPRange=10.89.62.32-10.89.62.254

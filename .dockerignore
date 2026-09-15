@@ -1,0 +1,18 @@
+# Read by Docker, and by Podman/Buildah when no .containerignore exists. One list, so the two cannot drift.
+
+.git
+.github
+.claude
+**/node_modules
+**/.DS_Store
+**/._*
+
+# Build outputs and test artefacts
+dist
+test-results
+playwright-report
+
+# Not needed to build the site
+docs
+tests
+assets/source

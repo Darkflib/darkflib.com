@@ -1,0 +1,43 @@
+[Unit]
+Description=darkflib.com web server (Caddy with the built site)
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+ContainerName=darkflib-web
+# Set by deploy/scripts/promote.sh, which verifies the signature before writing a digest here. Never hand-edit it,
+# and never use a floating tag: a restart must not change which build runs.
+Image=ghcr.io/darkflib/darkflib.com:unpromoted
+Pull=missing
+Network=darkflib.network
+
+# Loopback only; host nginx terminates TLS and proxies here. The host port is host policy: DARKFLIB_WEB_PORT in
+# /etc/darkflib/install.env moves it via a drop-in that deploy/install.sh writes (8082 on ny03). The container side
+# stays 8080, matching deploy/Caddyfile and the image healthcheck.
+PublishPort=127.0.0.1:8080:8080
+
+# Wait for the image's HEALTHCHECK before reporting started (requires a --format docker build, which CI asserts).
+Notify=healthy
+
+ReadOnly=true
+# Caddy writes autosave and storage-clean state here even with admin and auto_https off. mode=1777 so uid 65532 can.
+Tmpfs=/data:rw,nosuid,nodev,mode=1777
+Tmpfs=/config:rw,nosuid,nodev,mode=1777
+NoNewPrivileges=true
+DropCapability=all
+# The Caddy binary carries cap_net_bind_service=ep, so execve fails unless it stays in the bounding set.
+AddCapability=NET_BIND_SERVICE
+User=65532
+Group=65532
+LogDriver=journald
+PidsLimit=128
+
+[Service]
+Restart=always
+RestartSec=5s
+MemoryMax=256M
+TimeoutStartSec=5m
+TimeoutStopSec=30s
+
+[Install]
+WantedBy=multi-user.target

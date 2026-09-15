@@ -1,0 +1,91 @@
+# darkflib.com inner web server. Baked into the image by the Containerfile, so this policy ships with the code it
+# describes.
+#
+# Listens on :8080 inside the container, published to 127.0.0.1 only. Host nginx terminates TLS for darkflib.com,
+# darkflib.dev, and both wildcards, and forwards everything here with the Host header intact; routing by name happens
+# below, where CI can test it (deploy/scripts/smoke.sh).
+{
+	admin off
+	auto_https off
+
+	servers {
+		# 10.89.62.1 is darkflib.network's gateway: the source address of anything reaching the published loopback
+		# port. Trusting it makes the access log record nginx's X-Forwarded-For (the real client) rather than the
+		# gateway. Nothing here makes a security decision on the client address.
+		trusted_proxies static 10.89.62.1/32
+		client_ip_headers X-Forwarded-For
+	}
+}
+
+(security_headers) {
+	header {
+		# Everything is same-origin: bundles, self-hosted fonts, images, and the service worker. Verified with no
+		# violations in Chromium, Firefox, and WebKit (tests/deploy). React sets inline styles through the CSSOM,
+		# which style-src does not govern. Fault Lab origins will extend connect-src when they exist.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+		# No includeSubDomains and no preload yet: both are hard to walk back, and the Fault Lab origins do not exist.
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-origin"
+		Permissions-Policy "camera=(), geolocation=(), microphone=(), payment=(), usb=()"
+		-Server
+	}
+}
+
+:8080 {
+	encode zstd gzip
+
+	# Container healthcheck, answered for any Host.
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	@www host www.darkflib.com
+	handle @www {
+		redir https://darkflib.com{uri} permanent
+	}
+
+	# darkflib.dev will host the cross-site Fault Lab origins. Until then its names send visitors to the site, with a
+	# temporary redirect so nothing caches the answer.
+	@dev host darkflib.dev www.darkflib.dev
+	handle @dev {
+		redir https://darkflib.com{uri} 302
+	}
+
+	@site host darkflib.com
+	handle @site {
+		root * /srv/www
+		import security_headers
+
+		# Content-hashed by Vite: cache forever. Only on files that exist, so a missing bundle is a 404 nobody caches.
+		handle /assets/* {
+			@hashed file
+			header @hashed Cache-Control "public, max-age=31536000, immutable"
+			file_server
+		}
+
+		# Generated imagery keeps stable names, so a day rather than forever.
+		handle /images/* {
+			@present file
+			header @present Cache-Control "public, max-age=86400"
+			file_server
+		}
+
+		# index.html and /service-worker.js. Revalidate every time: a stale copy of either is how a deploy goes
+		# unseen, and a cached worker script can pin visitors to an old site. nginx will not cache these.
+		handle {
+			header Cache-Control "no-cache"
+			file_server
+		}
+	}
+
+	# Every other name the wildcards deliver (unused *.darkflib.com and *.darkflib.dev) and direct IP access.
+	handle {
+		respond 404
+	}
+
+	log
+}

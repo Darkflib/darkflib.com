@@ -15,6 +15,12 @@ function git(...args: string[]): string {
 
 export function readBuildInfo(): BuildInfo {
   const time = new Date().toISOString()
+  // Container builds have no .git; the Containerfile passes these as build args instead.
+  const sha = process.env.BUILD_SHA?.trim()
+  if (sha) {
+    if (!/^[0-9a-f]{7,40}$/.test(sha)) throw new Error(`BUILD_SHA is not a commit SHA: ${sha}`)
+    return { sha: sha.slice(0, 7), dirty: process.env.BUILD_DIRTY === 'true', time }
+  }
   try {
     return { sha: git('rev-parse', '--short=7', 'HEAD'), dirty: git('status', '--porcelain') !== '', time }
   } catch {

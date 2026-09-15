@@ -17,6 +17,15 @@ npm run images       # regenerate public/images from assets/source
 
 Playwright browsers are a one-off `npx playwright install chromium firefox webkit`.
 
+Production image, locally (Docker or Podman):
+
+```sh
+docker build -f Containerfile --build-arg BUILD_SHA="$(git rev-parse HEAD)" -t darkflib.com:ci .
+CONTAINER_ENGINE=docker KEEP=1 deploy/scripts/smoke.sh     # routes, headers, cache policy, hardening
+npx playwright test -c playwright.deploy.config.ts         # browser check against that container
+docker rm -f darkflib-smoke
+```
+
 ## Layout
 
 | Path                            | What                                                                        |
@@ -29,6 +38,8 @@ Playwright browsers are a one-off `npx playwright install chromium firefox webki
 | `build/`                        | Vite plugin that bundles the worker; build metadata                         |
 | `tests/e2e/`, `tests/support/`  | Playwright specs and a per-worker static server for `dist/`                 |
 | `assets/source/`                | PNG masters for generated imagery (not shipped)                             |
+| `Containerfile`, `deploy/`      | Production image (Caddy + site), Quadlets, nginx vhost, scripts: see `deploy/README.md` |
+| `tests/deploy/`                 | Browser check against the production image under its real headers          |
 
 ## Telemetry strip
 
