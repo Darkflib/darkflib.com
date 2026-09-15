@@ -1,6 +1,7 @@
 import { ArrowUpRight } from 'lucide-react'
 import { useState } from 'react'
 import { PanelHeader } from './PanelHeader'
+import './ConnectPanel.css'
 
 export function ConnectPanel() {
   const [contactOpen, setContactOpen] = useState(false)

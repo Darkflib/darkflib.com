@@ -11,6 +11,7 @@ import { SystemsStrip } from './components/SystemsStrip'
 import { Topbar } from './components/Topbar'
 import type { Project } from './content'
 import { startServiceWorker } from './serviceWorker'
+import './App.css'
 
 export function App() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)

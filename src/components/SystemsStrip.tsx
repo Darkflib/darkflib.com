@@ -1,4 +1,5 @@
 import { useClock } from '../hooks/useClock'
+import './SystemsStrip.css'
 
 const SIGNAL_BARS = Array.from({ length: 62 }, (_, index) => ({ id: index, height: 4 + ((index * 17) % 15) }))
 

@@ -1,3 +1,5 @@
+import './TagList.css'
+
 export function TagList({ tags }: { tags: readonly string[] }) {
   return (
     <span className="project-tags">

@@ -1,6 +1,7 @@
 import { ArrowDownRight } from 'lucide-react'
 import { useServiceWorker } from '../serviceWorker'
 import { PanelHeader } from './PanelHeader'
+import './ServiceWorkerPanel.css'
 
 interface ServiceWorkerPanelProps {
   logOpen: boolean

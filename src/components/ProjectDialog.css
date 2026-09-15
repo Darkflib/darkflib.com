@@ -1,0 +1,92 @@
+/* Element-qualified selectors: this file loads before ProjectsPanel.css, whose .project-image rules must not win. */
+
+dialog.project-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  padding: 0;
+  width: min(780px, calc(100% - 40px));
+  max-width: none;
+  max-height: calc(100% - 40px);
+  min-height: 350px;
+  color: inherit;
+  box-shadow: 0 0 50px #e621c94c;
+}
+
+dialog.project-dialog[open] {
+  display: grid;
+  grid-template-columns: 45% 55%;
+}
+
+.project-dialog::backdrop {
+  background: #02050bdc;
+  backdrop-filter: blur(8px);
+}
+
+.project-dialog .modal-image {
+  height: 100%;
+  border: 0;
+}
+
+.modal-copy {
+  padding: 40px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.modal-copy > span {
+  color: #f75cdb;
+  font-size: 11px;
+}
+
+.modal-copy h2 {
+  font:
+    700 52px / 1 Rajdhani,
+    sans-serif;
+  margin: 15px 0;
+  color: #fff;
+}
+
+.modal-copy p {
+  font-size: 12px;
+  line-height: 1.65;
+  color: #c5d9ea;
+  margin: 0 0 18px;
+}
+
+.modal-copy .project-tags {
+  margin: 0 0 22px;
+}
+
+.modal-close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 2;
+  border: 1px solid #7f9bb6;
+  background: #101b2b;
+  color: #e9f7ff;
+  padding: 5px;
+  display: flex;
+}
+
+@media (max-width: 560px) {
+  dialog.project-dialog[open] {
+    display: block;
+    max-height: 90vh;
+    overflow: auto;
+  }
+
+  .project-dialog .modal-image {
+    height: 180px;
+  }
+
+  .modal-copy {
+    padding: 22px;
+  }
+
+  .modal-copy h2 {
+    font-size: 40px;
+  }
+}

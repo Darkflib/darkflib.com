@@ -1,0 +1,83 @@
+.event-panel {
+  margin: 0 1.25% 16px;
+  position: relative;
+  z-index: 2;
+}
+
+.event-panel .panel-header small {
+  font-size: 9px;
+  color: #8db7d1;
+  margin-left: 8px;
+}
+
+.event-panel .panel-header button {
+  border: 0;
+  background: none;
+  color: #f397e5;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.event-panel ol {
+  list-style: none;
+  margin: 0;
+  padding: 7px 13px;
+  max-height: 210px;
+  overflow: auto;
+}
+
+.event-panel li {
+  display: grid;
+  grid-template-columns: 115px 65px minmax(130px, 0.45fr) 1fr;
+  gap: 9px;
+  align-items: start;
+  padding: 4px 0;
+  border-bottom: 1px solid #24405d66;
+  color: #adc8e2;
+  font-size: 10px;
+}
+
+.event-panel li strong {
+  color: #eef7ff;
+  font-weight: 500;
+}
+
+.event-panel li em {
+  color: #8facbb;
+  font-style: normal;
+  overflow-wrap: anywhere;
+}
+
+.event-panel li .sw-source {
+  color: #f68ce4;
+}
+
+.event-panel .empty-log {
+  display: block;
+}
+
+.log-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 13px;
+  color: #79b4cf;
+  border-top: 1px solid #27486c;
+  font-size: 10px;
+}
+
+@media (max-width: 560px) {
+  .event-panel {
+    margin: 0 3% 14px;
+  }
+
+  .event-panel li {
+    grid-template-columns: 73px 49px 1fr;
+    font-size: 9px;
+  }
+
+  .event-panel li em {
+    grid-column: 3;
+  }
+}

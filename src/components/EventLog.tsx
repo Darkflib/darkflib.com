@@ -1,6 +1,7 @@
 import { Radio } from 'lucide-react'
 import { clearServiceWorkerLog, useServiceWorker } from '../serviceWorker'
 import { PanelHeader } from './PanelHeader'
+import './EventLog.css'
 
 export function EventLog() {
   const worker = useServiceWorker()

@@ -2,6 +2,7 @@ import { Check, X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import type { Project } from '../content'
 import { TagList } from './TagList'
+import './ProjectDialog.css'
 
 interface ProjectDialogProps {
   project: Project | null

@@ -1,0 +1,141 @@
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 2px 12px 12px;
+}
+
+.project-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  text-align: left;
+  color: inherit;
+  background: #0a1120;
+  border: 1px solid #537a9a;
+  min-width: 0;
+  transition:
+    transform 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.project-card:hover {
+  transform: translateY(-4px);
+  border-color: #ff55e2;
+  box-shadow: 0 0 16px #ee21cf55;
+}
+
+.project-image {
+  display: block;
+  background-image: url("/images/projects-triptych.png");
+  background-size: 300% 100%;
+  background-repeat: no-repeat;
+  background-position: 0 50%;
+  width: 100%;
+  height: 167px;
+  position: relative;
+  border-bottom: 1px solid #8197bc88;
+}
+
+.project-image.center {
+  background-position: 50% 50%;
+}
+
+.project-image.right {
+  background-position: 100% 50%;
+}
+
+.project-number {
+  position: absolute;
+  top: 8px;
+  left: 9px;
+  padding: 4px 6px;
+  background: #050b17d9;
+  border: 1px solid #122f4c;
+  color: #a6eaff;
+  font-size: 10px;
+}
+
+.project-content {
+  display: flex;
+  flex-direction: column;
+  padding: 9px 10px 10px;
+  min-height: 93px;
+}
+
+.project-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: Rajdhani, sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  color: #fff;
+}
+
+.project-heading svg {
+  color: #b4e8fa;
+}
+
+.project-description {
+  color: #a8c4e2;
+  text-transform: uppercase;
+  font-size: 9px;
+  line-height: 1.3;
+  letter-spacing: 0.06em;
+  min-height: 26px;
+  margin-top: 5px;
+}
+
+@media (max-width: 1280px) {
+  .project-image {
+    height: 135px;
+  }
+
+  .project-description {
+    font-size: 8px;
+  }
+}
+
+@media (max-width: 800px) {
+  .project-image {
+    height: 180px;
+  }
+}
+
+@media (max-width: 560px) {
+  .project-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .project-card {
+    display: grid;
+    grid-template-columns: 40% 60%;
+    height: 130px;
+  }
+
+  .project-image {
+    height: 100%;
+    border-bottom: 0;
+    border-right: 1px solid #8197bc88;
+  }
+
+  .project-content {
+    min-height: 0;
+    padding: 12px;
+  }
+
+  .project-heading {
+    font-size: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-card {
+    transition: none;
+  }
+}

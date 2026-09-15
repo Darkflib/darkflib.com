@@ -1,0 +1,103 @@
+.stack-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 3px 8px 8px;
+}
+
+.stack-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 81px;
+  border: 1px solid #3a5c78;
+  background: #0b1424;
+  color: #d7e6fa;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.stack-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Rajdhani, sans-serif;
+  font-size: 27px;
+  font-weight: 700;
+  height: 30px;
+}
+
+.stack-mark.cyan {
+  color: #3cdbfb;
+}
+
+.stack-mark.white {
+  color: #f1f1f4;
+}
+
+.stack-mark.blue {
+  color: #65aaff;
+}
+
+.stack-mark.green {
+  color: #74d785;
+}
+
+.stack-mark.pink {
+  color: #f874d8;
+}
+
+.stack-mark.yellow {
+  color: #fbd163;
+}
+
+.stack-quote {
+  height: 68px;
+  border-top: 1px solid #506e99;
+  margin: 0 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  position: relative;
+  background: radial-gradient(ellipse at 80% 70%, #31659055, transparent 60%);
+}
+
+.stack-quote > span:first-child {
+  font-family: Georgia, serif;
+  font-size: 37px;
+  color: #d2e7ff;
+  align-self: flex-start;
+  line-height: 1;
+}
+
+.stack-quote p {
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 0.07em;
+  margin: 0;
+}
+
+.quote-rule {
+  position: absolute;
+  bottom: 0;
+  left: 4px;
+  color: #c9eafd;
+}
+
+@media (max-width: 1280px) {
+  .stack-item {
+    min-height: 66px;
+  }
+}
+
+@media (max-width: 560px) {
+  .stack-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .stack-item {
+    font-size: 8px;
+  }
+}

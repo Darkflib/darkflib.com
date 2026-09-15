@@ -1,0 +1,65 @@
+.systems-strip {
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2.5%;
+  border-bottom: 1px solid #54bad282;
+  color: #9dd2f2;
+  font-size: 9px;
+  letter-spacing: 0.11em;
+  white-space: nowrap;
+  background: #08101f;
+  position: relative;
+  z-index: 2;
+}
+
+.systems-strip > div {
+  display: flex;
+  align-items: center;
+}
+
+.live-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #43e5f5;
+  box-shadow: 0 0 12px #15ecfd;
+  margin-right: 10px;
+}
+
+.signal-bars {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 24px;
+  overflow: hidden;
+}
+
+.signal-bars i {
+  display: block;
+  width: 2px;
+  background: #4bddf6;
+  opacity: 0.9;
+}
+
+@media (max-width: 800px) {
+  .systems-strip {
+    font-size: 8px;
+    padding: 0 3%;
+  }
+
+  .systems-strip > div:nth-child(2),
+  .systems-strip > div:nth-child(3),
+  .systems-strip > .signal-bars {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .systems-strip > div:last-child {
+    display: none;
+  }
+}

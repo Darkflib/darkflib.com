@@ -1,5 +1,6 @@
 import { stack } from '../content'
 import { PanelHeader } from './PanelHeader'
+import './StackPanel.css'
 
 export function StackPanel() {
   return (

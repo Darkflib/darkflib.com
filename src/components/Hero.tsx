@@ -1,4 +1,5 @@
 import { ArrowRight, ChevronRight } from 'lucide-react'
+import './Hero.css'
 
 export function Hero() {
   return (

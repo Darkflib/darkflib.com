@@ -2,6 +2,7 @@ import { ArrowRight, ArrowUpRight } from 'lucide-react'
 import { type Project, projects } from '../content'
 import { PanelHeader } from './PanelHeader'
 import { TagList } from './TagList'
+import './ProjectsPanel.css'
 
 export function ProjectsPanel({ onSelect }: { onSelect: (project: Project) => void }) {
   return (

@@ -1,6 +1,7 @@
 import { Globe2, Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { nav } from '../content'
+import './Topbar.css'
 
 export function Topbar() {
   const [menuOpen, setMenuOpen] = useState(false)

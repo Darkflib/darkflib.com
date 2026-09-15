@@ -1,0 +1,145 @@
+.topbar {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2.1%;
+  border-bottom: 1px solid #369bd489;
+  background: #060b19ee;
+  position: relative;
+  z-index: 12;
+  box-shadow: 0 0 22px #059fe133;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  white-space: nowrap;
+}
+
+.brand svg {
+  color: #9bc8ed;
+}
+
+.brand strong {
+  font-size: 15px;
+  letter-spacing: 0.09em;
+  font-weight: 600;
+}
+
+.brand-slashes {
+  font-size: 19px;
+  color: #d6def5;
+  letter-spacing: 0.06em;
+  margin: 0 8px;
+}
+
+.brand small {
+  font-size: 11px;
+  color: #a0aec8;
+  letter-spacing: 0.1em;
+}
+
+.main-nav {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  gap: 40px;
+}
+
+.main-nav a {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  position: relative;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  transition: color 0.2s;
+}
+
+.main-nav a:hover,
+.main-nav a.active {
+  color: #ff48ea;
+  text-shadow: 0 0 12px #f516d9;
+}
+
+.main-nav a.active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: -14px;
+  right: -14px;
+  height: 2px;
+  background: #f62ad8;
+  box-shadow: 0 0 10px #f62ad8;
+}
+
+.menu-toggle {
+  display: none;
+  border: 0;
+  background: none;
+  color: #e5f4ff;
+  padding: 5px;
+}
+
+@media (max-width: 1280px) {
+  .main-nav {
+    gap: 24px;
+  }
+
+  .brand small {
+    display: none;
+  }
+}
+
+@media (max-width: 800px) {
+  .topbar {
+    height: 58px;
+    padding: 0 4%;
+  }
+
+  .brand-slashes {
+    display: none;
+  }
+
+  .menu-toggle {
+    display: flex;
+  }
+
+  .main-nav {
+    display: none;
+    position: absolute;
+    top: 58px;
+    left: 0;
+    right: 0;
+    height: auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    background: #071020f5;
+    border-bottom: 1px solid #618eaf;
+    padding: 8px 4% 12px;
+  }
+
+  .main-nav.open {
+    display: flex;
+  }
+
+  .main-nav a {
+    height: auto;
+    padding: 11px 5px;
+  }
+
+  .main-nav a.active::after {
+    left: 0;
+    right: auto;
+    width: 35px;
+  }
+}
+
+@media (max-width: 560px) {
+  .brand strong {
+    font-size: 13px;
+  }
+}
