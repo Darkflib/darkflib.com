@@ -128,12 +128,41 @@ check "www keeps path and query" is "$(header location)" 'https://darkflib.com/d
 fetch darkflib.dev /lab
 check "darkflib.dev is a temporary redirect" is "$status" 302
 check "darkflib.dev points at the site" is "$(header location)" https://darkflib.com/lab
-fetch api.darkflib.dev /
+fetch nope.darkflib.dev /
 check "unused *.darkflib.dev is 404" is "$status" 404
 fetch lab.darkflib.com /
 check "unused *.darkflib.com is 404" is "$status" 404
 fetch 127.0.0.1 /
 check "direct IP access is 404" is "$status" 404
+
+echo "fault lab origins"
+for origin in api.darkflib.com:/v1/status.json:api-primary api.darkflib.dev:/v1/status.json:api-secondary media.darkflib.com:/v1/health.json:media; do
+    host=${origin%%:*}
+    rest=${origin#*:}
+    path=${rest%%:*}
+    document=${rest#*:}
+    fetch "$host" "$path"
+    check "$host$path is 200" is "$status" 200
+    check "$host is JSON" contains "$(header content-type)" application/json
+    check "$host allows the site only (CORS)" is "$(header access-control-allow-origin)" https://darkflib.com
+    check "$host exposes timing to the site" is "$(header timing-allow-origin)" https://darkflib.com
+    check "$host is usable cross-origin (CORP)" is "$(header cross-origin-resource-policy)" cross-origin
+    check "$host is never cached" is "$(header cache-control)" no-store
+    body=$(curl --silent --header "Host: $host" "$base$path")
+    check "$host serves the $document document" contains "$body" "\"origin\": \"$document\""
+done
+fetch api.darkflib.com /v1/missing.json
+check "missing lab document is 404" is "$status" 404
+
+# The page reads its lab targets from /lab/config.json; the CSP must admit every one of them, and nothing else.
+fetch darkflib.com /lab/config.json
+check "lab config is served" is "$status" 200
+csp_connect=$(curl --silent --output /dev/null --dump-header - --header 'Host: darkflib.com' "$base/" | tr -d '\r' \
+    | sed -n 's/^[Cc]ontent-[Ss]ecurity-[Pp]olicy: .*connect-src \([^;]*\);.*/\1/p')
+config_origins=$(curl --silent --header 'Host: darkflib.com' "$base/lab/config.json" | grep -o '"origin": *"[^"]*"' \
+    | sed 's/.*"\([^"]*\)"$/\1/' | sort | tr '\n' ' ')
+csp_origins=$(printf '%s' "$csp_connect" | tr ' ' '\n' | grep -v -e "^'self'$" -e '^$' | sort | tr '\n' ' ')
+check "CSP connect-src matches lab config ($config_origins)" is "$csp_origins" "$config_origins"
 
 echo "container"
 check "runs as uid 65532" is "$("$engine" exec "$name" id -u)" 65532

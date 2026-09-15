@@ -17,13 +17,31 @@
 	}
 }
 
+# Fault Lab origins: static JSON the site's status client polls. Healthy by design; failures are injected in the
+# visitor's own browser by the service worker. CORS for the site only, Timing-Allow-Origin so Resource Timing reports
+# full detail, cross-origin CORP so the documents are usable cross-site, and no-store so every poll reaches the network.
+(lab_origin) {
+	root * /srv/lab/{args[0]}
+	header {
+		Access-Control-Allow-Origin "https://darkflib.com"
+		Vary "Origin"
+		Timing-Allow-Origin "https://darkflib.com"
+		Cross-Origin-Resource-Policy "cross-origin"
+		Cache-Control "no-store"
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+	file_server
+}
+
 (security_headers) {
 	header {
-		# Everything is same-origin: bundles, self-hosted fonts, images, and the service worker. Verified with no
-		# violations in Chromium, Firefox, and WebKit (tests/deploy). React sets inline styles through the CSSOM,
-		# which style-src does not govern. Fault Lab origins will extend connect-src when they exist.
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
-		# No includeSubDomains and no preload yet: both are hard to walk back, and the Fault Lab origins do not exist.
+		# Same-origin except connect-src, which admits the three Fault Lab origins (public/lab/config.json lists the
+		# same three; deploy/scripts/smoke.sh checks they agree). Verified with no violations in Chromium, Firefox, and
+		# WebKit (tests/deploy). React sets inline styles through the CSSOM, which style-src does not govern.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self' https://api.darkflib.com https://api.darkflib.dev https://media.darkflib.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+		# No includeSubDomains and no preload: both are hard to walk back.
 		Strict-Transport-Security "max-age=31536000"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
@@ -48,8 +66,23 @@
 		redir https://darkflib.com{uri} permanent
 	}
 
-	# darkflib.dev will host the cross-site Fault Lab origins. Until then its names send visitors to the site, with a
-	# temporary redirect so nothing caches the answer.
+	@lab_api_primary host api.darkflib.com
+	handle @lab_api_primary {
+		import lab_origin api-primary
+	}
+
+	# Cross-site on purpose: a different registrable domain from the site.
+	@lab_api_secondary host api.darkflib.dev
+	handle @lab_api_secondary {
+		import lab_origin api-secondary
+	}
+
+	@lab_media host media.darkflib.com
+	handle @lab_media {
+		import lab_origin media
+	}
+
+	# The .dev apex is not a lab origin; send visitors to the site, temporarily so nothing caches the answer.
 	@dev host darkflib.dev www.darkflib.dev
 	handle @dev {
 		redir https://darkflib.com{uri} 302

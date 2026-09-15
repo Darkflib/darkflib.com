@@ -36,6 +36,7 @@ FROM docker.io/library/caddy:2.11.4-alpine@sha256:5f5c8640aae01df9654968d946d8f1
 
 COPY deploy/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /build/dist /srv/www
+COPY lab/origins /srv/lab
 
 # No escalation paths on a read-only, capability-dropped container. The find after the chmod asserts the end state
 # rather than trusting the traversal's exit status.

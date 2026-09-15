@@ -1,0 +1,6 @@
+{
+  "service": "media",
+  "origin": "media",
+  "role": "media",
+  "note": "A static document. The client degrades media independently of the status API."
+}

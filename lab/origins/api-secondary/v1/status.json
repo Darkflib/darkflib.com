@@ -1,0 +1,6 @@
+{
+  "service": "status",
+  "origin": "api-secondary",
+  "role": "secondary",
+  "note": "A static document on a separate, cross-site origin. The client fails over here when the primary is unavailable."
+}

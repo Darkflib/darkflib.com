@@ -1,0 +1,6 @@
+{
+  "service": "status",
+  "origin": "api-primary",
+  "role": "primary",
+  "note": "A static document. Any failure you see was injected by your own browser's service worker; this origin is healthy for everyone else."
+}

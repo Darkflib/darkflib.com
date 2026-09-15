@@ -1,0 +1,12 @@
+{
+  "targets": [
+    { "id": "api-primary", "label": "PRIMARY API", "origin": "https://api.darkflib.com", "path": "/v1/status.json" },
+    {
+      "id": "api-secondary",
+      "label": "SECONDARY API",
+      "origin": "https://api.darkflib.dev",
+      "path": "/v1/status.json"
+    },
+    { "id": "media", "label": "MEDIA EDGE", "origin": "https://media.darkflib.com", "path": "/v1/health.json" }
+  ]
+}
