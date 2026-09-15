@@ -11,9 +11,11 @@ self.addEventListener('install', (event) => {
 })
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil((async () => {
-    await broadcast('activate:start')
-    await self.clients.claim()
-    await broadcast('activate:complete')
-  })())
+  event.waitUntil(
+    (async () => {
+      await broadcast('activate:start')
+      await self.clients.claim()
+      await broadcast('activate:complete')
+    })(),
+  )
 })

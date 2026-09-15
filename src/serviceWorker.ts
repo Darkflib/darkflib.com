@@ -78,7 +78,14 @@ export function startServiceWorker() {
 
   navigator.serviceWorker.addEventListener('message', (messageEvent: MessageEvent) => {
     const message: unknown = messageEvent.data
-    if (typeof message !== 'object' || message === null || !('type' in message) || message.type !== 'sw:log' || !('entry' in message)) return
+    if (
+      typeof message !== 'object' ||
+      message === null ||
+      !('type' in message) ||
+      message.type !== 'sw:log' ||
+      !('entry' in message)
+    )
+      return
     const entry = message.entry
     if (typeof entry !== 'object' || entry === null || !('event' in entry) || typeof entry.event !== 'string') return
     const detail = 'detail' in entry && typeof entry.detail === 'string' ? entry.detail : undefined
