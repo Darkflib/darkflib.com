@@ -20,7 +20,7 @@ openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=darkflib.com" \
 printf 'ssl_protocols TLSv1.2 TLSv1.3;\n' > "$prefix/conf/tls-snippet.conf"
 
 sed -e "s#/var/cache/nginx/darkflib#$prefix/cache#" \
-    -e "s#/etc/nginx/certs/darkflib.com#$prefix/certs#g" \
+    -e "s#/etc/nginx/certs/darkflib\.[a-z]*#$prefix/certs#g" \
     -e "s#/etc/nginx/snippets/tls-modern-mozilla.conf#$prefix/conf/tls-snippet.conf#" \
     -e 's#listen 443 ssl;#listen 127.0.0.1:18443 ssl;#' \
     -e 's#listen \[::\]:443 ssl;##' \

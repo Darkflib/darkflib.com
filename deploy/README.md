@@ -32,17 +32,27 @@ Host port 8082 comes from `~/dev/backend-allocations.md`.
 | (generated)                        | `/etc/containers/systemd/darkflib-web.container.d/` | port drop-in written by `install.sh`             |
 | `nginx/darkflib.conf`              | `/etc/nginx/conf.d/` (with `--nginx`)             | upstream port must match `DARKFLIB_WEB_PORT`       |
 | `Caddyfile`                        | inside the image                                  | not installed on the host                          |
+| certbot `live/darkflib.{com,dev}/` | `/etc/nginx/certs/darkflib.{com,dev}/`            | copied by `scripts/push-certs.sh` from the certbot host |
 
 ## First deployment
 
-1. **Certificate.** Issue one lego certificate covering all four names. Wildcards need DNS-01, so use the DNS
-   provider for both zones. The vhost expects it at `/etc/nginx/certs/darkflib.com/`, the same layout as the other
-   vhosts:
+1. **Certificates.** Two certbot certificates, issued off-host with the Vultr DNS-01 authenticator (wildcards need
+   DNS-01) and copied to ny03. Two rather than one because adding names to an existing certificate needs `--expand`;
+   a separate `darkflib.dev` certificate works with an unchanged `certbot certonly -d "$CERTBOT_DOMAINS"`:
+
+   | Certificate name | Domains                          | On ny03                          |
+   | ---------------- | -------------------------------- | -------------------------------- |
+   | `darkflib.com`   | `darkflib.com`, `*.darkflib.com` | `/etc/nginx/certs/darkflib.com/` |
+   | `darkflib.dev`   | `darkflib.dev`, `*.darkflib.dev` | `/etc/nginx/certs/darkflib.dev/` |
+
+   Both zones must be served by Vultr DNS for the authenticator to answer the challenge. On the certbot host:
 
    ```sh
-   lego --dns <provider> --domains darkflib.com --domains '*.darkflib.com' \
-        --domains darkflib.dev --domains '*.darkflib.dev' run
+   CERTBOT_DOMAINS='darkflib.com,*.darkflib.com' docker compose --profile tools run --rm certbot
+   CERTBOT_DOMAINS='darkflib.dev,*.darkflib.dev' docker compose --profile tools run --rm certbot
    ```
+
+   Then copy them with `deploy/scripts/push-certs.sh` (see [Certificate renewal](#certificate-renewal)).
 
    Also confirm `/etc/nginx/snippets/tls-modern-mozilla.conf` exists on ny03. If it sets HSTS, browsers will receive
    that header twice, because Caddy also sets `max-age=31536000`. The values agree, so this is harmless.
@@ -82,6 +92,26 @@ git pull && sudo deploy/install.sh --start                                     #
 
 Visitors keep receiving cached `/assets/` and `/images/` from nginx during the restart (`proxy_cache_use_stale`).
 Service-worker updates follow the browser's normal lifecycle: the new worker waits until the old site's tabs close.
+
+## Certificate renewal
+
+Certificates are issued off-host and copied by hand until they move to 1Password or Vault. That makes expiry the
+likeliest outage this deployment has: Let's Encrypt certificates last 90 days, and certbot renews them with 30 days
+left on the certbot host, where nginx on ny03 cannot see the renewal. After each renewal, from the certbot host:
+
+```sh
+deploy/scripts/push-certs.sh ny03.technomonk.net /path/to/letsencrypt
+```
+
+It dereferences certbot's `live/` symlinks, installs both certificates (key `0600 root`), refuses a certificate whose
+names or key pairing are wrong, and reloads nginx only after `nginx -t` passes. To see what ny03 is actually serving:
+
+```sh
+for name in darkflib.com darkflib.dev; do
+  echo | openssl s_client -connect ny03.technomonk.net:443 -servername "$name" 2>/dev/null \
+    | openssl x509 -noout -subject -enddate
+done
+```
 
 ## Rolling back
 
