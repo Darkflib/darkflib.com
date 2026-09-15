@@ -173,10 +173,10 @@ jobs:
         run: deploy/scripts/verify-image.sh --require-attestations
 
       - name: Export the tested image
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         run: podman save --format docker-archive --output "$RUNNER_TEMP/image.tar" darkflib.com:ci
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         with:
           name: tested-image
           path: ${{ runner.temp }}/image.tar
@@ -187,9 +187,13 @@ jobs:
   # provenance and an SPDX SBOM. Deploying it is a separate, reviewed step (deploy/scripts/promote.sh).
   #
   # Gated on the repository being public: GitHub artifact attestations and anonymous pulls on ny03 both depend on it.
+  # workflow_dispatch on main republishes without a commit (e.g. after a base-image digest bump lands). A re-run of an
+  # old run replays that run's event payload, including the visibility it recorded, so dispatch rather than re-run.
   publish:
     name: Publish, sign, and attest image
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && !github.event.repository.private
+    if: >-
+      github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+      && !github.event.repository.private
     needs: [lint, typecheck, e2e, container]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
