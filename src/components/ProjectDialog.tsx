@@ -1,6 +1,7 @@
 import { Check, X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import type { Project } from '../content'
+import { ResponsiveImage } from './ResponsiveImage'
 import { TagList } from './TagList'
 import './ProjectDialog.css'
 
@@ -39,7 +40,15 @@ export function ProjectDialog({ project, onClose }: ProjectDialogProps) {
           <button type="button" className="modal-close" onClick={close} aria-label="Close project details">
             <X size={20} />
           </button>
-          <div className={`modal-image project-image ${project.position}`} />
+          <div className="modal-image project-image">
+            <ResponsiveImage
+              base={`projects/${project.image}`}
+              widths={[400, 682]}
+              sizes="(max-width: 560px) 100vw, 351px"
+              width={682}
+              height={768}
+            />
+          </div>
           <div className="modal-copy">
             <span>CONCEPT / {project.number}</span>
             <h2 id="project-dialog-title">{project.name}</h2>

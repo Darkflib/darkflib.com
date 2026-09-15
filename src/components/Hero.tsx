@@ -1,10 +1,23 @@
 import { ArrowRight, ChevronRight } from 'lucide-react'
+import { ResponsiveImage } from './ResponsiveImage'
 import './Hero.css'
+
+// Rendered widths under object-fit: cover; below 800 px the hero is taller than 16:9, so the image is wider than the
+// viewport. Keep in sync with the preload in index.html.
+const HERO_IMAGE_SIZES = '(max-width: 560px) 1049px, (max-width: 800px) 1173px, 100vw'
 
 export function Hero() {
   return (
     <section className="hero" aria-labelledby="hero-title">
-      <div className="hero-art" aria-hidden="true" />
+      <ResponsiveImage
+        className="hero-art"
+        base="hero-city"
+        widths={[800, 1280, 1672]}
+        sizes={HERO_IMAGE_SIZES}
+        width={1672}
+        height={941}
+        priority
+      />
       <div className="hero-shade" aria-hidden="true" />
       <aside className="hero-rail" aria-label="Site motto and shortcuts">
         <div className="rail-quote">

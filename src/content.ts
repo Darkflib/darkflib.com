@@ -14,21 +14,21 @@ export const projects = [
     name: 'NEON DISTRICT',
     description: 'A visual storytelling experience',
     tags: ['WEB', 'CREATIVE', 'EXPERIMENTAL'],
-    position: 'left',
+    image: 'neon-district',
   },
   {
     number: '02',
     name: 'ECHO',
     description: 'AI-powered creative tools',
     tags: ['AI', 'PRODUCT', 'WEB'],
-    position: 'center',
+    image: 'echo',
   },
   {
     number: '03',
     name: 'HORIZON',
     description: 'A minimal theme for modern creators',
     tags: ['WEB', 'UI/UX', 'OPEN SOURCE'],
-    position: 'right',
+    image: 'horizon',
   },
 ] as const
 

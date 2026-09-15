@@ -28,6 +28,12 @@ dialog.project-dialog[open] {
   border: 0;
 }
 
+/* Keep the image out of row sizing so the copy, not the image's aspect ratio, sets the dialog height. */
+.project-dialog .modal-image picture {
+  position: absolute;
+  inset: 0;
+}
+
 .modal-copy {
   padding: 40px 32px;
   display: flex;

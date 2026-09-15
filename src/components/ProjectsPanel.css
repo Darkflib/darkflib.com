@@ -28,22 +28,22 @@
 
 .project-image {
   display: block;
-  background-image: url("/images/projects-triptych.png");
-  background-size: 300% 100%;
-  background-repeat: no-repeat;
-  background-position: 0 50%;
   width: 100%;
   height: 167px;
   position: relative;
+  overflow: hidden;
   border-bottom: 1px solid #8197bc88;
 }
 
-.project-image.center {
-  background-position: 50% 50%;
+.project-image picture,
+.project-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-.project-image.right {
-  background-position: 100% 50%;
+.project-image img {
+  object-fit: cover;
 }
 
 .project-number {
