@@ -15,7 +15,10 @@ const EMPTY_SLOTS = Array.from({ length: REQUEST_HISTORY }, (_, index) => `empty
 
 function workerStatus(worker: ServiceWorkerSnapshot): { label: string; tone: 'on' | 'pending' | 'off' | 'warn' } {
   if (worker.controlled) {
-    return { label: worker.slots.waiting ? 'CONTROLLING · UPDATE WAITING' : 'CONTROLLING', tone: 'on' }
+    if (worker.slots.waiting) return { label: 'CONTROLLING · UPDATE WAITING', tone: 'on' }
+    // Older than this page expects: features that depend on the worker stay unavailable until it updates.
+    if (worker.missingCapabilities.length) return { label: 'CONTROLLING · OUTDATED', tone: 'pending' }
+    return { label: 'CONTROLLING', tone: 'on' }
   }
   switch (worker.registration) {
     case 'failed':

@@ -55,7 +55,21 @@ export function ServiceWorkerPanel({ logOpen, onToggleLog }: ServiceWorkerPanelP
         </div>
         <div>
           <dt>WORKER BUILD</dt>
-          <dd data-testid="sw-build">{worker.controllerVersion ?? '—'}</dd>
+          <dd
+            data-testid="sw-build"
+            title={
+              worker.controllerCapabilities === null
+                ? undefined
+                : worker.missingCapabilities.length
+                  ? `Outdated worker: this page needs ${worker.missingCapabilities.join(', ')}. It updates once every darkflib.com tab has closed.`
+                  : `Capabilities: ${Object.entries(worker.controllerCapabilities)
+                      .map(([name, version]) => `${name} v${version}`)
+                      .join(', ')}`
+            }
+          >
+            {worker.controllerVersion ?? '—'}
+            {worker.missingCapabilities.length ? ' · OUTDATED' : ''}
+          </dd>
         </div>
       </dl>
       <button type="button" className="log-toggle" onClick={onToggleLog} aria-expanded={logOpen}>

@@ -22,13 +22,25 @@ export interface ObservedRequest {
   mode: string
 }
 
+/**
+ * Features a worker build implements, each with a version. The page checks these rather than assuming its controller
+ * matches its own build: without skipWaiting(), an old worker can control new pages across many deploys.
+ */
+export type Capabilities = Readonly<Record<string, number>>
+
+/** What this build's worker implements. Bump a version when a capability's messages change incompatibly. */
+export const WORKER_CAPABILITIES = {
+  'fetch-observer': 1,
+} as const satisfies Capabilities
+
 /** Page → worker. `sw:hello` expects a reply on the transferred MessagePort. */
 export type ClientMessage = { type: 'sw:hello' }
 
 /** Worker → page. */
 export type WorkerMessage =
   | { type: 'sw:log'; entry: WorkerLogEntry }
-  | { type: 'sw:hello:reply'; version: string }
+  // capabilities is absent from workers deployed before it existed; treat that as none.
+  | { type: 'sw:hello:reply'; version: string; capabilities?: Capabilities }
   | { type: 'sw:requests'; requests: ObservedRequest[] }
 
 /** Upper bound on a single `sw:requests` batch; the worker never sends more. */
@@ -72,7 +84,14 @@ export function isWorkerMessage(value: unknown): value is WorkerMessage {
       )
     }
     case 'sw:hello:reply':
-      return typeof value.version === 'string'
+      return (
+        typeof value.version === 'string' &&
+        (value.capabilities === undefined ||
+          (isRecord(value.capabilities) &&
+            Object.values(value.capabilities).every(
+              (version) => typeof version === 'number' && Number.isInteger(version) && version > 0,
+            )))
+      )
     case 'sw:requests':
       return (
         Array.isArray(value.requests) &&

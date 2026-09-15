@@ -1,5 +1,12 @@
 import { useSyncExternalStore } from 'react'
-import { type ClientMessage, isWorkerMessage, type LogLevel, type ObservedRequest } from '../sw/protocol'
+import {
+  type Capabilities,
+  type ClientMessage,
+  isWorkerMessage,
+  type LogLevel,
+  type ObservedRequest,
+  WORKER_CAPABILITIES,
+} from '../sw/protocol'
 
 const SCRIPT_URL = '/service-worker.js'
 export const LOG_CAPACITY = 200
@@ -38,6 +45,10 @@ export interface ServiceWorkerSnapshot {
   controlled: boolean
   /** Build reported by the controlling worker, once the handshake completes. */
   controllerVersion: string | null
+  /** Capabilities the controlling worker reported; `{}` for a worker that predates the capabilities handshake. */
+  controllerCapabilities: Capabilities | null
+  /** Capabilities this page build expects that its controller lacks (or has at an older version). */
+  missingCapabilities: readonly string[]
   entries: readonly LogEntry[]
 }
 
@@ -46,7 +57,25 @@ let state: ServiceWorkerSnapshot = {
   slots: { installing: null, waiting: null, active: null },
   controlled: false,
   controllerVersion: null,
+  controllerCapabilities: null,
+  missingCapabilities: [],
   entries: [],
+}
+
+/** Whether the controlling worker supports `name` at `version` or later. */
+export function supports(snapshot: ServiceWorkerSnapshot, name: string, version = 1): boolean {
+  return (snapshot.controllerCapabilities?.[name] ?? 0) >= version
+}
+
+function missingFrom(capabilities: Capabilities): string[] {
+  return Object.entries(WORKER_CAPABILITIES)
+    .filter(([name, version]) => (capabilities[name] ?? 0) < version)
+    .map(([name, version]) => `${name} v${version}`)
+}
+
+function describeCapabilities(capabilities: Capabilities): string {
+  const entries = Object.entries(capabilities)
+  return entries.length ? entries.map(([name, version]) => `${name} v${version}`).join(', ') : 'none'
 }
 let nextEntryId = 0
 let nextWorkerId = 0
@@ -135,10 +164,15 @@ function observe(registration: ServiceWorkerRegistration) {
 
 let handshakeFor: ServiceWorker | null = null
 
-async function hello(controller: ServiceWorker): Promise<string> {
+interface HelloReply {
+  version: string
+  capabilities: Capabilities
+}
+
+async function hello(controller: ServiceWorker): Promise<HelloReply> {
   const channel = new MessageChannel()
   try {
-    return await new Promise<string>((resolve, reject) => {
+    return await new Promise<HelloReply>((resolve, reject) => {
       const timer = window.setTimeout(
         () => reject(new Error(`no reply within ${HELLO_TIMEOUT_MS} ms`)),
         HELLO_TIMEOUT_MS,
@@ -146,8 +180,9 @@ async function hello(controller: ServiceWorker): Promise<string> {
       channel.port1.onmessage = (event) => {
         window.clearTimeout(timer)
         const message: unknown = event.data
-        if (isWorkerMessage(message) && message.type === 'sw:hello:reply') resolve(message.version)
-        else reject(new Error('malformed reply'))
+        if (isWorkerMessage(message) && message.type === 'sw:hello:reply') {
+          resolve({ version: message.version, capabilities: message.capabilities ?? {} })
+        } else reject(new Error('malformed reply'))
       }
       const request: ClientMessage = { type: 'sw:hello' }
       controller.postMessage(request, [channel.port2])
@@ -168,15 +203,29 @@ function syncController() {
   )
   if (controller && handshakeFor === controller) return
 
-  publish({ controlled: controller !== null, controllerVersion: null })
+  publish({
+    controlled: controller !== null,
+    controllerVersion: null,
+    controllerCapabilities: null,
+    missingCapabilities: [],
+  })
   if (!controller) return
   handshakeFor = controller
   hello(controller).then(
-    (version) => {
+    ({ version, capabilities }) => {
       // Ignore replies from a worker that has since been replaced as controller.
       if (navigator.serviceWorker.controller !== controller) return
-      publish({ controllerVersion: version })
-      log('control', 'page', 'info', 'handshake', `${label(controller)} build ${version}`)
+      const missing = missingFrom(capabilities)
+      publish({ controllerVersion: version, controllerCapabilities: capabilities, missingCapabilities: missing })
+      log(
+        'control',
+        'page',
+        missing.length ? 'warn' : 'info',
+        'handshake',
+        `${label(controller)} build ${version}; capabilities ${describeCapabilities(capabilities)}${
+          missing.length ? `; outdated, missing ${missing.join(', ')}` : ''
+        }`,
+      )
     },
     (error: unknown) => {
       if (handshakeFor === controller) handshakeFor = null

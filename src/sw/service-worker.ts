@@ -1,6 +1,13 @@
 // Lifecycle telemetry, a version handshake, and a passive fetch observer. The fetch listener never calls respondWith,
 // so every request is performed by the browser exactly as it would be without this worker.
-import { isClientMessage, type LogLevel, MAX_REQUEST_BATCH, type ObservedRequest, type WorkerMessage } from './protocol'
+import {
+  isClientMessage,
+  type LogLevel,
+  MAX_REQUEST_BATCH,
+  type ObservedRequest,
+  WORKER_CAPABILITIES,
+  type WorkerMessage,
+} from './protocol'
 
 declare const self: ServiceWorkerGlobalScope
 declare const __SW_VERSION__: string
@@ -100,7 +107,7 @@ self.addEventListener('message', (event) => {
   if (!isClientMessage(event.data)) return
   const [port] = event.ports
   if (port) {
-    const reply: WorkerMessage = { type: 'sw:hello:reply', version: VERSION }
+    const reply: WorkerMessage = { type: 'sw:hello:reply', version: VERSION, capabilities: WORKER_CAPABILITIES }
     port.postMessage(reply)
   }
   // A page's hello means it is listening: hand over anything that was waiting for it, such as its own navigation.

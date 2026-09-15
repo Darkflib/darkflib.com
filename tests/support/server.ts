@@ -24,6 +24,8 @@ export interface TestServer {
   bumpServiceWorker(): void
   /** Emulate host nginx's `Server-Timing: edge;desc=...` header (on by default). */
   setEdgeTiming(enabled: boolean): void
+  /** Serve this source as /service-worker.js instead of the build's worker, e.g. one from an older deploy. */
+  setServiceWorkerOverride(source: string | null): void
   reset(): void
   close(): Promise<void>
 }
@@ -32,13 +34,15 @@ export interface TestServer {
 export async function startServer(): Promise<TestServer> {
   let bump = 0
   let edgeTiming = true
+  let workerOverride: string | null = null
 
   const server = createServer(async (req, res) => {
     const { pathname } = new URL(req.url ?? '/', 'http://localhost')
     const file = pathname === '/' ? 'index.html' : normalize(pathname).replace(/^\/+/, '')
     try {
-      let body: Buffer | string = await readFile(join(DIST, file))
-      if (file === SERVICE_WORKER && bump > 0) {
+      let body: Buffer | string =
+        file === SERVICE_WORKER && workerOverride !== null ? workerOverride : await readFile(join(DIST, file))
+      if (file === SERVICE_WORKER && workerOverride === null && bump > 0) {
         const code = body.toString('utf8')
         if (!VERSION_LITERAL.test(code)) throw new Error('service worker version literal not found')
         body = code.replace(VERSION_LITERAL, (_match, version: string) => `"${version}.test${bump}"`)
@@ -69,9 +73,13 @@ export async function startServer(): Promise<TestServer> {
     setEdgeTiming: (enabled) => {
       edgeTiming = enabled
     },
+    setServiceWorkerOverride: (source) => {
+      workerOverride = source
+    },
     reset: () => {
       bump = 0
       edgeTiming = true
+      workerOverride = null
     },
     close: () =>
       new Promise<void>((resolve) => {

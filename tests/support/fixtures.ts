@@ -17,10 +17,15 @@ export const test = base.extend<{ server: TestServer }, { workerServer: TestServ
     },
     { scope: 'worker' },
   ],
-  server: async ({ workerServer }, use) => {
-    workerServer.reset()
-    await use(workerServer)
-  },
+  // auto: every test starts from a clean server, including tests that never ask for `server`. Otherwise a worker
+  // override or version bump set by one test leaks into the next test on the same Playwright worker.
+  server: [
+    async ({ workerServer }, use) => {
+      workerServer.reset()
+      await use(workerServer)
+    },
+    { auto: true },
+  ],
   baseURL: async ({ workerServer }, use) => {
     await use(workerServer.url)
   },
