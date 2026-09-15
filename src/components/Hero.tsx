@@ -109,15 +109,6 @@ export function Hero() {
         <br />
         FURTHER <span>—</span>
       </div>
-      <div className="hero-signature" aria-hidden="true">
-        Some
-        <br />
-        Human
-        <br />
-        Different
-        <br />
-        Network
-      </div>
       <div className="hero-bottom-caption">
         v2.0
         <br />

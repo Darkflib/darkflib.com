@@ -215,20 +215,6 @@
   font-size: 9px;
 }
 
-.hero-signature {
-  position: absolute;
-  z-index: 2;
-  right: 21%;
-  bottom: 16px;
-  transform: rotate(-14deg);
-  color: #ff63e0;
-  font-family: cursive;
-  font-size: 19px;
-  font-style: italic;
-  line-height: 1.02;
-  text-shadow: 0 0 10px #ff32df;
-}
-
 @media (max-width: 1280px) {
   .hero-copy {
     left: 43%;
@@ -241,8 +227,7 @@
 
   .hero-right-top,
   .hero-right-bottom,
-  .hero-bottom-caption,
-  .hero-signature {
+  .hero-bottom-caption {
     display: none;
   }
 }
