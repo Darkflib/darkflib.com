@@ -5,6 +5,7 @@
 #   deploy/scripts/push-certs.sh [--check] HOST LETSENCRYPT_DIR
 #   deploy/scripts/push-certs.sh ny03.technomonk.net ./letsencrypt
 #   CERT_NAMES="example.org example.net" deploy/scripts/push-certs.sh HOST ./letsencrypt
+#   CERT_NAMES=app.example.org CERT_WILDCARD=no deploy/scripts/push-certs.sh HOST ./letsencrypt
 #
 # Needs, locally: POSIX sh and tar (GNU or busybox), openssl, ssh, and sudo if the keys are root-owned. Run it as
 # yourself, not under sudo, so ssh uses your identity. On the host: sudo (a password prompt works; ssh -t is used),
@@ -12,8 +13,8 @@
 #
 # Interim tooling until certificates live in 1Password or Vault. Run on the certbot host after issuance or renewal.
 #
-# Before anything leaves this machine, each certificate is checked: both names present (apex and wildcard), not
-# expiring within a day, and the private key matching the certificate. certbot's live/ entries are symlinks into
+# Before anything leaves this machine, each certificate is checked: it covers its own name (and *.name, unless
+# CERT_WILDCARD=no), is not expiring within a day, and matches its private key. certbot's live/ entries are symlinks into
 # archive/, so they are dereferenced. The keys are usually root-owned, so they are read through sudo when necessary and
 # staged in a private temporary directory.
 #
@@ -22,8 +23,13 @@
 
 set -eu
 
-# certbot certificate names (the directory under live/). Each must cover NAME and *.NAME.
+# certbot certificate names (the directory under live/). Each must cover NAME, and *.NAME unless CERT_WILDCARD=no.
 NAMES=${CERT_NAMES:-darkflib.com darkflib.dev}
+case ${CERT_WILDCARD:-yes} in
+    yes) wildcard=true ;;
+    no) wildcard=false ;;
+    *) echo "error: CERT_WILDCARD must be yes or no, not '$CERT_WILDCARD'" >&2; exit 2 ;;
+esac
 
 for tool in openssl tar ssh; do
     command -v "$tool" >/dev/null 2>&1 || { echo "error: $tool is required" >&2; exit 1; }
@@ -70,12 +76,16 @@ for name in $NAMES; do
         continue
     fi
     sans=$(openssl x509 -in "$cert" -noout -text | tr ',' '\n' | sed -n 's/^ *DNS://p')
-    for want in "$name" "*.$name"; do
+    wants=$name
+    [ "$wildcard" = false ] || wants="$name *.$name"
+    set -f # the wildcard name must not glob
+    for want in $wants; do
         if ! printf '%s\n' "$sans" | grep -qxF -- "$want"; then
-            echo "  FAIL  $name: certificate does not cover $want (has: $(printf '%s ' "$sans"))" >&2
+            echo "  FAIL  $name: certificate does not cover $want (has: $(printf '%s\n' "$sans" | tr '\n' ' '))" >&2
             failures=$((failures + 1))
         fi
     done
+    set +f
     if ! openssl x509 -in "$cert" -noout -checkend 86400 >/dev/null; then
         echo "  FAIL  $name: certificate expires within 24 hours" >&2
         failures=$((failures + 1))
