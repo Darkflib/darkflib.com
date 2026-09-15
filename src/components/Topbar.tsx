@@ -10,7 +10,7 @@ export function Topbar() {
     <header className="topbar">
       <a className="brand" href="#home" aria-label="Darkflib home">
         <Globe2 size={25} strokeWidth={1.35} />
-        <strong>DARKFLIB.EXE</strong>
+        <strong>DARKFLIB.COM</strong>
         <span className="brand-slashes">{'/////'}</span>
         <small>{'// PERSONAL_INTERFACE V2.0'}</small>
       </a>
