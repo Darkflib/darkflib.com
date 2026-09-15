@@ -124,7 +124,7 @@
 }
 
 .hero h1 {
-  font-family: Rajdhani, sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(68px, 7vw, 134px);
   font-weight: 700;
   letter-spacing: -0.045em;

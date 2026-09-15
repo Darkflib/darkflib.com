@@ -1,5 +1,6 @@
 // Global styles load before any component styles so component rules win ties.
 import './styles/reset.css'
+import './styles/fonts.css'
 import './styles/base.css'
 
 import { StrictMode } from 'react'

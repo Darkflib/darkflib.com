@@ -41,9 +41,7 @@ dialog.project-dialog[open] {
 }
 
 .modal-copy h2 {
-  font:
-    700 52px / 1 Rajdhani,
-    sans-serif;
+  font: 700 52px / 1 var(--font-display);
   margin: 15px 0;
   color: #fff;
 }

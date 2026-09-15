@@ -68,7 +68,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-family: Rajdhani, sans-serif;
+  font-family: var(--font-display);
   font-size: 17px;
   font-weight: 600;
   letter-spacing: 0.03em;

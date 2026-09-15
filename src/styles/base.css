@@ -1,5 +1,8 @@
 :root {
-  font-family: "IBM Plex Mono", monospace;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-display: Rajdhani, "Arial Narrow", sans-serif;
+
+  font-family: var(--font-mono);
   color: #eaf3ff;
   background: #060a15;
   font-synthesis: none;

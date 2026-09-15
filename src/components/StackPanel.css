@@ -23,7 +23,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: Rajdhani, sans-serif;
+  font-family: var(--font-display);
   font-size: 27px;
   font-weight: 700;
   height: 30px;
