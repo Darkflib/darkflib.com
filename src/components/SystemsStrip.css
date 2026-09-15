@@ -25,11 +25,27 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #43e5f5;
-  box-shadow: 0 0 12px #15ecfd;
   margin-right: 10px;
+  background: #56627a;
 }
 
+.live-dot.on {
+  background: #43e5f5;
+  box-shadow: 0 0 12px #15ecfd;
+}
+
+.live-dot.pending {
+  background: #ffc861;
+  box-shadow: 0 0 10px #ffb13b;
+  animation: blink 1.2s step-end infinite;
+}
+
+.live-dot.warn {
+  background: #ff5f8f;
+  box-shadow: 0 0 12px #ff3d7a;
+}
+
+/* Request latency: one bar per recent request, newest on the right. */
 .signal-bars {
   display: flex;
   align-items: center;
@@ -40,9 +56,31 @@
 
 .signal-bars i {
   display: block;
+  flex: none;
   width: 2px;
   background: #4bddf6;
   opacity: 0.9;
+}
+
+.signal-bars i.empty {
+  height: 2px;
+  opacity: 0.25;
+}
+
+.signal-bars i.cached {
+  opacity: 0.45;
+}
+
+.signal-bars i.slow {
+  background: #ff48ea;
+  box-shadow: 0 0 6px #f516d9;
+  opacity: 1;
+}
+
+@media (max-width: 1100px) {
+  .systems-strip > .strip-wide {
+    display: none;
+  }
 }
 
 @media (max-width: 800px) {
@@ -51,15 +89,19 @@
     padding: 0 3%;
   }
 
-  .systems-strip > div:nth-child(2),
-  .systems-strip > div:nth-child(3),
   .systems-strip > .signal-bars {
     display: none;
   }
 }
 
 @media (max-width: 560px) {
-  .systems-strip > div:last-child {
+  .systems-strip > .strip-medium {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-dot.pending {
+    animation: none;
   }
 }

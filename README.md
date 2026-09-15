@@ -30,6 +30,22 @@ Playwright browsers are a one-off `npx playwright install chromium firefox webki
 | `tests/e2e/`, `tests/support/`  | Playwright specs and a per-worker static server for `dist/`                 |
 | `assets/source/`                | PNG masters for generated imagery (not shipped)                             |
 
+## Telemetry strip
+
+Every value in the strip under the hero is read from the browser or the build, never simulated:
+
+| Item      | Source                                                                                         |
+| --------- | ---------------------------------------------------------------------------------------------- |
+| `SW`      | Service worker store: controlling, starting, failed, off, or unsupported; flags waiting updates |
+| `BUILD`   | Commit SHA baked in at build time (`*` = dirty tree); build time in the tooltip                |
+| `PROTO`   | `nextHopProtocol` of the document's navigation timing                                          |
+| `TTFB`    | `responseStart` of the navigation, plus `(CACHE)` when no bytes were transferred               |
+| `UTC`     | Wall clock                                                                                     |
+| Bars      | Resource Timing for the last 62 subresource requests: log-scaled, dim when cached, magenta ≥ 800 ms |
+
+The bars will pick up Fault Lab latency injection with no extra wiring, since injected delays show up in Resource
+Timing. The slogan on the right is just decoration.
+
 ## Service worker
 
 `src/sw/service-worker.ts` is bundled by `build/serviceWorkerPlugin.ts` with esbuild into a single classic script at
