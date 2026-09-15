@@ -98,11 +98,15 @@ test.describe('fault lab', () => {
     await choose(page, 'MEDIA EDGE', 'offline')
     await expect(page.getByTestId('lab-state')).toHaveText('STALE DATA', SLOW)
     await expect(page.getByTestId('lab-media')).toHaveText('DEGRADED', SLOW)
+    await openEventLog(page)
+    const note = page.getByTestId('sw-log-note')
+    await expect(note).toHaveText(/Fault injection is active for 127\.0\.0\.1:\d+, 127\.0\.0\.1:\d+, 127\.0\.0\.1:\d+:/)
 
     await page.getByRole('button', { name: 'RESET LAB' }).click()
     for (const id of ['api-primary', 'api-secondary', 'media']) {
       await expect(page.getByTestId(`lab-applied-${id}`)).toHaveText('—')
     }
+    await expect(note).toHaveText(/No fault injection is active\.$/)
     // Circuits opened during the outage must cool off before trial calls succeed.
     await expect(page.getByTestId('lab-state')).toHaveText('HEALTHY', SLOW)
     await expect(page.getByTestId('lab-media')).toHaveText('HEALTHY', SLOW)

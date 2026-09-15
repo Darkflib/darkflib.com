@@ -1,5 +1,6 @@
 import { Radio } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useFaultControl } from '../lab/hooks'
 import {
   clearServiceWorkerLog,
   LOG_CAPACITY,
@@ -24,6 +25,8 @@ function readHiddenTags(): Set<LogTag> {
 
 export function EventLog() {
   const worker = useServiceWorker()
+  const faults = useFaultControl()
+  const faultHosts = faults.applied.map((rule) => new URL(rule.origin).host)
   const [hidden, setHidden] = useState(readHiddenTags)
 
   useEffect(() => {
@@ -90,9 +93,11 @@ export function EventLog() {
           ))
         )}
       </ol>
-      <p className="log-note">
-        <Radio size={14} /> Requests are observed, never modified: the worker does not respond to them. No fault
-        injection is active.
+      <p className="log-note" data-testid="sw-log-note">
+        <Radio size={14} />{' '}
+        {faultHosts.length === 0
+          ? 'Requests are observed, never modified: the worker does not respond to them. No fault injection is active.'
+          : `Fault injection is active for ${faultHosts.join(', ')}: the worker answers those requests itself, in this tab only. Everything else is observed, never modified.`}
       </p>
     </section>
   )
