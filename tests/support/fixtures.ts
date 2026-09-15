@@ -52,6 +52,11 @@ export async function openEventLog(page: Page) {
   if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()
 }
 
+export async function openFaultLab(page: Page) {
+  const toggle = page.getByRole('button', { name: /FAULT LAB/ })
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()
+}
+
 export async function readEventLog(page: Page): Promise<LogRow[]> {
   return page
     .getByTestId('sw-log')

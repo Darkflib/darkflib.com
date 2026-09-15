@@ -1,0 +1,29 @@
+.control-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 14px 12px;
+}
+
+.control-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 1px solid #547f9c;
+  background: #0d1e31;
+  color: #aee9fa;
+  padding: 7px;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.control-toggle:hover {
+  border-color: #e848d6;
+  color: #fff;
+}
+
+.control-toggle[aria-expanded="true"] {
+  border-color: #b04ba6;
+  color: #ffbef6;
+}

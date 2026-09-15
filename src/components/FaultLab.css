@@ -27,6 +27,35 @@
   box-shadow: 0 0 8px #ff48ea;
 }
 
+.lab-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lab-active-count {
+  color: #ffd27a;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+}
+
+.fault-lab .panel-header .lab-expand {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #547f9c;
+  background: #0d1e31;
+  color: #aee9fa;
+  padding: 3px 8px;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.fault-lab .panel-header .lab-expand:hover {
+  border-color: #e848d6;
+  color: #fff;
+}
+
 .fault-lab .panel-header .lab-reset {
   display: flex;
   align-items: center;
@@ -54,6 +83,10 @@
 
 .lab-unavailable {
   color: #ffd27a;
+}
+
+.fault-lab.collapsed .lab-note {
+  margin-bottom: 11px;
 }
 
 .lab-body {

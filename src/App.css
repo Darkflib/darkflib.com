@@ -7,10 +7,15 @@
   z-index: 2;
 }
 
+.middle-column,
 .side-column {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.middle-column .stack-panel {
+  flex: 1;
 }
 
 @media (max-width: 1280px) {

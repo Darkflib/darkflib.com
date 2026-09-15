@@ -1,12 +1,6 @@
-import { ArrowDownRight } from 'lucide-react'
 import { type ServiceWorkerSnapshot, useServiceWorker } from '../telemetry/serviceWorker'
 import { PanelHeader } from './PanelHeader'
 import './ServiceWorkerPanel.css'
-
-interface ServiceWorkerPanelProps {
-  logOpen: boolean
-  onToggleLog: () => void
-}
 
 function headline(worker: ServiceWorkerSnapshot): { text: string; tone: 'on' | 'off' | 'warn' } {
   if (worker.controlled) return { text: 'CONTROLLING THIS PAGE', tone: 'on' }
@@ -29,7 +23,7 @@ function lifecycle({ slots }: ServiceWorkerSnapshot): string {
   return active
 }
 
-export function ServiceWorkerPanel({ logOpen, onToggleLog }: ServiceWorkerPanelProps) {
+export function ServiceWorkerPanel() {
   const worker = useServiceWorker()
   const status = headline(worker)
 
@@ -72,9 +66,6 @@ export function ServiceWorkerPanel({ logOpen, onToggleLog }: ServiceWorkerPanelP
           </dd>
         </div>
       </dl>
-      <button type="button" className="log-toggle" onClick={onToggleLog} aria-expanded={logOpen}>
-        {logOpen ? 'HIDE EVENT LOG' : 'VIEW EVENT LOG'} <ArrowDownRight size={15} />
-      </button>
     </section>
   )
 }

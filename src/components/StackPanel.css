@@ -53,39 +53,6 @@
   color: #fbd163;
 }
 
-.stack-quote {
-  height: 68px;
-  border-top: 1px solid #506e99;
-  margin: 0 8px;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  position: relative;
-  background: radial-gradient(ellipse at 80% 70%, #31659055, transparent 60%);
-}
-
-.stack-quote > span:first-child {
-  font-family: Georgia, serif;
-  font-size: 37px;
-  color: #d2e7ff;
-  align-self: flex-start;
-  line-height: 1;
-}
-
-.stack-quote p {
-  font-size: 12px;
-  line-height: 1.4;
-  letter-spacing: 0.07em;
-  margin: 0;
-}
-
-.quote-rule {
-  position: absolute;
-  bottom: 0;
-  left: 4px;
-  color: #c9eafd;
-}
-
 @media (max-width: 1280px) {
   .stack-item {
     min-height: 66px;

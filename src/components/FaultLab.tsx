@@ -1,4 +1,4 @@
-import { RotateCcw } from 'lucide-react'
+import { ChevronDown, ChevronRight, RotateCcw } from 'lucide-react'
 import { useEffect } from 'react'
 import { useNow } from '../hooks/useNow'
 import type { LabTargetId } from '../lab/config'
@@ -12,7 +12,7 @@ import {
   setFaultSpec,
 } from '../lab/faultControl'
 import { useFaultControl, useLab } from '../lab/hooks'
-import { type SystemStatus, startStatusClient, type TargetView } from '../lab/statusClient'
+import { type SystemStatus, setStatusClientActive, type TargetView } from '../lab/statusClient'
 import type { FaultRule } from '../sw/protocol'
 import { useServiceWorker } from '../telemetry/serviceWorker'
 import { PanelHeader } from './PanelHeader'
@@ -145,36 +145,87 @@ function TargetRow({ target, spec, applied, rejected, disabled }: TargetRowProps
   )
 }
 
-export function FaultLab() {
+interface FaultLabProps {
+  open: boolean
+  onToggle: () => void
+}
+
+export function FaultLab({ open, onToggle }: FaultLabProps) {
   const lab = useLab()
   const faults = useFaultControl()
   const worker = useServiceWorker()
   const now = useNow()
   const availability = faultLabAvailability(worker)
 
-  useEffect(() => startStatusClient(), [])
+  useEffect(() => setStatusClientActive(open), [open])
   useEffect(() => {
     if (lab.config) configureFaultControl(lab.config)
   }, [lab.config])
 
+  const anyFault = faults.applied.length > 0 || Object.values(faults.specs).some((spec) => spec?.choice !== 'none')
+  const activeCount = faults.applied.length
+
+  return (
+    <section
+      className={open ? 'panel fault-lab' : 'panel fault-lab collapsed'}
+      id="fault-lab"
+      aria-labelledby="fault-lab-title"
+    >
+      <PanelHeader id="fault-lab-title" title="FAULT_LAB" meta={<span className="lab-badge">LOCAL SIMULATION</span>}>
+        <div className="lab-header-actions">
+          {!open && activeCount > 0 && (
+            <span className="lab-active-count" data-testid="lab-active-count">
+              {activeCount} {activeCount === 1 ? 'FAULT' : 'FAULTS'} ACTIVE
+            </span>
+          )}
+          {open && (
+            <button
+              type="button"
+              className="lab-reset"
+              onClick={resetFaults}
+              disabled={!availability.ok || !anyFault || faults.pending}
+            >
+              <RotateCcw size={12} /> RESET LAB
+            </button>
+          )}
+          <button
+            type="button"
+            className="lab-expand"
+            aria-expanded={open}
+            aria-controls="fault-lab-body"
+            onClick={onToggle}
+          >
+            {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            {open ? 'COLLAPSE' : 'EXPAND'}
+          </button>
+        </div>
+      </PanelHeader>
+      {!open && (
+        <p className="lab-note">
+          Break this page's own API calls from inside your browser, and watch the client retry, trip its circuit
+          breaker, and fail over.
+        </p>
+      )}
+      {open && <FaultLabBody lab={lab} faults={faults} availability={availability} now={now} />}
+    </section>
+  )
+}
+
+interface FaultLabBodyProps {
+  lab: ReturnType<typeof useLab>
+  faults: ReturnType<typeof useFaultControl>
+  availability: ReturnType<typeof faultLabAvailability>
+  now: number
+}
+
+function FaultLabBody({ lab, faults, availability, now }: FaultLabBodyProps) {
   const targets = (['api-primary', 'api-secondary', 'media'] as LabTargetId[])
     .map((id) => lab.targets[id])
     .filter((target): target is TargetView => target !== undefined)
   const servedBy = lab.servedBy ? lab.targets[lab.servedBy] : undefined
-  const anyFault = faults.applied.length > 0 || Object.values(faults.specs).some((spec) => spec?.choice !== 'none')
 
   return (
-    <section className="panel fault-lab" id="fault-lab" aria-labelledby="fault-lab-title">
-      <PanelHeader id="fault-lab-title" title="FAULT_LAB" meta={<span className="lab-badge">LOCAL SIMULATION</span>}>
-        <button
-          type="button"
-          className="lab-reset"
-          onClick={resetFaults}
-          disabled={!availability.ok || !anyFault || faults.pending}
-        >
-          <RotateCcw size={12} /> RESET LAB
-        </button>
-      </PanelHeader>
+    <div id="fault-lab-body">
       <p className="lab-note">
         Faults are injected by this tab's service worker, into this tab's requests only. The origins stay healthy for
         everyone else; the status client below recovers on its own, as it would from a real outage.
@@ -233,6 +284,6 @@ export function FaultLab() {
           </table>
         </div>
       </div>
-    </section>
+    </div>
   )
 }

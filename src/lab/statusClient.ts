@@ -173,10 +173,25 @@ async function cycle(config: LabConfig) {
 }
 
 let started = false
+let active = false
+let resume = () => {}
+let pause = () => {}
 
-/** Load the config and poll for the life of the page, pausing while the tab is hidden. Idempotent. */
-export function startStatusClient() {
-  if (started) return
+/**
+ * Poll while the Fault Lab is open. The first activation loads the config; polling pauses while the lab is closed or
+ * the tab is hidden, so a visitor who never opens the lab makes no lab requests.
+ */
+export function setStatusClientActive(next: boolean) {
+  active = next
+  if (!next) {
+    pause()
+    return
+  }
+  if (started) resume()
+  else startStatusClient()
+}
+
+function startStatusClient() {
   started = true
 
   void loadLabConfig().then(
@@ -207,21 +222,21 @@ export function startStatusClient() {
 
       let timer: ReturnType<typeof setTimeout> | undefined
       let running = false
+      const polling = () => active && !document.hidden
       const run = async () => {
-        if (running || document.hidden) return
+        if (running || !polling()) return
         running = true
         try {
           await cycle(config)
         } finally {
           running = false
           clearTimeout(timer)
-          if (!document.hidden) timer = setTimeout(run, config.client.pollIntervalMs)
+          if (polling()) timer = setTimeout(run, config.client.pollIntervalMs)
         }
       }
-      document.addEventListener('visibilitychange', () => {
-        if (document.hidden) clearTimeout(timer)
-        else void run()
-      })
+      resume = () => void run()
+      pause = () => clearTimeout(timer)
+      document.addEventListener('visibilitychange', () => (document.hidden ? pause() : resume()))
       void run()
     },
     (error: unknown) => {

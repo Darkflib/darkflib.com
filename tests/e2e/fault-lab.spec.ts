@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, expectControlled, openEventLog, readEventLog, test } from '../support/fixtures.ts'
+import { expect, expectControlled, openEventLog, openFaultLab, readEventLog, test } from '../support/fixtures.ts'
 
 // The test server's /lab/config.json shortens the client's clock: 300 ms polls, 800 ms timeouts, a 2.5 s circuit
 // cool-off, and Retry-After waited out up to 1.5 s. Behaviour is otherwise the production client's.
@@ -30,6 +30,7 @@ test.describe('fault lab', () => {
     server.setLabClientEnabled(true)
     await page.goto('/')
     await expectControlled(page)
+    await openFaultLab(page)
     await expect(page.getByTestId('lab-state')).toHaveText('HEALTHY', SLOW)
   })
 
@@ -167,6 +168,7 @@ test('with an older worker the lab explains why, and the status client still run
   server.setServiceWorkerOverride(LEGACY_WORKER)
   server.setLabClientEnabled(true)
   await page.goto('/')
+  await openFaultLab(page)
   await expect(page.getByTestId('lab-unavailable')).toHaveText(/older service worker without fault injection/, SLOW)
   await expect(page.getByLabel('Fault for PRIMARY API')).toBeDisabled()
   await expect(page.getByTestId('lab-state')).toHaveText('HEALTHY', SLOW)
@@ -177,18 +179,56 @@ test('with polling switched off in the config, the lab is idle and this page mak
   server,
 }) => {
   await page.goto('/')
+  await openFaultLab(page)
   await expect(page.getByTestId('lab-state')).toHaveText('IDLE', SLOW)
   await page.waitForTimeout(1000)
-  // This page's own Resource Timing, not the origins' request counters: a delayed request from a previous test's
-  // latency fault can still land on the shared stand-in servers.
-  const labOrigins = Object.values(server.labOrigins)
-  const labRequests = await page.evaluate(
+  expect(await pageLabRequests(page, server.labOrigins)).toEqual([])
+})
+
+test('the lab is collapsed by default and polls only while open', async ({ page, server }) => {
+  server.setLabClientEnabled(true)
+  await page.goto('/')
+  await expectControlled(page)
+  await expect(page.getByRole('button', { name: 'EXPAND' })).toHaveAttribute('aria-expanded', 'false')
+  await expect(page.getByTestId('lab-state')).toHaveCount(0)
+  await page.waitForTimeout(1000)
+  expect(await pageLabRequests(page, server.labOrigins)).toEqual([])
+
+  await page.getByRole('button', { name: 'EXPAND' }).click()
+  await expect(page.getByTestId('lab-state')).toHaveText('HEALTHY', SLOW)
+  await choose(page, 'PRIMARY API', 'offline')
+  await expect(page.getByTestId('lab-applied-api-primary')).toHaveText('ACTIVE · OFFLINE')
+
+  await page.getByRole('button', { name: 'CLOSE FAULT LAB' }).click()
+  await expect(page.getByTestId('lab-active-count')).toHaveText('1 FAULT ACTIVE')
+  // Let an in-flight cycle finish, then confirm nothing further is sent while closed.
+  await page.waitForTimeout(1000)
+  const closedAt = (await pageLabRequests(page, server.labOrigins)).length
+  await page.waitForTimeout(1000)
+  expect(await pageLabRequests(page, server.labOrigins)).toHaveLength(closedAt)
+})
+
+test('a link to #fault-lab opens the lab, even when the hash is already set', async ({ page }) => {
+  await page.goto('/#fault-lab')
+  await expect(page.getByRole('button', { name: 'CLOSE FAULT LAB' })).toHaveAttribute('aria-expanded', 'true')
+
+  await page.getByRole('button', { name: 'COLLAPSE' }).click()
+  await expect(page.getByRole('button', { name: 'OPEN FAULT LAB' })).toHaveAttribute('aria-expanded', 'false')
+  await page.getByRole('link', { name: 'BREAK' }).click()
+  await expect(page.getByRole('button', { name: 'CLOSE FAULT LAB' })).toHaveAttribute('aria-expanded', 'true')
+})
+
+/**
+ * This page's own requests to the lab origins, from Resource Timing rather than the origins' counters: a delayed
+ * request from a previous test's latency fault can still land on the shared stand-in servers.
+ */
+async function pageLabRequests(page: Page, labOrigins: Record<string, string>) {
+  return page.evaluate(
     (origins) =>
       performance
         .getEntriesByType('resource')
         .map((entry) => entry.name)
         .filter((name) => origins.some((origin) => name.startsWith(origin))),
-    labOrigins,
+    Object.values(labOrigins),
   )
-  expect(labRequests).toEqual([])
-})
+}

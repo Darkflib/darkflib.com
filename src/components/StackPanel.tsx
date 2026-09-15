@@ -18,15 +18,6 @@ export function StackPanel() {
           </div>
         ))}
       </div>
-      <div className="stack-quote">
-        <span>“</span>
-        <p>
-          GOOD TOOLS
-          <br />
-          BETTER IDEAS
-        </p>
-        <span className="quote-rule">—</span>
-      </div>
     </section>
   )
 }

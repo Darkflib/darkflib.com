@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ConnectPanel } from './components/ConnectPanel'
+import { ControlsPanel } from './components/ControlsPanel'
 import { EventLog } from './components/EventLog'
 import { FaultLab } from './components/FaultLab'
 import { Footer } from './components/Footer'
@@ -13,9 +14,32 @@ import { Topbar } from './components/Topbar'
 import type { Project } from './content'
 import './App.css'
 
+const LAB_HASH = '#fault-lab'
+
 export function App() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [logOpen, setLogOpen] = useState(false)
+  // Collapsed by default; a link to #fault-lab (the hero's BREAK, or a shared URL) opens it.
+  const [labOpen, setLabOpen] = useState(() => window.location.hash === LAB_HASH)
+
+  useEffect(() => {
+    const openOnHash = () => {
+      if (window.location.hash === LAB_HASH) setLabOpen(true)
+    }
+    // hashchange does not fire when the hash is already #fault-lab, so catch the link clicks too.
+    const openOnLink = (event: MouseEvent) => {
+      if (event.target instanceof Element && event.target.closest(`a[href="${LAB_HASH}"]`)) setLabOpen(true)
+    }
+    window.addEventListener('hashchange', openOnHash)
+    document.addEventListener('click', openOnLink)
+    return () => {
+      window.removeEventListener('hashchange', openOnHash)
+      document.removeEventListener('click', openOnLink)
+    }
+  }, [])
+
+  const toggleLab = () => setLabOpen((open) => !open)
+  const toggleLog = () => setLogOpen((open) => !open)
 
   return (
     <div className="site-shell" id="home">
@@ -26,13 +50,16 @@ export function App() {
         <SystemsStrip />
         <div className="dashboard-grid">
           <ProjectsPanel onSelect={setSelectedProject} />
-          <StackPanel />
-          <div className="side-column">
+          <div className="middle-column">
+            <StackPanel />
             <ConnectPanel />
-            <ServiceWorkerPanel logOpen={logOpen} onToggleLog={() => setLogOpen((open) => !open)} />
+          </div>
+          <div className="side-column">
+            <ServiceWorkerPanel />
+            <ControlsPanel labOpen={labOpen} onToggleLab={toggleLab} logOpen={logOpen} onToggleLog={toggleLog} />
           </div>
         </div>
-        <FaultLab />
+        <FaultLab open={labOpen} onToggle={toggleLab} />
         {logOpen && <EventLog />}
       </main>
       <Footer />
