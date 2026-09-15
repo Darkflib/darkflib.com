@@ -1,5 +1,7 @@
 .hero {
-  height: 474px;
+  /* The copy block grows with the title (7vw, capped at 134px); grow the hero with it so the buttons keep clear of the
+   * systems strip on wide screens. 474px below about 1300px wide, as in the mockup. */
+  height: max(474px, calc(390px + clamp(68px, 7vw, 134px)));
   position: relative;
   overflow: hidden;
   border-bottom: 1px solid #4ea2cc;
