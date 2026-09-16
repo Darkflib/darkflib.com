@@ -22,15 +22,12 @@
   background: #1c1230;
   display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 6px 10px;
+  gap: 8px;
+  padding: 9px 11px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
   color: #ffbef6;
   box-shadow: 0 0 12px #ed23d32b;
-}
-
-.contact-button > span {
-  font-size: 22px;
-  line-height: 1;
 }
 
 .contact-button:hover {

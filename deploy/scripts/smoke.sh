@@ -154,15 +154,17 @@ done
 fetch api.darkflib.com /v1/missing.json
 check "missing lab document is 404" is "$status" 404
 
-# The page reads its lab targets from /lab/config.json; the CSP must admit every one of them, and nothing else.
+# The page reads its lab targets from /lab/config.json; the CSP must admit every one of them, the contact API, and
+# nothing else.
+contact_origin=https://mikepreston.org
 fetch darkflib.com /lab/config.json
 check "lab config is served" is "$status" 200
 csp_connect=$(curl --silent --output /dev/null --dump-header - --header 'Host: darkflib.com' "$base/" | tr -d '\r' \
     | sed -n 's/^[Cc]ontent-[Ss]ecurity-[Pp]olicy: .*connect-src \([^;]*\);.*/\1/p')
-config_origins=$(curl --silent --header 'Host: darkflib.com' "$base/lab/config.json" | grep -o '"origin": *"[^"]*"' \
-    | sed 's/.*"\([^"]*\)"$/\1/' | sort | tr '\n' ' ')
+config_origins=$( { curl --silent --header 'Host: darkflib.com' "$base/lab/config.json" | grep -o '"origin": *"[^"]*"' \
+    | sed 's/.*"\([^"]*\)"$/\1/'; echo "$contact_origin"; } | sort | tr '\n' ' ')
 csp_origins=$(printf '%s' "$csp_connect" | tr ' ' '\n' | grep -v -e "^'self'$" -e '^$' | sort | tr '\n' ' ')
-check "CSP connect-src matches lab config ($config_origins)" is "$csp_origins" "$config_origins"
+check "CSP connect-src matches lab config and contact API ($config_origins)" is "$csp_origins" "$config_origins"
 
 echo "container"
 check "runs as uid 65532" is "$("$engine" exec "$name" id -u)" 65532

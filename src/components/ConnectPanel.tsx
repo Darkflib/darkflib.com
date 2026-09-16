@@ -1,11 +1,8 @@
-import { ArrowUpRight } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowUpRight, Mail } from 'lucide-react'
 import { PanelHeader } from './PanelHeader'
 import './ConnectPanel.css'
 
-export function ConnectPanel() {
-  const [contactOpen, setContactOpen] = useState(false)
-
+export function ConnectPanel({ onOpenContact }: { onOpenContact: () => void }) {
   return (
     <section className="panel connect-panel" id="contact" aria-labelledby="contact-title">
       <PanelHeader id="contact-title" title="CONNECT">
@@ -13,28 +10,12 @@ export function ConnectPanel() {
       </PanelHeader>
       <div className="connect-body">
         <p>
-          {contactOpen ? (
-            <>
-              CONTACT CHANNEL
-              <br />
-              COMING ONLINE.
-            </>
-          ) : (
-            <>
-              LET'S BUILD
-              <br />
-              SOMETHING COOL.
-            </>
-          )}
+          GOT SOMETHING
+          <br />
+          WORTH BREAKING?
         </p>
-        <button
-          type="button"
-          className="contact-button"
-          aria-label="Show contact status"
-          onClick={() => setContactOpen((open) => !open)}
-        >
-          <span>✉</span>
-          <ArrowUpRight size={16} />
+        <button type="button" className="contact-button" onClick={onOpenContact}>
+          <Mail size={18} /> OPEN CHANNEL
         </button>
       </div>
     </section>

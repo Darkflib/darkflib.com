@@ -129,6 +129,11 @@ export const posts = [
   },
 ] as const
 
+// The contact form posts to mikepreston.org's API (form token, honeypot, behaviour score, rate limits, Mailgun)
+// rather than exposing an address here. deploy/Caddyfile's CSP admits this origin for connect-src.
+export const CONTACT_API = 'https://mikepreston.org/api/v1/contact'
+export const CONTACT_PAGE_URL = 'https://mikepreston.org/contact'
+
 export const TOOLS_URL = 'https://tools.mikepreston.org'
 
 export const tools = [

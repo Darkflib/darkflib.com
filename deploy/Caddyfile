@@ -38,9 +38,10 @@
 (security_headers) {
 	header {
 		# Same-origin except connect-src, which admits the three Fault Lab origins (public/lab/config.json lists the
-		# same three; deploy/scripts/smoke.sh checks they agree). Verified with no violations in Chromium, Firefox, and
-		# WebKit (tests/deploy). React sets inline styles through the CSSOM, which style-src does not govern.
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self' https://api.darkflib.com https://api.darkflib.dev https://media.darkflib.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+		# same three) and mikepreston.org, whose API takes the contact form; deploy/scripts/smoke.sh checks the set
+		# agrees. Verified with no violations in Chromium, Firefox, and WebKit (tests/deploy). React sets inline styles
+		# through the CSSOM, which style-src does not govern.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self' https://api.darkflib.com https://api.darkflib.dev https://media.darkflib.com https://mikepreston.org; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 		# No includeSubDomains and no preload: both are hard to walk back.
 		Strict-Transport-Security "max-age=31536000"
 		X-Content-Type-Options "nosniff"

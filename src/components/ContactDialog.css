@@ -1,0 +1,155 @@
+dialog.contact-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  padding: 0;
+  width: min(560px, calc(100% - 40px));
+  max-width: none;
+  max-height: calc(100% - 40px);
+  color: inherit;
+  box-shadow: 0 0 50px #e621c94c;
+  overflow: auto;
+}
+
+dialog.contact-dialog[open] {
+  display: block;
+}
+
+.contact-dialog::backdrop {
+  background: #02050bdc;
+  backdrop-filter: blur(8px);
+}
+
+.contact-head {
+  padding: 30px 30px 0;
+}
+
+.contact-head > span {
+  color: #f75cdb;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.contact-head h2 {
+  font: 700 40px / 1 var(--font-display);
+  margin: 12px 0;
+  color: #fff;
+}
+
+.contact-head p {
+  font-size: 11px;
+  line-height: 1.6;
+  color: #a4bfd6;
+  margin: 0;
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px 30px 30px;
+}
+
+.contact-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.contact-field > span {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: #8fb3cc;
+}
+
+.contact-field input,
+.contact-field textarea {
+  border: 1px solid #3a5c78;
+  background: #0b1424;
+  color: #e6f6ff;
+  font: inherit;
+  font-size: 12px;
+  padding: 9px 10px;
+  resize: vertical;
+}
+
+.contact-field input:focus-visible,
+.contact-field textarea:focus-visible {
+  outline: 1px solid #f537d8;
+  outline-offset: 0;
+  border-color: #f537d8;
+}
+
+.contact-field [aria-invalid="true"] {
+  border-color: #ff6f9a;
+}
+
+.contact-error {
+  font-size: 9px;
+  font-style: normal;
+  letter-spacing: 0.08em;
+  color: #ff8fb0;
+}
+
+/* Off-screen rather than display:none, which some bots skip. */
+.contact-honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.contact-notice {
+  margin: 0;
+  padding: 9px 11px;
+  border: 1px solid #7a5a2a;
+  background: #1c1608;
+  color: #ffd27a;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.contact-notice a {
+  color: #ffe6b0;
+  text-decoration: underline;
+}
+
+.contact-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.contact-actions .button-primary:disabled {
+  opacity: 0.5;
+}
+
+.contact-result {
+  padding: 22px 30px 30px;
+}
+
+.contact-result p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #baf4d8;
+  margin: 0 0 20px;
+}
+
+@media (max-width: 560px) {
+  .contact-head {
+    padding: 22px 20px 0;
+  }
+
+  .contact-head h2 {
+    font-size: 32px;
+  }
+
+  .contact-form,
+  .contact-result {
+    padding: 18px 20px 22px;
+  }
+}

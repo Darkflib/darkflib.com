@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ConnectPanel } from './components/ConnectPanel'
+import { ContactDialog } from './components/ContactDialog'
 import { ControlsPanel } from './components/ControlsPanel'
 import { EventLog } from './components/EventLog'
 import { FaultLab } from './components/FaultLab'
@@ -17,10 +18,12 @@ import type { Project } from './content'
 import './App.css'
 
 const LAB_HASH = '#fault-lab'
+const CONTACT_HASH = '#contact'
 
 export function App() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [logOpen, setLogOpen] = useState(false)
+  const [contactOpen, setContactOpen] = useState(false)
   // Collapsed by default; a link to #fault-lab (the hero's BREAK, or a shared URL) opens it.
   const [labOpen, setLabOpen] = useState(() => window.location.hash === LAB_HASH)
 
@@ -30,7 +33,13 @@ export function App() {
     }
     // hashchange does not fire when the hash is already #fault-lab, so catch the link clicks too.
     const openOnLink = (event: MouseEvent) => {
-      if (event.target instanceof Element && event.target.closest(`a[href="${LAB_HASH}"]`)) setLabOpen(true)
+      if (!(event.target instanceof Element)) return
+      if (event.target.closest(`a[href="${LAB_HASH}"]`)) setLabOpen(true)
+      // Every link to #contact opens the dialog instead of scrolling to the CONNECT panel.
+      if (event.target.closest(`a[href="${CONTACT_HASH}"]`)) {
+        event.preventDefault()
+        setContactOpen(true)
+      }
     }
     window.addEventListener('hashchange', openOnHash)
     document.addEventListener('click', openOnLink)
@@ -54,7 +63,7 @@ export function App() {
           <ProjectsPanel onSelect={setSelectedProject} />
           <div className="middle-column">
             <StackPanel />
-            <ConnectPanel />
+            <ConnectPanel onOpenContact={() => setContactOpen(true)} />
           </div>
           <div className="side-column">
             <ServiceWorkerPanel />
@@ -70,6 +79,7 @@ export function App() {
       </main>
       <Footer />
       <ProjectDialog project={selectedProject} onClose={() => setSelectedProject(null)} />
+      <ContactDialog open={contactOpen} onClose={() => setContactOpen(false)} />
     </div>
   )
 }
