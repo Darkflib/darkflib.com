@@ -5,7 +5,7 @@ import { ResponsiveImage } from './ResponsiveImage'
 export function ProjectImage({ project, sizes }: { project: Project; sizes: string }) {
   if (project.image) {
     return (
-      <ResponsiveImage base={`projects/${project.image}`} widths={[400, 800]} sizes={sizes} width={900} height={900} />
+      <ResponsiveImage base={`projects/${project.image}`} widths={[400, 800]} sizes={sizes} width={1200} height={900} />
     )
   }
   return (

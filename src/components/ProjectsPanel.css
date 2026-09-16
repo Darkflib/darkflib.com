@@ -57,8 +57,10 @@
   height: 100%;
 }
 
+/* Whole screenshots, not crops: these are interfaces, and a cover crop slices headlines and cards in half. */
 .project-image img {
-  object-fit: cover;
+  object-fit: contain;
+  background: #060b16;
 }
 
 .project-glyph {
