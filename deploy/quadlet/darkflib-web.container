@@ -7,7 +7,7 @@ Wants=network-online.target
 ContainerName=darkflib-web
 # Set by deploy/scripts/promote.sh, which verifies the signature before writing a digest here. Never hand-edit it,
 # and never use a floating tag: a restart must not change which build runs.
-Image=ghcr.io/darkflib/darkflib.com:sha-964e53b57f000de154e0eb76e7287d7fce190409@sha256:8485440f5c2c61decbd954e9c04b529b08969ec9772a273e865cb0bcbe06c19a
+Image=ghcr.io/darkflib/darkflib.com:sha-7e013e77e5baff539d8115240450e5d6a2b875e5@sha256:d0d1ff846ec237eea8e16fa4653d7020378e9a7646c4d14ebd1500aae3854873
 Pull=missing
 Network=darkflib.network
 
