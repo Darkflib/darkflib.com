@@ -45,8 +45,9 @@ export function ContactDialog({ open, onClose }: { open: boolean; onClose: () =>
   }, [open])
 
   // A form-load token, issued per opening: single-use, bound to this IP and user agent, and valid for 30 minutes.
+  // Not while the sent message is on screen: that token would be issued for a form nobody is filling in.
   useEffect(() => {
-    if (!open || token !== null) return
+    if (!open || token !== null || status === 'sent') return
     const controller = new AbortController()
     fetch(`${CONTACT_API}/token`, { signal: controller.signal })
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error(String(response.status)))))
@@ -58,7 +59,7 @@ export function ContactDialog({ open, onClose }: { open: boolean; onClose: () =>
         if (!controller.signal.aborted) setTokenFailed(true)
       })
     return () => controller.abort()
-  }, [open, token])
+  }, [open, token, status])
 
   useEffect(() => {
     if (!open) return

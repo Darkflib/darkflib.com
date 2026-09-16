@@ -27,21 +27,21 @@ interface Stub {
 
 async function stubApi(page: Page, { tokenStatus = 200, submitStatus = 200 }: Stub = {}) {
   const posted: unknown[] = []
+  const tokens: string[] = []
   // Nothing in a test may reach the real service: anything not stubbed below fails here.
   await page.route(`${ORIGIN}/**`, (route) => route.abort())
-  await page.route(TOKEN_URL, (route) =>
-    route.request().method() === 'OPTIONS'
-      ? route.fulfill({ status: 204, headers: cors(route) })
-      : tokenStatus === 200
-        ? json(route, 200, { token: 'test-token', issued_at: new Date().toISOString() })
-        : json(route, tokenStatus, { detail: 'nope' }),
-  )
+  await page.route(TOKEN_URL, (route) => {
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors(route) })
+    if (tokenStatus !== 200) return json(route, tokenStatus, { detail: 'nope' })
+    tokens.push('issued')
+    return json(route, 200, { token: 'test-token', issued_at: new Date().toISOString() })
+  })
   await page.route(SUBMIT_URL, (route) => {
     if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors(route) })
     posted.push(route.request().postDataJSON())
     return json(route, submitStatus, submitStatus === 200 ? { ok: true } : { detail: 'nope' })
   })
-  return posted
+  return { posted, tokens }
 }
 
 async function fillForm(page: Page) {
@@ -52,7 +52,7 @@ async function fillForm(page: Page) {
 }
 
 test('the contact dialog opens from the nav and the CONNECT card, and sends a message', async ({ page }) => {
-  const posted = await stubApi(page)
+  const { posted, tokens } = await stubApi(page)
   await page.goto('/?sw=off')
 
   const dialog = page.getByRole('dialog', { name: 'SAY HELLO' })
@@ -82,12 +82,20 @@ test('the contact dialog opens from the nav and the CONNECT card, and sends a me
     signals: { keystrokes: expect.any(Number), focus_events: expect.any(Number), pointer_moved: expect.any(Boolean) },
   })
 
+  // No second token while the confirmation is on screen: that one would be issued for a form nobody is filling in.
+  await page.waitForTimeout(300)
+  expect(tokens).toHaveLength(1)
+
   await page.getByRole('button', { name: 'CLOSE', exact: true }).click()
   await expect(dialog).toBeHidden()
+
+  // Reopening starts a fresh form, so it takes a fresh single-use token.
+  await page.getByRole('button', { name: 'OPEN CHANNEL' }).click()
+  await expect.poll(() => tokens.length).toBe(2)
 })
 
 test('the form checks itself before spending a token', async ({ page }) => {
-  const posted = await stubApi(page)
+  const { posted } = await stubApi(page)
   await page.goto('/?sw=off')
   await page.getByRole('link', { name: 'CONTACT' }).click()
 
