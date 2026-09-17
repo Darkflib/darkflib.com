@@ -45,7 +45,8 @@ fi
 
 printf 'DARKFLIB_WEB_PORT=8082\nSRETAB_PAT="%s"\n' "$pat" > "$install_env"
 chmod 0600 "$install_env"
-DESTDIR="$stage" "$script_dir/../install.sh" --nginx > "$stage/install.log"
+# Both streams: the assertion below is about the token never being printed, and warnings go to stderr.
+DESTDIR="$stage" "$script_dir/../install.sh" --nginx > "$stage/install.log" 2>&1
 if grep -q -- "$pat" "$stage/install.log"; then
     fail "installer printed the token"
 else

@@ -107,6 +107,9 @@ test.describe('KEV panel', () => {
       server.setKevSnapshot(mode)
       await page.goto('/')
       await expect(page.getByTestId('strip-build')).toBeVisible()
+      // The panel is absent before the snapshot arrives too, so wait for the fetch: otherwise a regression that
+      // renders it once loaded would pass this.
+      await page.waitForLoadState('networkidle')
       await expect(page.locator('#kev'), `snapshot mode: ${mode}`).toHaveCount(0)
     }
   })
