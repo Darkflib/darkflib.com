@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { expect, test } from '../support/fixtures.ts'
 
 test.describe('systems strip telemetry', () => {
@@ -8,9 +9,20 @@ test.describe('systems strip telemetry', () => {
     await expect(strip).toHaveText(/^BUILD: [0-9a-f]{7}\*?$/)
     await expect(page.getByTestId('strip-sw')).toHaveText('SW: CONTROLLING')
 
-    // Page and worker come from the same build. (dist/ may predate HEAD locally, so don't compare with git here.)
     const [, sha, dirty] = /^BUILD: ([0-9a-f]{7})(\*?)$/.exec((await strip.textContent()) ?? '') ?? []
-    await expect(page.getByTestId('sw-build')).toHaveText(new RegExp(`^${sha}${dirty ? '-dirty' : ''}\\+[0-9a-f]{8}$`))
+
+    // The worker's version is a hash of its own bytes, with the version as a placeholder, and nothing else: recompute it
+    // from the script served. (That the commit stays out is the point: an unchanged worker must not update.)
+    const script = await (await page.request.get('/service-worker.js')).text()
+    const versions = [...new Set(script.match(/sw-[0-9a-f]{8}/g))]
+    expect(versions).toHaveLength(1)
+    const hash = createHash('sha256')
+      .update(script.replaceAll(versions[0], 'sw-__SW_BUNDLE_HASH__'))
+      .digest('hex')
+      .slice(0, 8)
+    expect(versions[0]).toBe(`sw-${hash}`)
+    expect(script).not.toContain(sha)
+    await expect(page.getByTestId('sw-version')).toHaveText(`sw-${hash}`)
 
     // In CI the build runs right before the tests, from a clean checkout of the commit under test.
     if (process.env.GITHUB_SHA) {

@@ -9,8 +9,6 @@ interface ServiceWorkerPluginOptions {
   entry: string
   /** Served and emitted at this root-relative path. The URL must stay stable across builds. */
   fileName?: string
-  /** Build identifier baked into the worker; the bundle hash is appended. */
-  build: string
 }
 
 /**
@@ -18,14 +16,12 @@ interface ServiceWorkerPluginOptions {
  * universally supported, and the script URL must not be content-hashed. Dev serves a fresh bundle per request, so
  * editing the worker exercises the real browser update flow.
  *
- * The worker sees `__SW_VERSION__` as `<build>+<hash>`, where the hash covers the bundle itself. Identical source
- * yields identical bytes, so rebuilding an unchanged worker never triggers a spurious update.
+ * The worker sees `__SW_VERSION__` as `sw-<hash>`, a hash of the bundle itself (taken with a placeholder in the
+ * version's place). Nothing else about the build goes in: no commit SHA, no timestamp. The bytes therefore change only
+ * when the worker's code does, so a commit that leaves the worker alone deploys the same script and the browser finds
+ * no update.
  */
-export function serviceWorkerPlugin({
-  entry,
-  fileName = 'service-worker.js',
-  build: buildId,
-}: ServiceWorkerPluginOptions): Plugin {
+export function serviceWorkerPlugin({ entry, fileName = 'service-worker.js' }: ServiceWorkerPluginOptions): Plugin {
   async function bundle(minify: boolean): Promise<string> {
     const result = await build({
       entryPoints: [entry],
@@ -36,11 +32,12 @@ export function serviceWorkerPlugin({
       minify,
       write: false,
       logLevel: 'silent',
-      define: { __SW_VERSION__: JSON.stringify(`${buildId}+${HASH_PLACEHOLDER}`) },
+      define: { __SW_VERSION__: JSON.stringify(`sw-${HASH_PLACEHOLDER}`) },
     })
     const code = result.outputFiles[0].text
     const hash = createHash('sha256').update(code).digest('hex').slice(0, 8)
-    return code.replace(HASH_PLACEHOLDER, hash)
+    // The minifier may inline the version at each use.
+    return code.replaceAll(HASH_PLACEHOLDER, hash)
   }
 
   return {

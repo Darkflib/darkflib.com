@@ -94,8 +94,10 @@ server shortens the client's clock through the config, and enables polling only 
 
 `src/sw/service-worker.ts` is bundled by `build/serviceWorkerPlugin.ts` with esbuild into a single classic script at
 `/service-worker.js`: a stable URL, with no content hash, outside Vite's module graph. Dev serves a fresh bundle per
-request, so editing the worker exercises the browser's real update flow. The worker reports its build as
-`<sha>[-dirty]+<bundle hash>`; unchanged source produces identical bytes, so rebuilds never cause spurious updates.
+request, so editing the worker exercises the browser's real update flow. The worker's version is `sw-<hash>`, a hash
+of its own bundle; the commit SHA and build time are deliberately left out. A deploy that does not touch the worker
+therefore serves identical bytes, and browsers find no update. The panel shows that version, and the strip's `BUILD`
+shows the page's commit; the two are independent.
 
 Current scope: registration, lifecycle observation, control detection, a `MessageChannel` version handshake, and a
 **passive fetch observer**, all feeding one bounded, emit-ordered event log. There is deliberately no `skipWaiting()`:
