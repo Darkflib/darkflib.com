@@ -9,6 +9,9 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   scroll-behavior: smooth;
+  /* The footer is pinned to the bottom of the window: keep scrolled-to and focused elements clear of it. */
+  scroll-padding-bottom: calc(var(--footer-height) + 8px);
+  --footer-height: 52px;
 }
 
 body {
@@ -32,11 +35,23 @@ a:focus-visible {
 
 /* Page shell */
 
+/* A column, so the footer sits at the bottom of the window even when the content is shorter. */
 .site-shell {
   position: relative;
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
-  overflow: hidden;
+  /* clip, not hidden: hidden makes the shell a scroll container, and the sticky footer would stick to it instead of
+   * the window. */
+  overflow: clip;
   background: linear-gradient(180deg, #050913 0%, #0b1021 65%, #060816 100%);
+}
+
+/* Older browsers (Safari before 16) keep the clipping and lose the pinned footer. */
+@supports not (overflow: clip) {
+  .site-shell {
+    overflow: hidden;
+  }
 }
 
 .site-shell::before {
@@ -67,6 +82,10 @@ a:focus-visible {
   opacity: 0.13;
   background: repeating-linear-gradient(to bottom, transparent 0, transparent 3px, rgba(95, 151, 196, 0.15) 4px);
   mix-blend-mode: screen;
+}
+
+.site-shell > main {
+  flex: 1;
 }
 
 /* Buttons */

@@ -61,6 +61,10 @@ Every value in the strip under the hero is read from the browser or the build, n
 The bars will pick up Fault Lab latency injection with no extra wiring, since injected delays show up in Resource
 Timing.
 
+The footer is `position: sticky` at the bottom of the window. Being in flow, it sits below the last panel at the end of
+the page rather than covering it, and `scroll-padding-bottom` keeps scrolled-to and focused elements clear of it. The
+shell uses `overflow: clip`, since `hidden` would make it the footer's scroll container.
+
 ## Fault Lab
 
 A `FAULT_LAB` section below the dashboard lets a visitor break things and watch the page recover. Everything happens in

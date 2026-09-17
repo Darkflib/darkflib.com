@@ -1,12 +1,19 @@
+/* Sticky rather than fixed: pinned to the bottom of the window while scrolling, but still in flow, so at the end of the
+ * page it sits below the last panel (the fault lab or event log) instead of covering it. */
 .footer {
-  position: relative;
-  z-index: 2;
+  position: sticky;
+  bottom: 0;
+  /* Above the panels, below the scanlines, as before. */
+  z-index: 8;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 15px 2.1%;
-  min-height: 52px;
+  gap: 15px;
+  padding: 0 2.1%;
+  height: var(--footer-height);
   border-top: 1px solid #286891;
+  box-shadow: 0 0 22px #059fe133;
+  white-space: nowrap;
   color: #86b5d5;
   font-size: 9px;
   letter-spacing: 0.11em;
@@ -25,13 +32,21 @@
 }
 
 @media (max-width: 800px) {
+  :root {
+    --footer-height: 40px;
+  }
+
   .footer {
-    gap: 15px;
-    flex-wrap: wrap;
-    padding: 18px 3%;
+    padding: 0 3%;
   }
 
   .footer-center {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .footer-rights {
     display: none;
   }
 }
