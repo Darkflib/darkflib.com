@@ -1,4 +1,7 @@
 node_modules/
+# Local secrets (the sre-tab PAT) and the KEV snapshot fetched with them
+.env
+.feeds/
 dist/
 .DS_Store
 *.log
