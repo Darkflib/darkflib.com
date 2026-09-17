@@ -11,6 +11,9 @@
 #   podman build --format docker --build-arg BUILD_SHA="$(git rev-parse HEAD)" --tag darkflib.com:dev .
 #
 # --format docker keeps the HEALTHCHECK, which OCI format drops and darkflib-web.container's Notify=healthy needs.
+#
+# The image also carries kev-snapshot, which darkflib-kev.container runs from this same image to write the KEV
+# snapshot the page reads, so the producer and the reader of that document ship and promote together.
 
 # --- Build ------------------------------------------------------------------
 FROM docker.io/library/node:24-trixie-slim@sha256:50c3b2f6988dfc307b86e5301d69611af31f4789bdf232863b07d3b02fe55ae0 AS build
@@ -31,12 +34,29 @@ ENV BUILD_SHA=${BUILD_SHA} BUILD_DIRTY=${BUILD_DIRTY}
 RUN test -n "$BUILD_SHA" || { echo "BUILD_SHA build arg is required" >&2; exit 1; }; \
     npx vite build
 
+# --- KEV snapshot fetcher ---------------------------------------------------
+# A static Go binary, so the runtime image gains one file and no packages: apk add would float with the Alpine
+# repository at build time, where every base here is pinned. gofmt, vet, and the tests run here, which puts them in
+# CI's container job without a Go toolchain on the runner.
+FROM docker.io/library/golang:1.27-alpine@sha256:cf6fca6641884b8433441b2b0652976f975e1d0fdd26d177eaaf8596087f3125 AS kev-snapshot
+
+WORKDIR /src
+ENV CGO_ENABLED=0 GOTOOLCHAIN=local GOFLAGS=-trimpath
+
+COPY kev-snapshot/ ./
+RUN unformatted="$(gofmt -l .)"; \
+    if [ -n "$unformatted" ]; then echo "gofmt would change: $unformatted" >&2; exit 1; fi; \
+    go vet ./... \
+    && go test ./... \
+    && go build -ldflags='-s -w' -o /out/kev-snapshot .
+
 # --- Runtime ----------------------------------------------------------------
 FROM docker.io/library/caddy:2.11.4-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
 
 COPY deploy/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /build/dist /srv/www
 COPY lab/origins /srv/lab
+COPY --from=kev-snapshot /out/kev-snapshot /usr/local/bin/kev-snapshot
 
 # No escalation paths on a read-only, capability-dropped container. The find after the chmod asserts the end state
 # rather than trusting the traversal's exit status.
