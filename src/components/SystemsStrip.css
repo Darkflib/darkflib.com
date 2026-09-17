@@ -45,6 +45,16 @@
   box-shadow: 0 0 12px #ff3d7a;
 }
 
+/* Room for three digits, so the strip does not shuffle as the count changes. */
+.strip-fps {
+  min-width: calc(8ch + 8 * 0.11em);
+}
+
+.strip-fps.low {
+  color: #ff48ea;
+  text-shadow: 0 0 8px #f516d9;
+}
+
 /* Request latency: one bar per recent request, newest on the right. */
 .signal-bars {
   display: flex;
@@ -89,13 +99,19 @@
     padding: 0 3%;
   }
 
-  .systems-strip > .signal-bars {
+  .systems-strip > .signal-bars,
+  .systems-strip > .strip-utc {
     display: none;
   }
 }
 
 @media (max-width: 560px) {
-  .systems-strip > .strip-medium {
+  .systems-strip {
+    gap: 6px;
+  }
+
+  .systems-strip > .strip-medium,
+  .systems-strip .strip-prefix {
     display: none;
   }
 }

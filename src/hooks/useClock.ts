@@ -1,10 +1,19 @@
 import { useEffect, useState } from 'react'
 
-export function useClock() {
+/** The current time, updated as each wall-clock second begins. */
+export function useClock(): Date {
   const [time, setTime] = useState(() => new Date())
   useEffect(() => {
-    const interval = window.setInterval(() => setTime(new Date()), 1000)
-    return () => window.clearInterval(interval)
+    let timer: number
+    const schedule = () => {
+      timer = window.setTimeout(tick, 1000 - (Date.now() % 1000))
+    }
+    const tick = () => {
+      setTime(new Date())
+      schedule()
+    }
+    schedule()
+    return () => window.clearTimeout(timer)
   }, [])
-  return time.toLocaleTimeString('en-GB', { hour12: false, timeZone: 'UTC' })
+  return time
 }
