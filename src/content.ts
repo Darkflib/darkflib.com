@@ -57,7 +57,7 @@ export const projects: readonly Project[] = [
     name: 'SRE-TAB',
     description: 'Self-hosted developer news dashboard',
     summary:
-      'Curated RSS and Atom feeds in one filtered stream, with topics, bookmarks, and read state kept on a server you run. Sign-in is GitHub OAuth against an allow-list, and nothing phones home.',
+      "Curated RSS and Atom feeds, and CISA's exploited-vulnerability catalogue, in one filtered stream, with topics, bookmarks, and read state kept on a server you run. Sign-in is GitHub OAuth against an allow-list, and nothing phones home. The KEV panel on this page is its feed, mirrored hourly.",
     tags: ['FASTAPI', 'REACT', 'SELF-HOSTED'],
     image: 'sre-tab',
     links: { live: 'https://sretab.mikepreston.org', source: 'https://github.com/Darkflib/sre-tab' },
