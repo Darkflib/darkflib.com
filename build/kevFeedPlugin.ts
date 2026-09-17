@@ -58,7 +58,7 @@ export function kevFeedPlugin({
           readFile(fixture, 'utf8').then(
             (sample) => {
               try {
-                send(JSON.stringify({ ...JSON.parse(sample), fetched_at: new Date().toISOString() }))
+                send(rebaseSnapshot(sample))
               } catch (error) {
                 next(error)
               }
