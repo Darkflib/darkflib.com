@@ -1,0 +1,370 @@
+.kev-panel {
+  margin: 0 1.25% 14px;
+  position: relative;
+  z-index: 2;
+}
+
+/* A source label, like the Fault Lab's, not a control. */
+.panel-header .kev-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 12px;
+  color: #ffd27a;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  vertical-align: middle;
+}
+
+.panel-header .kev-badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffb13b;
+  box-shadow: 0 0 8px #ffb13b;
+}
+
+.kev-panel .kev-source {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 9px;
+  letter-spacing: 0.07em;
+}
+
+.kev-panel .kev-source:hover {
+  color: #fff;
+  text-shadow: 0 0 8px #3cdbfb;
+}
+
+.kev-note {
+  margin: 8px 13px 0;
+  font-size: 10px;
+  line-height: 1.5;
+  color: #8fb3cc;
+}
+
+.kev-body {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.24fr) 1fr;
+  gap: 12px;
+  padding: 10px 13px 13px;
+}
+
+/* Summary column */
+
+.kev-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kev-stats {
+  margin: 0;
+  border: 1px solid #3a5c78;
+  background: #0b1424;
+  padding: 4px 12px 6px;
+}
+
+.kev-stats div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px solid #294057;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: #a4bfd6;
+}
+
+.kev-stats div:last-child {
+  border-bottom: 0;
+}
+
+.kev-stats dt {
+  white-space: nowrap;
+}
+
+.kev-stats dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  color: #eef7ff;
+}
+
+.kev-stats .kev-count-flag {
+  color: #ff8df0;
+}
+
+.kev-weeks {
+  border: 1px solid #3a5c78;
+  background: #0b1424;
+  padding: 8px 12px 6px;
+}
+
+.kev-caption {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: #8fb3cc;
+}
+
+/* Weekly additions, drawn like the telemetry strip's request bars: heights are set through the CSSOM. */
+.kev-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 42px;
+  margin: 8px 0 4px;
+}
+
+.kev-bars i {
+  display: block;
+  flex: 1;
+  min-height: 2px;
+  background: #4bddf6;
+  opacity: 0.9;
+}
+
+.kev-bars i.empty {
+  opacity: 0.25;
+}
+
+.kev-bars i:last-child {
+  background: #ff48ea;
+  box-shadow: 0 0 6px #f516d9;
+}
+
+.kev-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  color: #7fa3bd;
+}
+
+.kev-sync {
+  margin: 0;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: #8fb3cc;
+}
+
+.kev-sync.kev-stale {
+  color: #ffd27a;
+}
+
+/* Entries */
+
+.kev-feed {
+  min-width: 0;
+}
+
+.kev-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid #24405d99;
+}
+
+.kev-entry {
+  border-bottom: 1px solid #24405d99;
+}
+
+.kev-entry summary {
+  display: grid;
+  grid-template-columns: 14px 78px 132px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 4px;
+  font-size: 10px;
+  color: #adc8e2;
+  list-style: none;
+}
+
+.kev-entry summary::-webkit-details-marker {
+  display: none;
+}
+
+.kev-entry summary:hover {
+  background: #0e1b2d;
+}
+
+.kev-chevron {
+  color: #5c8bb0;
+  transition: transform 0.15s;
+}
+
+.kev-entry[open] .kev-chevron {
+  transform: rotate(90deg);
+}
+
+.kev-entry time {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: #7fa3bd;
+}
+
+.kev-cve {
+  color: #aee9fa;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.kev-name {
+  color: #e6f2ff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kev-entry summary:hover .kev-name {
+  color: #fff;
+}
+
+.kev-tags {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.kev-tag {
+  border: 1px solid #3a5c78;
+  padding: 1px 6px;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  color: #9fbad2;
+  white-space: nowrap;
+}
+
+.kev-tag.kev-ransomware {
+  border-color: #7a4a86;
+  background: #1a1030;
+  color: #ffbef6;
+}
+
+.kev-tag.kev-soon {
+  border-color: #7a6a3a;
+  color: #ffd27a;
+}
+
+.kev-tag.kev-overdue {
+  border-color: #8a3a5a;
+  color: #ff8fae;
+}
+
+.kev-detail {
+  padding: 2px 4px 12px 116px;
+  font-size: 10px;
+  line-height: 1.6;
+  color: #9fbad2;
+}
+
+.kev-detail p {
+  margin: 0 0 6px;
+}
+
+.kev-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.kev-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #aee9fa;
+}
+
+.kev-links a:hover {
+  color: #fff;
+  text-shadow: 0 0 8px #3cdbfb;
+}
+
+.kev-links a svg {
+  color: #ff8df0;
+}
+
+.kev-deadline {
+  color: #7fa3bd;
+  letter-spacing: 0.04em;
+}
+
+.kev-more {
+  margin-top: 10px;
+  border: 1px solid #547f9c;
+  background: #0d1e31;
+  color: #aee9fa;
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.kev-more:hover {
+  border-color: #e848d6;
+  color: #fff;
+}
+
+@media (max-width: 1100px) {
+  .kev-entry summary {
+    grid-template-columns: 14px 78px 1fr auto;
+  }
+
+  .kev-entry .kev-name {
+    grid-column: 1 / -1;
+    padding-left: 24px;
+  }
+
+  .kev-detail {
+    padding-left: 24px;
+  }
+}
+
+@media (max-width: 800px) {
+  .kev-panel {
+    margin: 0 3% 14px;
+  }
+
+  .kev-body {
+    grid-template-columns: 1fr;
+  }
+
+  .kev-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 14px;
+  }
+
+  .kev-stats div:nth-last-child(2) {
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .kev-entry summary {
+    grid-template-columns: 14px 1fr auto;
+    gap: 8px;
+  }
+
+  .kev-tags {
+    grid-column: 2 / -1;
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kev-chevron {
+    transition: none;
+  }
+}

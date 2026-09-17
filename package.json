@@ -10,6 +10,7 @@
     "lint": "biome check .",
     "format": "biome check --write .",
     "images": "node scripts/optimise-images.ts",
+    "kev": "mkdir -p .feeds && go -C kev-snapshot run . -env-file ../.env -out ../.feeds",
     "fonts": "uv run scripts/fix-font-bboxes.py",
     "test:e2e": "npm run build && playwright test"
   },
