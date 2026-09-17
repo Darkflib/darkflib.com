@@ -6,6 +6,7 @@ import { EventLog } from './components/EventLog'
 import { FaultLab } from './components/FaultLab'
 import { Footer } from './components/Footer'
 import { Hero } from './components/Hero'
+import { KevPanel } from './components/KevPanel'
 import { PostsPanel } from './components/PostsPanel'
 import { ProjectDialog } from './components/ProjectDialog'
 import { ProjectsPanel } from './components/ProjectsPanel'
@@ -14,10 +15,13 @@ import { StackPanel } from './components/StackPanel'
 import { SystemsStrip } from './components/SystemsStrip'
 import { ToolsPanel } from './components/ToolsPanel'
 import { Topbar } from './components/Topbar'
-import type { Project } from './content'
+import { type Project, projects } from './content'
 import './App.css'
 
 const LAB_HASH = '#fault-lab'
+// The KEV panel's source link opens sre-tab's own card rather than sending a visitor to a dashboard they cannot sign
+// in to.
+const SRE_TAB = projects.find((project) => project.slug === 'sre-tab') ?? null
 const CONTACT_HASH = '#contact'
 
 export function App() {
@@ -74,6 +78,7 @@ export function App() {
           <PostsPanel />
           <ToolsPanel />
         </div>
+        <KevPanel onOpenSource={() => setSelectedProject(SRE_TAB)} />
         <FaultLab open={labOpen} onToggle={toggleLab} />
         {logOpen && <EventLog />}
       </main>

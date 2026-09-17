@@ -1,816 +1,816 @@
 {
- "version": 1,
- "fetched_at": "2026-09-17T18:11:05Z",
- "entries": [
-  {
-   "cve": "CVE-2026-87886",
-   "name": "Acronis Backup Incorrect Default Permissions Vulnerability",
-   "description": "Acronis Backup plugin for cPanel & WHM and extension for Plesk contains an incorrect default permissions vulnerability that could allow for privilege escalation.",
-   "added": "2026-09-16T18:47:50.6796Z",
-   "due": "2026-09-19",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-87886"
-  },
-  {
-   "cve": "CVE-2026-76460",
-   "name": "Cisco Identity Services Engine Incorrect Use of Privileged APIs Vulnerability",
-   "description": "Cisco Identity Services Engine (ISE) and Cisco ISE Passive Identity Connector (ISE-PIC) contain an incorrect use of privileged APIs vulnerability that could allow an unauthenticated, remote attacker to gain unauthorized access to the affected device by bypassing the web-based management interface.",
-   "added": "2026-09-16T18:47:50.6796Z",
-   "due": "2026-09-19",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-76460"
-  },
-  {
-   "cve": "CVE-2026-58704",
-   "name": "Google Pixel Improper Authorization Vulnerability",
-   "description": "Google Pixel devices contain an improper authorization vulnerability in the cellular modem. A logic error may allow an attacker to bypass permission checks and escalate privileges.",
-   "added": "2026-09-16T18:47:50.6796Z",
-   "due": "2026-09-19",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-58704"
-  },
-  {
-   "cve": "CVE-2026-76461",
-   "name": "Cisco Secure Email Gateway SQL Injection Vulnerability",
-   "description": "Cisco AsyncOS software for Cisco Secure Email Gateway (SEG) contains a SQL injection vulnerability that could allow an unauthenticated, remote attacker to execute arbitrary commands with root privileges on the underlying operating system.",
-   "added": "2026-09-14T00:00:00Z",
-   "due": "2026-09-17",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-76461"
-  },
-  {
-   "cve": "CVE-2026-85706",
-   "name": "GitLab Community Edition and Enterprise Edition Path Traversal Vulnerability",
-   "description": "GitLab Community Edition and Enterprise Edition contains a path traversal vulnerability that allows an unauthenticated user to read arbitrary files due to an improper path confinement and missing authentication enforcement in the repository commits API.",
-   "added": "2026-09-11T00:00:00Z",
-   "due": "2026-09-14",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-85706"
-  },
-  {
-   "cve": "CVE-2026-84869",
-   "name": "ConnectWise ScreenConnect Improper Privilege Management and Missing Authorization Vulnerability",
-   "description": "ConnectWise ScreenConnect contains both an improper privilege management and missing authorization vulnerability that may allow an attacker to transfer and execute files through an active remote session without authorization or host confirmation.",
-   "added": "2026-09-11T00:00:00Z",
-   "due": "2026-09-14",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-84869"
-  },
-  {
-   "cve": "CVE-2026-42018",
-   "name": "JFrog Artifactory Improper Authentication Vulnerability",
-   "description": "JFrog Artifactory contains an improper authentication vulnerability that could return an internal anonymous-user token to an unauthenticated caller when anonymous access is disabled, potentially exposing sensitive resources.",
-   "added": "2026-09-11T00:00:00Z",
-   "due": "2026-09-25",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-42018"
-  },
-  {
-   "cve": "CVE-2026-42016",
-   "name": "JFrog Artifactory Incorrect Authorization Vulnerability",
-   "description": "JFrog Artifactory contains an incorrect authorization vulnerability that leads to a privilege escalation attack due to a validation check of the token signature/issuer and not the token’s scope.",
-   "added": "2026-09-11T00:00:00Z",
-   "due": "2026-09-25",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-42016"
-  },
-  {
-   "cve": "CVE-2026-86060",
-   "name": "MikroTik RouterOS Improper Neutralization of Argument Delimiters in a Command Vulnerability",
-   "description": "MikroTik RouterOS contains an improper neutralization of argument delimiters in a command vulnerability which allows an attacker to change the trusted RouterOS policy mask, leading to privilege escalation.",
-   "added": "2026-09-10T00:00:00Z",
-   "due": "2026-09-13",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-86060"
-  },
-  {
-   "cve": "CVE-2026-67277",
-   "name": "MikroTik RouterOS Missing Authentication for Critical Function Vulnerability",
-   "description": "MikroTik RouterOS contains a missing authentication for critical function vulnerability which allows kernel memory disclosure and denial of service in the btest service.",
-   "added": "2026-09-10T00:00:00Z",
-   "due": "2026-09-13",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-67277"
-  },
-  {
-   "cve": "CVE-2026-87491",
-   "name": "Google Chromium V8 Out of Bounds Write Vulnerability",
-   "description": "Google Chromium V8 contains an out of bounds write vulnerability that allows a remote attacker to execute arbitrary code inside the sandbox via a crafted HTML page. This vulnerability could affect multiple web browsers that utilize Chromium, including, but not limited to, Google Chrome, Microsoft Edge, and Opera.",
-   "added": "2026-09-09T00:00:00Z",
-   "due": "2026-09-23",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-87491"
-  },
-  {
-   "cve": "CVE-2026-20079",
-   "name": "Cisco Firewall Management Center Authentication Bypass Using an Alternate Path or Channel Vulnerability",
-   "description": "Cisco Secure Firewall Management Center (FMC) Software and Cisco Security Cloud Control (SCC) Firewall Management contain an authentication Bypass using an alternate path or channel vulnerability that could allow an unauthenticated, remote attacker to bypass authentication and execute script files on an affected device to obtain root access to the underlying operating system.",
-   "added": "2026-09-09T00:00:00Z",
-   "due": "2026-09-12",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-20079"
-  },
-  {
-   "cve": "CVE-2026-19490",
-   "name": "Citrix NetScaler Authentication Bypass Using an Alternate Path or Channel Vulnerability",
-   "description": "Citrix NetScaler ADC and NetScaler Gateway contain an authentication-bypass vulnerability involving an alternate path or channel. When the NetScaler appliance is configured as an AAA virtual server or as a Gateway (SSL VPN, ICA Proxy, CVPN, or RDP Proxy), an unauthenticated remote threat actor may be able to bypass authentication.",
-   "added": "2026-09-09T00:00:00Z",
-   "due": "2026-09-12",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-19490"
-  },
-  {
-   "cve": "CVE-2025-25249",
-   "name": "Fortinet Multiple Products Heap-based Buffer Overflow Vulnerability",
-   "description": "Fortinet FortiOS, FortiSwitchManager, and FortiSASE contain a heap-based buffer overflow vulnerability that allows an attacker to execute unauthorized code or commands via specially crafted packets.",
-   "added": "2026-09-09T00:00:00Z",
-   "due": "2026-09-12",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2025-25249"
-  },
-  {
-   "cve": "CVE-2026-86218",
-   "name": "N-able N-central Static Code Injection Vulnerability",
-   "description": "N-able N-central contains a static code injection vulnerability that could allow for pre-authentication remote code execution.",
-   "added": "2026-09-08T00:00:00Z",
-   "due": "2026-09-11",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-86218"
-  },
-  {
-   "cve": "CVE-2026-85880",
-   "name": "Microsoft Windows Heap-Based Buffer Overflow Vulnerability",
-   "description": "Microsoft Windows Advanced Local Procedure Call contains a heap-based buffer overflow vulnerability that allows an attacker to elevate privileges locally.",
-   "added": "2026-09-08T00:00:00Z",
-   "due": "2026-09-22",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-85880"
-  },
-  {
-   "cve": "CVE-2026-81963",
-   "name": "Microsoft Windows Link Following Vulnerability",
-   "description": "Microsoft Windows Update Stack contains a link following vulnerability that allows a local attacker to escalate privileges locally up to SYSTEM.",
-   "added": "2026-09-08T00:00:00Z",
-   "due": "2026-09-22",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-81963"
-  },
-  {
-   "cve": "CVE-2026-75650",
-   "name": "Adobe Commerce and Magento Improper Neutralization of Special Elements Used in a Template Engine Vulnerability",
-   "description": "Adobe Commerce and Magento Open Source contain an improper neutralization of special elements used in a template engine vulnerability that could allow an attacker to execute arbitrary code.",
-   "added": "2026-09-08T00:00:00Z",
-   "due": "2026-09-11",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-75650"
-  },
-  {
-   "cve": "CVE-2026-85046",
-   "name": "Google Chromium V8 Type Confusion Vulnerability",
-   "description": "Google Chromium V8 contains a type confusion vulnerability that allows a remote attacker to execute arbitrary code inside the sandbox via a crafted HTML page. This vulnerability could affect multiple web browsers that utilize Chromium, including, but not limited to, Google Chrome, Microsoft Edge, and Opera.",
-   "added": "2026-09-04T00:00:00Z",
-   "due": "2026-09-18",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-85046"
-  },
-  {
-   "cve": "CVE-2026-9586",
-   "name": "Sangoma Switchvox SQL Injection Vulnerability",
-   "description": "Sangoma Switchvox contains a SQL injection vulnerability which allows an unauthenticated remote attacker to execute arbitrary SQL statements against the backend PostgreSQL database using a single crafted request, including database operations and remote code execution.",
-   "added": "2026-09-02T00:00:00Z",
-   "due": "2026-09-05",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-9586"
-  },
-  {
-   "cve": "CVE-2026-83549",
-   "name": "SonicWall SMA1000 Appliances OS Command Injection Vulnerability",
-   "description": "SonicWall SMA1000 Appliances contains an OS command injection vulnerability that could enable a remote authenticated attacker as administrator to execute arbitrary OS commands, resulting in remote code execution.",
-   "added": "2026-09-02T00:00:00Z",
-   "due": "2026-09-05",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-83549"
-  },
-  {
-   "cve": "CVE-2026-83548",
-   "name": "SonicWall SMA1000 Appliances Server-Side Request Forgery Vulnerability",
-   "description": "SonicWall SMA1000 Appliances contains a server-side request forgery vulnerability that could allow a remote unauthenticated attacker to gain unauthorized access to sensitive functionality and perform unauthorized operations.",
-   "added": "2026-09-02T00:00:00Z",
-   "due": "2026-09-05",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-83548"
-  },
-  {
-   "cve": "CVE-2026-82329",
-   "name": "JFrog Artifactory Improper Authentication Vulnerability",
-   "description": "JFrog Artifactory contains an improper authentication vulnerability that under default configuration can allow an unauthenticated attacker with network access to obtain administrative privileges.",
-   "added": "2026-09-02T00:00:00Z",
-   "due": "2026-09-05",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-82329"
-  },
-  {
-   "cve": "CVE-2026-59822",
-   "name": "BerriAI LiteLLM Improper Authentication Vulnerability",
-   "description": "BerriAI LiteLLM contains an improper authentication vulnerability in the MCP Streamable HTTP endpoint that could allow an unauthenticated attacker to establish an authenticated MCP session using an arbitrary Bearer token.",
-   "added": "2026-09-02T00:00:00Z",
-   "due": "2026-09-16",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-59822"
-  },
-  {
-   "cve": "CVE-2026-49869",
-   "name": "Kestra OSS OS Command Injection Vulnerability",
-   "description": "Kestra OSS contains an OS command injection vulnerability that could allow an unauthenticated remote attacker to create and execute arbitrary workflows without credentials.",
-   "added": "2026-09-02T00:00:00Z",
-   "due": "2026-09-05",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-49869"
-  },
-  {
-   "cve": "CVE-2026-48710",
-   "name": "Kludex Starlette HTTP Request/Response Smuggling Vulnerability",
-   "description": "Kludex Starlette contains a HTTP request/response smuggling vulnerability that could allow attackers to inject paths into the host part, prepending the actual path leading to issues such as authentication bypass when the authentication depends on the reconstructed URL’s path. This vulnerability could be chaned with CVE-2026-42271.",
-   "added": "2026-09-02T00:00:00Z",
-   "due": "2026-09-16",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-48710"
-  },
-  {
-   "cve": "CVE-2026-82078",
-   "name": "PaperCut NG/MF Unsafe Reflection Vulnerability",
-   "description": "PaperCut NG/MF contains an unsafe reflection vulnerability that allows an attacker to manipulate system configuration parameters and execute arbitrary Java bytecode residing on the application classpath under the security context of the PaperCut server process. This vulnerability can be chained with CVE-2026-81578.",
-   "added": "2026-08-31T00:00:00Z",
-   "due": "2026-09-14",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-82078"
-  },
-  {
-   "cve": "CVE-2026-81578",
-   "name": "PaperCut NG/MF Missing Authentication for Critical Function Vulnerability",
-   "description": "PaperCut NG/MF contains a missing authentication for critical function vulnerability which allows an unauthenticated remote attacker to modify certain system configurations. This vulnerability can be chained with CVE-2026-82078.",
-   "added": "2026-08-31T00:00:00Z",
-   "due": "2026-09-14",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-81578"
-  },
-  {
-   "cve": "CVE-2026-66384",
-   "name": "JFrog Artifactory Improper Limitation of a Pathname to a Restricted Directory Vulnerability",
-   "description": "JFrog Artifactory contains an improper limitation of a pathname to a restricted directory vulnerability. This can allow an authenticated user to write data outside the intended Docker cache path under specific remote-repository conditions.",
-   "added": "2026-08-27T00:00:00Z",
-   "due": "2026-09-10",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-66384"
-  },
-  {
-   "cve": "CVE-2026-53362",
-   "name": "Linux Kernel Unspecified Vulnerability",
-   "description": "Linux Kernel contains an unspecified vulnerability that can allow for privilege escalation via IPv6 networking subsystem. This vulnerability can impact multiple products, including but not limited to Suse, Red Hat, and other products using Linux.",
-   "added": "2026-08-27T00:00:00Z",
-   "due": "2026-08-30",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-53362"
-  },
-  {
-   "cve": "CVE-2023-49105",
-   "name": "ownCloud Improper Authentication Vulnerability",
-   "description": "ownCloud contains an improper authentication vulnerability that allows an attacker to access, modify, or delete any file without authentication if the username of a victim is known, and the victim has no signing-key configured.",
-   "added": "2026-08-27T00:00:00Z",
-   "due": "2026-08-30",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2023-49105"
-  },
-  {
-   "cve": "CVE-2026-8452",
-   "name": "Citrix NetScaler ADC and NetScaler Gateway Improper Restriction of Operations within the Bounds of a Memory Buffer Vulnerability",
-   "description": "Citrix NetScaler ADC and NetScaler Gateway contain an improper restriction of operations within the bounds of a memory buffer vulnerability which could lead to denial of service.",
-   "added": "2026-08-26T00:00:00Z",
-   "due": "2026-08-29",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-8452"
-  },
-  {
-   "cve": "CVE-2022-0995",
-   "name": "Linux Kernel Out-of-Bounds Write Vulnerability",
-   "description": "Linux Kernel contains an out-of-bounds memory write vulnerability which could allow a local user to gain privileged access or cause a denial of service on the system.",
-   "added": "2026-08-26T00:00:00Z",
-   "due": "2026-09-09",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2022-0995"
-  },
-  {
-   "cve": "CVE-2021-23758",
-   "name": "Ajax.NET Professional Deserialization of Untrusted Data Vulnerability",
-   "description": "Ajax.NET Professional (AjaxPro) contains a deserialization of untrusted data vulnerability that could allow for remote code execution via arbitrary .NET classes. The impacted product(s) could be end-of-life (EoL) and/or end-of-service (EoS). Users are advised to discontinue use and/or transition to a supported version.",
-   "added": "2026-08-26T00:00:00Z",
-   "due": "2026-09-09",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2021-23758"
-  },
-  {
-   "cve": "CVE-2019-1068",
-   "name": "Microsoft SQL Server Remote Code Execution Vulnerability",
-   "description": "Microsoft SQL Server contains a remote code execution vulnerability that could allow an attacker to execute code in the context of the SQL Server Database Engine service account.",
-   "added": "2026-08-26T00:00:00Z",
-   "due": "2026-08-29",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2019-1068"
-  },
-  {
-   "cve": "CVE-2015-5287",
-   "name": "Red Hat Automatic Bug Reporting Tool Privilege Escalation Vulnerability",
-   "description": "Red Hat Automatic Bug Reporting Tool (ABRT) contains a privilege escalation vulnerability that could allow local users with certain permissions to gain privileges via a symlink attack on a file with a predictable name. The impacted product(s) could be end-of-life (EoL) and/or end-of-service (EoS). Users are advised to discontinue use and/or transition to a supported version.",
-   "added": "2026-08-26T00:00:00Z",
-   "due": "2026-09-09",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2015-5287"
-  },
-  {
-   "cve": "CVE-2015-3246",
-   "name": "Red Hat Libuser Race Condition Vulnerability",
-   "description": "Red Hat libuser contains a race condition vulnerability that allows authenticated local users to corrupt the /etc/passwd file to cause a denial of service or privilege escalation.",
-   "added": "2026-08-26T00:00:00Z",
-   "due": "2026-09-09",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2015-3246"
-  },
-  {
-   "cve": "CVE-2026-60004",
-   "name": "Gitea Code Injection Vulnerability",
-   "description": "Gitea contains a code injection vulnerability that allows an attacker with repository write access to send a malicious patch to the diffpatch API endpoint to plant an executable Git hook and run shell commands as the Gitea service account.",
-   "added": "2026-08-25T00:00:00Z",
-   "due": "2026-08-28",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-60004"
-  },
-  {
-   "cve": "CVE-2026-21962",
-   "name": "Oracle HTTP Server and Oracle Weblogic Server Proxy Plug-in Improper Access Control Vulnerability",
-   "description": "Oracle HTTP Server and Oracle Weblogic Server Proxy Plug-in contain an improper access control vulnerability that can result in unauthorized creation, deletion or modification access to critical data as well as unauthorized access to critical data or complete access to all Oracle HTTP Server and Oracle Weblogic Server Proxy Plug-in accessible data.",
-   "added": "2026-08-24T00:00:00Z",
-   "due": "2026-08-27",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-21962"
-  },
-  {
-   "cve": "CVE-2026-73570",
-   "name": "Zimbra Collaboration Suite (ZCS) OS Command Injection Vulnerability",
-   "description": "Zimbra Collaboration Suite (ZCS) contains an OS command injection vulnerability which could allow an unauthenticated attacker to send specially crafted SMTP requests that may result in execution of arbitrary operating system commands as the Zimbra user.",
-   "added": "2026-08-21T00:00:00Z",
-   "due": "2026-08-24",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-73570"
-  },
-  {
-   "cve": "CVE-2026-72530",
-   "name": "TrueConf Server Code Injection Vulnerability",
-   "description": "TrueConf Server contains a code injection vulnerability that could allow an unauthorized remote attacker with network access via port 4307/TCP to use a specially crafted script to break out of the isolated environment and execute arbitrary code on the host system.",
-   "added": "2026-08-20T00:00:00Z",
-   "due": "2026-09-03",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-72530"
-  },
-  {
-   "cve": "CVE-2026-72529",
-   "name": "TrueConf Server Missing Authentication for Critical Function Vulnerability",
-   "description": "TrueConf Server contains a missing authentication for critical function vulnerability which could allow a remote unauthorized attacker with network access via port 4307/TCP to execute an arbitrary script.",
-   "added": "2026-08-20T00:00:00Z",
-   "due": "2026-08-23",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-72529"
-  },
-  {
-   "cve": "CVE-2026-64849",
-   "name": "MLflow Server-Side Request Forgery Vulnerability",
-   "description": "MLflow contains a server-side request forgery vulnerability that can allow attackers to reach internal or cloud metadata services and receive response_status and response_body.",
-   "added": "2026-08-19T00:00:00Z",
-   "due": "2026-09-02",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-64849"
-  },
-  {
-   "cve": "CVE-2026-65400",
-   "name": "Apple macOS Improper Authentication Vulnerability",
-   "description": "Apple macOS contains an improper authentication vulnerability that could allow an attacker on the network to authenticate to Screen Sharing without valid credentials.",
-   "added": "2026-08-18T00:00:00Z",
-   "due": "2026-08-21",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-65400"
-  },
-  {
-   "cve": "CVE-2026-59310",
-   "name": "Broadcom VMware vCenter Path Traversal Vulnerability",
-   "description": "Broadcom VMware vCenter contains a path traversal vulnerability which could allow a threat actor with network access to vCenter to execute arbitrary code.",
-   "added": "2026-08-18T00:00:00Z",
-   "due": "2026-08-21",
-   "ransomware": true,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-59310"
-  },
-  {
-   "cve": "CVE-2026-55040",
-   "name": "Microsoft SharePoint Weak Authentication Vulnerability",
-   "description": "Microsoft SharePoint contains a weak authentication vulnerability which allows an unauthorized attacker to bypass a security feature over a network.",
-   "added": "2026-08-18T00:00:00Z",
-   "due": "2026-08-21",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-55040"
-  },
-  {
-   "cve": "CVE-2026-33824",
-   "name": "Microsoft Internet Key Exchange (IKE) Service Extensions Double Free Vulnerability",
-   "description": "Microsoft Internet Key Exchange (IKE) Service Extensions contains a double free vulnerability that could enable remote code execution.",
-   "added": "2026-08-18T00:00:00Z",
-   "due": "2026-08-21",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-33824"
-  },
-  {
-   "cve": "CVE-2025-62593",
-   "name": "Ray-Project Ray Code Injection Vulnerability",
-   "description": "Ray-Project Ray contains a code injection vulnerability that could allow remote code execution. Developers using Ray as a development tool may be exposed to this vulnerability exploitable through Firefox and Safari.",
-   "added": "2026-08-17T00:00:00Z",
-   "due": "2026-08-20",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2025-62593"
-  },
-  {
-   "cve": "CVE-2026-72898",
-   "name": "Metabase SQL Injection Vulnerability",
-   "description": "Metabase contains a SQL Injection vulnerability that allows an unauthenticated remote attacker to inject arbitrary SQL into the Metabase application database, which can give them administrator access to the instance. From there, the attacker could change the application configuration, steal stored credentials for the connected databases, read any data accessible through those connections, and export data.",
-   "added": "2026-08-11T00:00:00Z",
-   "due": "2026-08-14",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-72898"
-  },
-  {
-   "cve": "CVE-2026-68820",
-   "name": "Microsoft Windows Ancillary Function Driver for WinSock Use-After-Free Vulnerability",
-   "description": "Microsoft Windows Ancillary Function Driver for WinSock contains a use-after-free vulnerability that allows an authorized attacker to elevate privileges locally.",
-   "added": "2026-08-11T00:00:00Z",
-   "due": "2026-08-25",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-68820"
-  },
-  {
-   "cve": "CVE-2026-20349",
-   "name": "Cisco Secure Firewall Adaptive Security Appliance (ASA) and Secure Firewall Threat Defense (FTD) Heap Inspection Vulnerability",
-   "description": "Cisco Secure Firewall Adaptive Security Appliance (ASA) and Secure Firewall Threat Defense (FTD) contain a heap inspection vulnerability that could allow an unauthenticated, remote attacker to cause the device to reload unexpectedly, resulting in a denial of service (DoS) condition.",
-   "added": "2026-08-11T00:00:00Z",
-   "due": "2026-08-14",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-20349"
-  },
-  {
-   "cve": "CVE-2026-8037",
-   "name": "Progress LoadMaster Command Injection Vulnerability",
-   "description": "Progress LoadMaster contains a command injection vulnerability that allows an un-authenticated attacker to execute arbitrary commands on the LoadMaster appliance by exploiting unsanitized input in multiple command endpoints.",
-   "added": "2026-08-07T00:00:00Z",
-   "due": "2026-08-10",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-8037"
-  },
-  {
-   "cve": "CVE-2026-63077",
-   "name": "JetBrains TeamCity Deserialization of Untrusted Data Vulnerability",
-   "description": "JetBrains TeamCity contains a deserialization of untrusted data vulnerability that could allow unauthenticated remote code execution via the agent polling protocol.",
-   "added": "2026-08-05T00:00:00Z",
-   "due": "2026-08-08",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-63077"
-  },
-  {
-   "cve": "CVE-2026-9198",
-   "name": "IBM Langflow Code Injection Vulnerability",
-   "description": "Langflow contains a code injection vulnerability that allows unauthenticated attackers to achieve full remote code execution on default Langflow deployments.",
-   "added": "2026-08-04T00:00:00Z",
-   "due": "2026-08-07",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-9198"
-  },
-  {
-   "cve": "CVE-2026-34486",
-   "name": "Apache Tomcat Missing Encryption of Sensitive Data Vulnerability",
-   "description": "Apache Tomcat contains a missing encryption of sensitive data vulnerability that allows the bypass of the EncryptInterceptor. This vulnerability can be chained with CVE‑2025‑24813.",
-   "added": "2026-08-04T00:00:00Z",
-   "due": "2026-08-07",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-34486"
-  },
-  {
-   "cve": "CVE-2026-18556",
-   "name": "N-able N-central Authentication Bypass Using an Alternate Path or Channel Vulnerability",
-   "description": "N-able N-central contains an authentication bypass using an alternate path or channel that allows for authentication bypass.",
-   "added": "2026-08-04T00:00:00Z",
-   "due": "2026-08-07",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-18556"
-  },
-  {
-   "cve": "CVE-2026-18577",
-   "name": "N-able N-central Authentication Bypass Using an Alternate Path or Channel Vulnerability",
-   "description": "N-able N-central contains an authentication bypass using an alternate path or channel allows for authentication bypass and account takeover in N-central. This vulnerability is the result of an incomplete patch for CVE-2026-18556.",
-   "added": "2026-08-03T00:00:00Z",
-   "due": "2026-08-06",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-18577"
-  },
-  {
-   "cve": "CVE-2026-20316",
-   "name": "Cisco Secure Firewall Management Center Use of Hard-coded Password Vulnerability",
-   "description": "Cisco Secure Firewall Management Center (FMC) formerly known as Firepower Management Center contains a use of hard-coded password vulnerability that could allow an unauthenticated, remote attacker to log in to an affected device using a low-privileged account to access sensitive data within the impacted systems.",
-   "added": "2026-07-29T00:00:00Z",
-   "due": "2026-08-01",
-   "ransomware": true,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-20316"
-  },
-  {
-   "cve": "CVE-2026-16812",
-   "name": "Arista VeloCloud Orchestrator On-Prem OS Command Injection Vulnerability",
-   "description": "Arista VeloCloud Orchestrator On-Prem contains an OS command injection vulnerability that may allow a remote attacker to access privileged internal functionality and impact the VCO host. Successful exploitation may compromise the confidentiality, integrity, and availability of the orchestrator and data managed by the orchestrator.",
-   "added": "2026-07-27T00:00:00Z",
-   "due": "2026-07-30",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-16812"
-  },
-  {
-   "cve": "CVE-2025-68686",
-   "name": "Fortinet FortiOS Exposure of Sensitive Information to an Unauthorized Actor Vulnerability",
-   "description": "Fortinet FortiOS contains an exposure of sensitive information to an unauthorized actor vulnerability. This may allow a remote unauthenticated attacker to bypass the patch developed for the symbolic link persistency mechanism observed in some post-exploit cases, via crafted HTTP requests. An attacker would need first to have compromised the product via another vulnerability, at filesystem level.",
-   "added": "2026-07-27T00:00:00Z",
-   "due": "2026-08-10",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2025-68686"
-  },
-  {
-   "cve": "CVE-2026-50522",
-   "name": "Microsoft SharePoint Deserialization of Untrusted Data Vulnerability",
-   "description": "Microsoft SharePoint contains a deserialization of untrusted data vulnerability which could allow an unauthorized attacker to execute code over a network.",
-   "added": "2026-07-22T00:00:00Z",
-   "due": "2026-07-25",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-50522"
-  },
-  {
-   "cve": "CVE-2026-16232",
-   "name": "Check Point SmartConsole Improper Authentication Vulnerability",
-   "description": "Check Point SmartConsole contains an improper authentication vulnerability which could allow an unauthenticated remote attacker to obtain an application login token and use it to authenticate with full administrative privileges.",
-   "added": "2026-07-22T00:00:00Z",
-   "due": "2026-07-25",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-16232"
-  },
-  {
-   "cve": "CVE-2026-63030",
-   "name": "WordPress Core Interpretation Conflict Vulnerability",
-   "description": "WordPress Core contains an interpretation conflict vulnerability that could allow an attacker to perform SQL Injection and achieve Remote Code Execution. This vulnerability can be chained with CVE-2026-60137.",
-   "added": "2026-07-21T00:00:00Z",
-   "due": "2026-07-24",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-63030"
-  },
-  {
-   "cve": "CVE-2026-60137",
-   "name": "WordPress Core SQL Injection Vulnerability",
-   "description": "WordPress Core contains a SQL injection vulnerability when a plugin or theme passes untrusted input to the parameter. This vulnerability can be chained with CVE-2026-63030 to allow an unauthenticated attacker to gain remote code execution on default WordPress installations.",
-   "added": "2026-07-21T00:00:00Z",
-   "due": "2026-08-04",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-60137"
-  },
-  {
-   "cve": "CVE-2026-0770",
-   "name": "Langflow Inclusion of Functionality from Untrusted Control Sphere Vulnerability",
-   "description": "Langflow contains an inclusion of functionality from untrusted control sphere vulnerability that allows remote attackers to execute arbitrary code on affected installations.",
-   "added": "2026-07-21T00:00:00Z",
-   "due": "2026-07-24",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-0770"
-  },
-  {
-   "cve": "CVE-2021-27137",
-   "name": "DD-WRT Stack-Based Buffer Overflow Vulnerability",
-   "description": "DD-WRT contains a stack-based buffer overflow vulnerability that could allow an unauthenticated attacker to overflow an internal buffer used by UPnP and trigger a code execution vulnerability.",
-   "added": "2026-07-21T00:00:00Z",
-   "due": "2026-07-24",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2021-27137"
-  },
-  {
-   "cve": "CVE-2026-58644",
-   "name": "Microsoft SharePoint Deserialization of Untrusted Data Vulnerability",
-   "description": "Microsoft SharePoint contains a deserialization of untrusted data vulnerability that allows an unauthorized attacker to execute code over a network.",
-   "added": "2026-07-16T00:00:00Z",
-   "due": "2026-07-19",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-58644"
-  },
-  {
-   "cve": "CVE-2026-39808",
-   "name": "Fortinet FortiSandbox OS Command Injection Vulnerability",
-   "description": "Fortinet FortiSandbox contains an OS command injection vulnerability that could allow an unauthenticated attacker to execute unauthorized code or commands via crafted HTTP requests.",
-   "added": "2026-07-16T00:00:00Z",
-   "due": "2026-07-19",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-39808"
-  },
-  {
-   "cve": "CVE-2026-25089",
-   "name": "Fortinet FortiSandbox OS Command Injection Vulnerability",
-   "description": "Fortinet FortiSandbox, FortiSandbox Cloud, and FortiSandbox PaaS contain an OS command injection vulnerability that allows an unauthenticated attacker to execute unauthorized commands via specifically crafted HTTP requests.",
-   "added": "2026-07-16T00:00:00Z",
-   "due": "2026-07-19",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-25089"
-  },
-  {
-   "cve": "CVE-2026-46817",
-   "name": "Oracle E-Business Suite Improper Privilege Management Vulnerability",
-   "description": "Oracle E-Business Suite contains an improper privilege management vulnerability that allows an unauthenticated attacker with network access via HTTP to compromise Oracle Payments. Successful attacks of this vulnerability can result in takeover of Oracle Payments.",
-   "added": "2026-07-15T00:00:00Z",
-   "due": "2026-07-18",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-46817"
-  },
-  {
-   "cve": "CVE-2023-4346",
-   "name": "KNX Association KNX Protocol Connection Authorization Option 1 Overly Restrictive Account Lockout Mechanism Vulnerability",
-   "description": "KNX Association KNX Protocol Connection Authorization Option 1 contains an overly restrictive account lockout mechanism vulnerability that could allow an attacker to purge all devices without additional security options enabled and set a BCU key to lock the device.",
-   "added": "2026-07-15T00:00:00Z",
-   "due": "2026-07-29",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2023-4346"
-  },
-  {
-   "cve": "CVE-2026-56164",
-   "name": "Microsoft SharePoint Server Missing Authentication for Critical Function Vulnerability",
-   "description": "Microsoft SharePoint contains a missing authentication for critical function vulnerability that allows an unauthorized attacker to elevate privileges over a network.",
-   "added": "2026-07-14T00:00:00Z",
-   "due": "2026-07-17",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-56164"
-  },
-  {
-   "cve": "CVE-2026-56155",
-   "name": "Microsoft Active Directory Federation Services Insufficient Granularity of Access Control Vulnerability",
-   "description": "Microsoft Active Directory Federation Services contains an insufficient granularity of access control vulnerability that allows an authorized attacker to elevate privileges locally.",
-   "added": "2026-07-14T00:00:00Z",
-   "due": "2026-07-28",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-56155"
-  },
-  {
-   "cve": "CVE-2026-15410",
-   "name": "SonicWall SMA1000 Appliances Code Injection Vulnerability",
-   "description": "SonicWall SMA1000 Appliances contain a code injection vulnerability which in specific conditions could potentially enable a remote authenticated attacker as administrator to execute arbitrary OS commands.",
-   "added": "2026-07-14T00:00:00Z",
-   "due": "2026-07-17",
-   "ransomware": true,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-15410"
-  },
-  {
-   "cve": "CVE-2026-15409",
-   "name": "SonicWall SMA1000 Appliances Server-Side Request Forgery Vulnerability",
-   "description": "SonicWall SMA1000 Appliances contain a server-side request forgery vulnerability that could allow a remote unauthenticated attacker to potentially cause the appliance to make requests to unintended location.",
-   "added": "2026-07-14T00:00:00Z",
-   "due": "2026-07-17",
-   "ransomware": true,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-15409"
-  },
-  {
-   "cve": "CVE-2008-4128",
-   "name": "Cisco IOS Cross-Site Request Forgery Vulnerability",
-   "description": "Cisco IOS 12.4 contains multiple cross-site forgery vulnerabilities that allows remote attackers to execute arbitrary commands via (1) a certain \"show privilege\" command to the /level/15/exec/- URI, and (2) a certain \"alias exec\" command to the /level/15/exec/-/configure/http URI.",
-   "added": "2026-07-13T00:00:00Z",
-   "due": "2026-07-16",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2008-4128"
-  },
-  {
-   "cve": "CVE-2026-56291",
-   "name": "Balbooa Forms Unrestricted Upload of File with Dangerous Type Vulnerability",
-   "description": "Balbooa Forms contains an unrestricted upload of file with dangerous type vulnerability that allows an unauthenticated arbitrary file upload which could allow uploading of executable files leading to full RCE.",
-   "added": "2026-07-10T00:00:00Z",
-   "due": "2026-07-13",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-56291"
-  },
-  {
-   "cve": "CVE-2026-48939",
-   "name": "iCagenda Unrestricted Upload of File with Dangerous Type Vulnerability",
-   "description": "iCagenda contains an unrestricted upload of file with dangerous type vulnerability that allows the upload of arbitrary files in the file attachment feature, ultimately resulting in PHP code upload and execution.",
-   "added": "2026-07-10T00:00:00Z",
-   "due": "2026-07-13",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-48939"
-  },
-  {
-   "cve": "CVE-2026-56290",
-   "name": "Joomlack Page Builder Improper Access Control Vulnerability",
-   "description": "Joomlack Page Builder contains an improper access control vulnerability that could allow for remote code execution via unauthenticated arbitrary file upload.",
-   "added": "2026-07-07T00:00:00Z",
-   "due": "2026-07-10",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-56290"
-  },
-  {
-   "cve": "CVE-2026-55255",
-   "name": "Langflow Authorization Bypass Through User-Controlled Key Vulnerability",
-   "description": "Langflow contains an authorization bypass through user-controlled key vulnerability which allows an authenticated attacker to execute any flow belonging to another user by specifying the victim's flow ID in the request.",
-   "added": "2026-07-07T00:00:00Z",
-   "due": "2026-07-10",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-55255"
-  },
-  {
-   "cve": "CVE-2026-48908",
-   "name": "JoomShaper SP Page Builder Unrestricted Upload of File with Dangerous Type Vulnerability",
-   "description": "JoomShaper SP Page Builder contains an unrestricted upload of file with dangerous type vulnerability that allows unauthenticated users to upload arbitrary files, ultimately resulting in the upload and execution of PHP code.",
-   "added": "2026-07-07T00:00:00Z",
-   "due": "2026-07-10",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-48908"
-  },
-  {
-   "cve": "CVE-2026-48282",
-   "name": "Adobe ColdFusion Path Traversal Vulnerability",
-   "description": "Adobe ColdFusion contains a path traversal vulnerability that could lead to arbitrary code execution in the context of the current user.",
-   "added": "2026-07-07T00:00:00Z",
-   "due": "2026-07-10",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-48282"
-  },
-  {
-   "cve": "CVE-2026-45659",
-   "name": "Microsoft SharePoint Server Deserialization of Untrusted Data Vulnerability",
-   "description": "Microsoft SharePoint Server contains a deserialization of untrusted data vulnerability which allows an authorized attacker to execute code over a network.",
-   "added": "2026-07-01T00:00:00Z",
-   "due": "2026-07-04",
-   "ransomware": true,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-45659"
-  },
-  {
-   "cve": "CVE-2026-48558",
-   "name": "SimpleHelp Authentication Bypass Vulnerability",
-   "description": "SimpleHelp contains an authentication bypass vulnerability in the OIDC authentication flow. When OIDC authentication is configured, identity tokens submitted during login are accepted without verifying their cryptographic signature. In a vulnerable configuration, a remote, unauthenticated attacker can submit a forged token containing arbitrary identity claims to obtain a fully authenticated technician session. In some configurations, this may also allow bypass of multi-factor authentication.",
-   "added": "2026-06-29T00:00:00Z",
-   "due": "2026-07-02",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-48558"
-  },
-  {
-   "cve": "CVE-2026-20230",
-   "name": "Cisco Unified Communications Manager Server-Side Request Forgery (SSRF) Vulnerability",
-   "description": "Cisco Unified Communications Manager (Unified CM) and Cisco Unified Communications Manager Session Management Edition (Unified CM SME) contain a server-side request forgery (SSRF) Vulnerability that could allow an unauthenticated, remote attacker to write files to the underlying operating system that could be used later to elevate to root.",
-   "added": "2026-06-25T00:00:00Z",
-   "due": "2026-06-28",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-20230"
-  },
-  {
-   "cve": "CVE-2026-12569",
-   "name": "PTC Windchill and FlexPLM Improper Input Validation Vulnerability",
-   "description": "PTC Windchill and FlexPLM contains an improper input validation vulnerability allowing an unauthenticated, remote attacker to execute arbitrary code by sending a malicious request to the network.",
-   "added": "2026-06-25T00:00:00Z",
-   "due": "2026-06-28",
-   "ransomware": true,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-12569"
-  },
-  {
-   "cve": "CVE-2026-34910",
-   "name": "Ubiquiti UniFi OS Improper Input Validation Vulnerability",
-   "description": "Ubiquiti UniFi OS contains an improper input validation vulnerability which could allow a malicious actor with access to the network to conduct command injection.",
-   "added": "2026-06-23T00:00:00Z",
-   "due": "2026-06-26",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-34910"
-  },
-  {
-   "cve": "CVE-2026-34909",
-   "name": "Ubiquiti UniFi OS Path Traversal Vulnerability",
-   "description": "Ubiquiti UniFi OS contains a path traversal vulnerability which could allow a malicious actor with access to the network to access files on the underlying system that could be manipulated to access an underlying account.",
-   "added": "2026-06-23T00:00:00Z",
-   "due": "2026-06-26",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-34909"
-  },
-  {
-   "cve": "CVE-2026-34908",
-   "name": "Ubiquiti UniFi OS Improper Access Control Vulnerability",
-   "description": "Ubiquiti UniFi OS contains an improper access control vulnerability which could allow a malicious actor with access to the network to make unauthorized changes to the system.",
-   "added": "2026-06-23T00:00:00Z",
-   "due": "2026-06-26",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-34908"
-  },
-  {
-   "cve": "CVE-2025-67038",
-   "name": "Lantronix EDS5000 Code Injection Vulnerability",
-   "description": "Lantronix EDS5000 contains a code injection vulnerability that could allow attackers to inject arbitrary OS commands into the username parameter. Injected commands are executed with root privileges.",
-   "added": "2026-06-23T00:00:00Z",
-   "due": "2026-06-26",
-   "ransomware": false,
-   "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2025-67038"
-  }
- ]
+  "version": 1,
+  "fetched_at": "2026-09-17T18:11:05Z",
+  "entries": [
+    {
+      "cve": "CVE-2026-87886",
+      "name": "Acronis Backup Incorrect Default Permissions Vulnerability",
+      "description": "Acronis Backup plugin for cPanel & WHM and extension for Plesk contains an incorrect default permissions vulnerability that could allow for privilege escalation.",
+      "added": "2026-09-16T18:47:50.6796Z",
+      "due": "2026-09-19",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-87886"
+    },
+    {
+      "cve": "CVE-2026-76460",
+      "name": "Cisco Identity Services Engine Incorrect Use of Privileged APIs Vulnerability",
+      "description": "Cisco Identity Services Engine (ISE) and Cisco ISE Passive Identity Connector (ISE-PIC) contain an incorrect use of privileged APIs vulnerability that could allow an unauthenticated, remote attacker to gain unauthorized access to the affected device by bypassing the web-based management interface.",
+      "added": "2026-09-16T18:47:50.6796Z",
+      "due": "2026-09-19",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-76460"
+    },
+    {
+      "cve": "CVE-2026-58704",
+      "name": "Google Pixel Improper Authorization Vulnerability",
+      "description": "Google Pixel devices contain an improper authorization vulnerability in the cellular modem. A logic error may allow an attacker to bypass permission checks and escalate privileges.",
+      "added": "2026-09-16T18:47:50.6796Z",
+      "due": "2026-09-19",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-58704"
+    },
+    {
+      "cve": "CVE-2026-76461",
+      "name": "Cisco Secure Email Gateway SQL Injection Vulnerability",
+      "description": "Cisco AsyncOS software for Cisco Secure Email Gateway (SEG) contains a SQL injection vulnerability that could allow an unauthenticated, remote attacker to execute arbitrary commands with root privileges on the underlying operating system.",
+      "added": "2026-09-14T00:00:00Z",
+      "due": "2026-09-17",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-76461"
+    },
+    {
+      "cve": "CVE-2026-85706",
+      "name": "GitLab Community Edition and Enterprise Edition Path Traversal Vulnerability",
+      "description": "GitLab Community Edition and Enterprise Edition contains a path traversal vulnerability that allows an unauthenticated user to read arbitrary files due to an improper path confinement and missing authentication enforcement in the repository commits API.",
+      "added": "2026-09-11T00:00:00Z",
+      "due": "2026-09-14",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-85706"
+    },
+    {
+      "cve": "CVE-2026-84869",
+      "name": "ConnectWise ScreenConnect Improper Privilege Management and Missing Authorization Vulnerability",
+      "description": "ConnectWise ScreenConnect contains both an improper privilege management and missing authorization vulnerability that may allow an attacker to transfer and execute files through an active remote session without authorization or host confirmation.",
+      "added": "2026-09-11T00:00:00Z",
+      "due": "2026-09-14",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-84869"
+    },
+    {
+      "cve": "CVE-2026-42018",
+      "name": "JFrog Artifactory Improper Authentication Vulnerability",
+      "description": "JFrog Artifactory contains an improper authentication vulnerability that could return an internal anonymous-user token to an unauthenticated caller when anonymous access is disabled, potentially exposing sensitive resources.",
+      "added": "2026-09-11T00:00:00Z",
+      "due": "2026-09-25",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-42018"
+    },
+    {
+      "cve": "CVE-2026-42016",
+      "name": "JFrog Artifactory Incorrect Authorization Vulnerability",
+      "description": "JFrog Artifactory contains an incorrect authorization vulnerability that leads to a privilege escalation attack due to a validation check of the token signature/issuer and not the token’s scope.",
+      "added": "2026-09-11T00:00:00Z",
+      "due": "2026-09-25",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-42016"
+    },
+    {
+      "cve": "CVE-2026-86060",
+      "name": "MikroTik RouterOS Improper Neutralization of Argument Delimiters in a Command Vulnerability",
+      "description": "MikroTik RouterOS contains an improper neutralization of argument delimiters in a command vulnerability which allows an attacker to change the trusted RouterOS policy mask, leading to privilege escalation.",
+      "added": "2026-09-10T00:00:00Z",
+      "due": "2026-09-13",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-86060"
+    },
+    {
+      "cve": "CVE-2026-67277",
+      "name": "MikroTik RouterOS Missing Authentication for Critical Function Vulnerability",
+      "description": "MikroTik RouterOS contains a missing authentication for critical function vulnerability which allows kernel memory disclosure and denial of service in the btest service.",
+      "added": "2026-09-10T00:00:00Z",
+      "due": "2026-09-13",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-67277"
+    },
+    {
+      "cve": "CVE-2026-87491",
+      "name": "Google Chromium V8 Out of Bounds Write Vulnerability",
+      "description": "Google Chromium V8 contains an out of bounds write vulnerability that allows a remote attacker to execute arbitrary code inside the sandbox via a crafted HTML page. This vulnerability could affect multiple web browsers that utilize Chromium, including, but not limited to, Google Chrome, Microsoft Edge, and Opera.",
+      "added": "2026-09-09T00:00:00Z",
+      "due": "2026-09-23",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-87491"
+    },
+    {
+      "cve": "CVE-2026-20079",
+      "name": "Cisco Firewall Management Center Authentication Bypass Using an Alternate Path or Channel Vulnerability",
+      "description": "Cisco Secure Firewall Management Center (FMC) Software and Cisco Security Cloud Control (SCC) Firewall Management contain an authentication Bypass using an alternate path or channel vulnerability that could allow an unauthenticated, remote attacker to bypass authentication and execute script files on an affected device to obtain root access to the underlying operating system.",
+      "added": "2026-09-09T00:00:00Z",
+      "due": "2026-09-12",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-20079"
+    },
+    {
+      "cve": "CVE-2026-19490",
+      "name": "Citrix NetScaler Authentication Bypass Using an Alternate Path or Channel Vulnerability",
+      "description": "Citrix NetScaler ADC and NetScaler Gateway contain an authentication-bypass vulnerability involving an alternate path or channel. When the NetScaler appliance is configured as an AAA virtual server or as a Gateway (SSL VPN, ICA Proxy, CVPN, or RDP Proxy), an unauthenticated remote threat actor may be able to bypass authentication.",
+      "added": "2026-09-09T00:00:00Z",
+      "due": "2026-09-12",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-19490"
+    },
+    {
+      "cve": "CVE-2025-25249",
+      "name": "Fortinet Multiple Products Heap-based Buffer Overflow Vulnerability",
+      "description": "Fortinet FortiOS, FortiSwitchManager, and FortiSASE contain a heap-based buffer overflow vulnerability that allows an attacker to execute unauthorized code or commands via specially crafted packets.",
+      "added": "2026-09-09T00:00:00Z",
+      "due": "2026-09-12",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2025-25249"
+    },
+    {
+      "cve": "CVE-2026-86218",
+      "name": "N-able N-central Static Code Injection Vulnerability",
+      "description": "N-able N-central contains a static code injection vulnerability that could allow for pre-authentication remote code execution.",
+      "added": "2026-09-08T00:00:00Z",
+      "due": "2026-09-11",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-86218"
+    },
+    {
+      "cve": "CVE-2026-85880",
+      "name": "Microsoft Windows Heap-Based Buffer Overflow Vulnerability",
+      "description": "Microsoft Windows Advanced Local Procedure Call contains a heap-based buffer overflow vulnerability that allows an attacker to elevate privileges locally.",
+      "added": "2026-09-08T00:00:00Z",
+      "due": "2026-09-22",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-85880"
+    },
+    {
+      "cve": "CVE-2026-81963",
+      "name": "Microsoft Windows Link Following Vulnerability",
+      "description": "Microsoft Windows Update Stack contains a link following vulnerability that allows a local attacker to escalate privileges locally up to SYSTEM.",
+      "added": "2026-09-08T00:00:00Z",
+      "due": "2026-09-22",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-81963"
+    },
+    {
+      "cve": "CVE-2026-75650",
+      "name": "Adobe Commerce and Magento Improper Neutralization of Special Elements Used in a Template Engine Vulnerability",
+      "description": "Adobe Commerce and Magento Open Source contain an improper neutralization of special elements used in a template engine vulnerability that could allow an attacker to execute arbitrary code.",
+      "added": "2026-09-08T00:00:00Z",
+      "due": "2026-09-11",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-75650"
+    },
+    {
+      "cve": "CVE-2026-85046",
+      "name": "Google Chromium V8 Type Confusion Vulnerability",
+      "description": "Google Chromium V8 contains a type confusion vulnerability that allows a remote attacker to execute arbitrary code inside the sandbox via a crafted HTML page. This vulnerability could affect multiple web browsers that utilize Chromium, including, but not limited to, Google Chrome, Microsoft Edge, and Opera.",
+      "added": "2026-09-04T00:00:00Z",
+      "due": "2026-09-18",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-85046"
+    },
+    {
+      "cve": "CVE-2026-9586",
+      "name": "Sangoma Switchvox SQL Injection Vulnerability",
+      "description": "Sangoma Switchvox contains a SQL injection vulnerability which allows an unauthenticated remote attacker to execute arbitrary SQL statements against the backend PostgreSQL database using a single crafted request, including database operations and remote code execution.",
+      "added": "2026-09-02T00:00:00Z",
+      "due": "2026-09-05",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-9586"
+    },
+    {
+      "cve": "CVE-2026-83549",
+      "name": "SonicWall SMA1000 Appliances OS Command Injection Vulnerability",
+      "description": "SonicWall SMA1000 Appliances contains an OS command injection vulnerability that could enable a remote authenticated attacker as administrator to execute arbitrary OS commands, resulting in remote code execution.",
+      "added": "2026-09-02T00:00:00Z",
+      "due": "2026-09-05",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-83549"
+    },
+    {
+      "cve": "CVE-2026-83548",
+      "name": "SonicWall SMA1000 Appliances Server-Side Request Forgery Vulnerability",
+      "description": "SonicWall SMA1000 Appliances contains a server-side request forgery vulnerability that could allow a remote unauthenticated attacker to gain unauthorized access to sensitive functionality and perform unauthorized operations.",
+      "added": "2026-09-02T00:00:00Z",
+      "due": "2026-09-05",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-83548"
+    },
+    {
+      "cve": "CVE-2026-82329",
+      "name": "JFrog Artifactory Improper Authentication Vulnerability",
+      "description": "JFrog Artifactory contains an improper authentication vulnerability that under default configuration can allow an unauthenticated attacker with network access to obtain administrative privileges.",
+      "added": "2026-09-02T00:00:00Z",
+      "due": "2026-09-05",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-82329"
+    },
+    {
+      "cve": "CVE-2026-59822",
+      "name": "BerriAI LiteLLM Improper Authentication Vulnerability",
+      "description": "BerriAI LiteLLM contains an improper authentication vulnerability in the MCP Streamable HTTP endpoint that could allow an unauthenticated attacker to establish an authenticated MCP session using an arbitrary Bearer token.",
+      "added": "2026-09-02T00:00:00Z",
+      "due": "2026-09-16",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-59822"
+    },
+    {
+      "cve": "CVE-2026-49869",
+      "name": "Kestra OSS OS Command Injection Vulnerability",
+      "description": "Kestra OSS contains an OS command injection vulnerability that could allow an unauthenticated remote attacker to create and execute arbitrary workflows without credentials.",
+      "added": "2026-09-02T00:00:00Z",
+      "due": "2026-09-05",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-49869"
+    },
+    {
+      "cve": "CVE-2026-48710",
+      "name": "Kludex Starlette HTTP Request/Response Smuggling Vulnerability",
+      "description": "Kludex Starlette contains a HTTP request/response smuggling vulnerability that could allow attackers to inject paths into the host part, prepending the actual path leading to issues such as authentication bypass when the authentication depends on the reconstructed URL’s path. This vulnerability could be chaned with CVE-2026-42271.",
+      "added": "2026-09-02T00:00:00Z",
+      "due": "2026-09-16",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-48710"
+    },
+    {
+      "cve": "CVE-2026-82078",
+      "name": "PaperCut NG/MF Unsafe Reflection Vulnerability",
+      "description": "PaperCut NG/MF contains an unsafe reflection vulnerability that allows an attacker to manipulate system configuration parameters and execute arbitrary Java bytecode residing on the application classpath under the security context of the PaperCut server process. This vulnerability can be chained with CVE-2026-81578.",
+      "added": "2026-08-31T00:00:00Z",
+      "due": "2026-09-14",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-82078"
+    },
+    {
+      "cve": "CVE-2026-81578",
+      "name": "PaperCut NG/MF Missing Authentication for Critical Function Vulnerability",
+      "description": "PaperCut NG/MF contains a missing authentication for critical function vulnerability which allows an unauthenticated remote attacker to modify certain system configurations. This vulnerability can be chained with CVE-2026-82078.",
+      "added": "2026-08-31T00:00:00Z",
+      "due": "2026-09-14",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-81578"
+    },
+    {
+      "cve": "CVE-2026-66384",
+      "name": "JFrog Artifactory Improper Limitation of a Pathname to a Restricted Directory Vulnerability",
+      "description": "JFrog Artifactory contains an improper limitation of a pathname to a restricted directory vulnerability. This can allow an authenticated user to write data outside the intended Docker cache path under specific remote-repository conditions.",
+      "added": "2026-08-27T00:00:00Z",
+      "due": "2026-09-10",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-66384"
+    },
+    {
+      "cve": "CVE-2026-53362",
+      "name": "Linux Kernel Unspecified Vulnerability",
+      "description": "Linux Kernel contains an unspecified vulnerability that can allow for privilege escalation via IPv6 networking subsystem. This vulnerability can impact multiple products, including but not limited to Suse, Red Hat, and other products using Linux.",
+      "added": "2026-08-27T00:00:00Z",
+      "due": "2026-08-30",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-53362"
+    },
+    {
+      "cve": "CVE-2023-49105",
+      "name": "ownCloud Improper Authentication Vulnerability",
+      "description": "ownCloud contains an improper authentication vulnerability that allows an attacker to access, modify, or delete any file without authentication if the username of a victim is known, and the victim has no signing-key configured.",
+      "added": "2026-08-27T00:00:00Z",
+      "due": "2026-08-30",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2023-49105"
+    },
+    {
+      "cve": "CVE-2026-8452",
+      "name": "Citrix NetScaler ADC and NetScaler Gateway Improper Restriction of Operations within the Bounds of a Memory Buffer Vulnerability",
+      "description": "Citrix NetScaler ADC and NetScaler Gateway contain an improper restriction of operations within the bounds of a memory buffer vulnerability which could lead to denial of service.",
+      "added": "2026-08-26T00:00:00Z",
+      "due": "2026-08-29",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-8452"
+    },
+    {
+      "cve": "CVE-2022-0995",
+      "name": "Linux Kernel Out-of-Bounds Write Vulnerability",
+      "description": "Linux Kernel contains an out-of-bounds memory write vulnerability which could allow a local user to gain privileged access or cause a denial of service on the system.",
+      "added": "2026-08-26T00:00:00Z",
+      "due": "2026-09-09",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2022-0995"
+    },
+    {
+      "cve": "CVE-2021-23758",
+      "name": "Ajax.NET Professional Deserialization of Untrusted Data Vulnerability",
+      "description": "Ajax.NET Professional (AjaxPro) contains a deserialization of untrusted data vulnerability that could allow for remote code execution via arbitrary .NET classes. The impacted product(s) could be end-of-life (EoL) and/or end-of-service (EoS). Users are advised to discontinue use and/or transition to a supported version.",
+      "added": "2026-08-26T00:00:00Z",
+      "due": "2026-09-09",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2021-23758"
+    },
+    {
+      "cve": "CVE-2019-1068",
+      "name": "Microsoft SQL Server Remote Code Execution Vulnerability",
+      "description": "Microsoft SQL Server contains a remote code execution vulnerability that could allow an attacker to execute code in the context of the SQL Server Database Engine service account.",
+      "added": "2026-08-26T00:00:00Z",
+      "due": "2026-08-29",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2019-1068"
+    },
+    {
+      "cve": "CVE-2015-5287",
+      "name": "Red Hat Automatic Bug Reporting Tool Privilege Escalation Vulnerability",
+      "description": "Red Hat Automatic Bug Reporting Tool (ABRT) contains a privilege escalation vulnerability that could allow local users with certain permissions to gain privileges via a symlink attack on a file with a predictable name. The impacted product(s) could be end-of-life (EoL) and/or end-of-service (EoS). Users are advised to discontinue use and/or transition to a supported version.",
+      "added": "2026-08-26T00:00:00Z",
+      "due": "2026-09-09",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2015-5287"
+    },
+    {
+      "cve": "CVE-2015-3246",
+      "name": "Red Hat Libuser Race Condition Vulnerability",
+      "description": "Red Hat libuser contains a race condition vulnerability that allows authenticated local users to corrupt the /etc/passwd file to cause a denial of service or privilege escalation.",
+      "added": "2026-08-26T00:00:00Z",
+      "due": "2026-09-09",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2015-3246"
+    },
+    {
+      "cve": "CVE-2026-60004",
+      "name": "Gitea Code Injection Vulnerability",
+      "description": "Gitea contains a code injection vulnerability that allows an attacker with repository write access to send a malicious patch to the diffpatch API endpoint to plant an executable Git hook and run shell commands as the Gitea service account.",
+      "added": "2026-08-25T00:00:00Z",
+      "due": "2026-08-28",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-60004"
+    },
+    {
+      "cve": "CVE-2026-21962",
+      "name": "Oracle HTTP Server and Oracle Weblogic Server Proxy Plug-in Improper Access Control Vulnerability",
+      "description": "Oracle HTTP Server and Oracle Weblogic Server Proxy Plug-in contain an improper access control vulnerability that can result in unauthorized creation, deletion or modification access to critical data as well as unauthorized access to critical data or complete access to all Oracle HTTP Server and Oracle Weblogic Server Proxy Plug-in accessible data.",
+      "added": "2026-08-24T00:00:00Z",
+      "due": "2026-08-27",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-21962"
+    },
+    {
+      "cve": "CVE-2026-73570",
+      "name": "Zimbra Collaboration Suite (ZCS) OS Command Injection Vulnerability",
+      "description": "Zimbra Collaboration Suite (ZCS) contains an OS command injection vulnerability which could allow an unauthenticated attacker to send specially crafted SMTP requests that may result in execution of arbitrary operating system commands as the Zimbra user.",
+      "added": "2026-08-21T00:00:00Z",
+      "due": "2026-08-24",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-73570"
+    },
+    {
+      "cve": "CVE-2026-72530",
+      "name": "TrueConf Server Code Injection Vulnerability",
+      "description": "TrueConf Server contains a code injection vulnerability that could allow an unauthorized remote attacker with network access via port 4307/TCP to use a specially crafted script to break out of the isolated environment and execute arbitrary code on the host system.",
+      "added": "2026-08-20T00:00:00Z",
+      "due": "2026-09-03",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-72530"
+    },
+    {
+      "cve": "CVE-2026-72529",
+      "name": "TrueConf Server Missing Authentication for Critical Function Vulnerability",
+      "description": "TrueConf Server contains a missing authentication for critical function vulnerability which could allow a remote unauthorized attacker with network access via port 4307/TCP to execute an arbitrary script.",
+      "added": "2026-08-20T00:00:00Z",
+      "due": "2026-08-23",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-72529"
+    },
+    {
+      "cve": "CVE-2026-64849",
+      "name": "MLflow Server-Side Request Forgery Vulnerability",
+      "description": "MLflow contains a server-side request forgery vulnerability that can allow attackers to reach internal or cloud metadata services and receive response_status and response_body.",
+      "added": "2026-08-19T00:00:00Z",
+      "due": "2026-09-02",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-64849"
+    },
+    {
+      "cve": "CVE-2026-65400",
+      "name": "Apple macOS Improper Authentication Vulnerability",
+      "description": "Apple macOS contains an improper authentication vulnerability that could allow an attacker on the network to authenticate to Screen Sharing without valid credentials.",
+      "added": "2026-08-18T00:00:00Z",
+      "due": "2026-08-21",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-65400"
+    },
+    {
+      "cve": "CVE-2026-59310",
+      "name": "Broadcom VMware vCenter Path Traversal Vulnerability",
+      "description": "Broadcom VMware vCenter contains a path traversal vulnerability which could allow a threat actor with network access to vCenter to execute arbitrary code.",
+      "added": "2026-08-18T00:00:00Z",
+      "due": "2026-08-21",
+      "ransomware": true,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-59310"
+    },
+    {
+      "cve": "CVE-2026-55040",
+      "name": "Microsoft SharePoint Weak Authentication Vulnerability",
+      "description": "Microsoft SharePoint contains a weak authentication vulnerability which allows an unauthorized attacker to bypass a security feature over a network.",
+      "added": "2026-08-18T00:00:00Z",
+      "due": "2026-08-21",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-55040"
+    },
+    {
+      "cve": "CVE-2026-33824",
+      "name": "Microsoft Internet Key Exchange (IKE) Service Extensions Double Free Vulnerability",
+      "description": "Microsoft Internet Key Exchange (IKE) Service Extensions contains a double free vulnerability that could enable remote code execution.",
+      "added": "2026-08-18T00:00:00Z",
+      "due": "2026-08-21",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-33824"
+    },
+    {
+      "cve": "CVE-2025-62593",
+      "name": "Ray-Project Ray Code Injection Vulnerability",
+      "description": "Ray-Project Ray contains a code injection vulnerability that could allow remote code execution. Developers using Ray as a development tool may be exposed to this vulnerability exploitable through Firefox and Safari.",
+      "added": "2026-08-17T00:00:00Z",
+      "due": "2026-08-20",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2025-62593"
+    },
+    {
+      "cve": "CVE-2026-72898",
+      "name": "Metabase SQL Injection Vulnerability",
+      "description": "Metabase contains a SQL Injection vulnerability that allows an unauthenticated remote attacker to inject arbitrary SQL into the Metabase application database, which can give them administrator access to the instance. From there, the attacker could change the application configuration, steal stored credentials for the connected databases, read any data accessible through those connections, and export data.",
+      "added": "2026-08-11T00:00:00Z",
+      "due": "2026-08-14",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-72898"
+    },
+    {
+      "cve": "CVE-2026-68820",
+      "name": "Microsoft Windows Ancillary Function Driver for WinSock Use-After-Free Vulnerability",
+      "description": "Microsoft Windows Ancillary Function Driver for WinSock contains a use-after-free vulnerability that allows an authorized attacker to elevate privileges locally.",
+      "added": "2026-08-11T00:00:00Z",
+      "due": "2026-08-25",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-68820"
+    },
+    {
+      "cve": "CVE-2026-20349",
+      "name": "Cisco Secure Firewall Adaptive Security Appliance (ASA) and Secure Firewall Threat Defense (FTD) Heap Inspection Vulnerability",
+      "description": "Cisco Secure Firewall Adaptive Security Appliance (ASA) and Secure Firewall Threat Defense (FTD) contain a heap inspection vulnerability that could allow an unauthenticated, remote attacker to cause the device to reload unexpectedly, resulting in a denial of service (DoS) condition.",
+      "added": "2026-08-11T00:00:00Z",
+      "due": "2026-08-14",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-20349"
+    },
+    {
+      "cve": "CVE-2026-8037",
+      "name": "Progress LoadMaster Command Injection Vulnerability",
+      "description": "Progress LoadMaster contains a command injection vulnerability that allows an un-authenticated attacker to execute arbitrary commands on the LoadMaster appliance by exploiting unsanitized input in multiple command endpoints.",
+      "added": "2026-08-07T00:00:00Z",
+      "due": "2026-08-10",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-8037"
+    },
+    {
+      "cve": "CVE-2026-63077",
+      "name": "JetBrains TeamCity Deserialization of Untrusted Data Vulnerability",
+      "description": "JetBrains TeamCity contains a deserialization of untrusted data vulnerability that could allow unauthenticated remote code execution via the agent polling protocol.",
+      "added": "2026-08-05T00:00:00Z",
+      "due": "2026-08-08",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-63077"
+    },
+    {
+      "cve": "CVE-2026-9198",
+      "name": "IBM Langflow Code Injection Vulnerability",
+      "description": "Langflow contains a code injection vulnerability that allows unauthenticated attackers to achieve full remote code execution on default Langflow deployments.",
+      "added": "2026-08-04T00:00:00Z",
+      "due": "2026-08-07",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-9198"
+    },
+    {
+      "cve": "CVE-2026-34486",
+      "name": "Apache Tomcat Missing Encryption of Sensitive Data Vulnerability",
+      "description": "Apache Tomcat contains a missing encryption of sensitive data vulnerability that allows the bypass of the EncryptInterceptor. This vulnerability can be chained with CVE‑2025‑24813.",
+      "added": "2026-08-04T00:00:00Z",
+      "due": "2026-08-07",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-34486"
+    },
+    {
+      "cve": "CVE-2026-18556",
+      "name": "N-able N-central Authentication Bypass Using an Alternate Path or Channel Vulnerability",
+      "description": "N-able N-central contains an authentication bypass using an alternate path or channel that allows for authentication bypass.",
+      "added": "2026-08-04T00:00:00Z",
+      "due": "2026-08-07",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-18556"
+    },
+    {
+      "cve": "CVE-2026-18577",
+      "name": "N-able N-central Authentication Bypass Using an Alternate Path or Channel Vulnerability",
+      "description": "N-able N-central contains an authentication bypass using an alternate path or channel allows for authentication bypass and account takeover in N-central. This vulnerability is the result of an incomplete patch for CVE-2026-18556.",
+      "added": "2026-08-03T00:00:00Z",
+      "due": "2026-08-06",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-18577"
+    },
+    {
+      "cve": "CVE-2026-20316",
+      "name": "Cisco Secure Firewall Management Center Use of Hard-coded Password Vulnerability",
+      "description": "Cisco Secure Firewall Management Center (FMC) formerly known as Firepower Management Center contains a use of hard-coded password vulnerability that could allow an unauthenticated, remote attacker to log in to an affected device using a low-privileged account to access sensitive data within the impacted systems.",
+      "added": "2026-07-29T00:00:00Z",
+      "due": "2026-08-01",
+      "ransomware": true,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-20316"
+    },
+    {
+      "cve": "CVE-2026-16812",
+      "name": "Arista VeloCloud Orchestrator On-Prem OS Command Injection Vulnerability",
+      "description": "Arista VeloCloud Orchestrator On-Prem contains an OS command injection vulnerability that may allow a remote attacker to access privileged internal functionality and impact the VCO host. Successful exploitation may compromise the confidentiality, integrity, and availability of the orchestrator and data managed by the orchestrator.",
+      "added": "2026-07-27T00:00:00Z",
+      "due": "2026-07-30",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-16812"
+    },
+    {
+      "cve": "CVE-2025-68686",
+      "name": "Fortinet FortiOS Exposure of Sensitive Information to an Unauthorized Actor Vulnerability",
+      "description": "Fortinet FortiOS contains an exposure of sensitive information to an unauthorized actor vulnerability. This may allow a remote unauthenticated attacker to bypass the patch developed for the symbolic link persistency mechanism observed in some post-exploit cases, via crafted HTTP requests. An attacker would need first to have compromised the product via another vulnerability, at filesystem level.",
+      "added": "2026-07-27T00:00:00Z",
+      "due": "2026-08-10",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2025-68686"
+    },
+    {
+      "cve": "CVE-2026-50522",
+      "name": "Microsoft SharePoint Deserialization of Untrusted Data Vulnerability",
+      "description": "Microsoft SharePoint contains a deserialization of untrusted data vulnerability which could allow an unauthorized attacker to execute code over a network.",
+      "added": "2026-07-22T00:00:00Z",
+      "due": "2026-07-25",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-50522"
+    },
+    {
+      "cve": "CVE-2026-16232",
+      "name": "Check Point SmartConsole Improper Authentication Vulnerability",
+      "description": "Check Point SmartConsole contains an improper authentication vulnerability which could allow an unauthenticated remote attacker to obtain an application login token and use it to authenticate with full administrative privileges.",
+      "added": "2026-07-22T00:00:00Z",
+      "due": "2026-07-25",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-16232"
+    },
+    {
+      "cve": "CVE-2026-63030",
+      "name": "WordPress Core Interpretation Conflict Vulnerability",
+      "description": "WordPress Core contains an interpretation conflict vulnerability that could allow an attacker to perform SQL Injection and achieve Remote Code Execution. This vulnerability can be chained with CVE-2026-60137.",
+      "added": "2026-07-21T00:00:00Z",
+      "due": "2026-07-24",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-63030"
+    },
+    {
+      "cve": "CVE-2026-60137",
+      "name": "WordPress Core SQL Injection Vulnerability",
+      "description": "WordPress Core contains a SQL injection vulnerability when a plugin or theme passes untrusted input to the parameter. This vulnerability can be chained with CVE-2026-63030 to allow an unauthenticated attacker to gain remote code execution on default WordPress installations.",
+      "added": "2026-07-21T00:00:00Z",
+      "due": "2026-08-04",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-60137"
+    },
+    {
+      "cve": "CVE-2026-0770",
+      "name": "Langflow Inclusion of Functionality from Untrusted Control Sphere Vulnerability",
+      "description": "Langflow contains an inclusion of functionality from untrusted control sphere vulnerability that allows remote attackers to execute arbitrary code on affected installations.",
+      "added": "2026-07-21T00:00:00Z",
+      "due": "2026-07-24",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-0770"
+    },
+    {
+      "cve": "CVE-2021-27137",
+      "name": "DD-WRT Stack-Based Buffer Overflow Vulnerability",
+      "description": "DD-WRT contains a stack-based buffer overflow vulnerability that could allow an unauthenticated attacker to overflow an internal buffer used by UPnP and trigger a code execution vulnerability.",
+      "added": "2026-07-21T00:00:00Z",
+      "due": "2026-07-24",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2021-27137"
+    },
+    {
+      "cve": "CVE-2026-58644",
+      "name": "Microsoft SharePoint Deserialization of Untrusted Data Vulnerability",
+      "description": "Microsoft SharePoint contains a deserialization of untrusted data vulnerability that allows an unauthorized attacker to execute code over a network.",
+      "added": "2026-07-16T00:00:00Z",
+      "due": "2026-07-19",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-58644"
+    },
+    {
+      "cve": "CVE-2026-39808",
+      "name": "Fortinet FortiSandbox OS Command Injection Vulnerability",
+      "description": "Fortinet FortiSandbox contains an OS command injection vulnerability that could allow an unauthenticated attacker to execute unauthorized code or commands via crafted HTTP requests.",
+      "added": "2026-07-16T00:00:00Z",
+      "due": "2026-07-19",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-39808"
+    },
+    {
+      "cve": "CVE-2026-25089",
+      "name": "Fortinet FortiSandbox OS Command Injection Vulnerability",
+      "description": "Fortinet FortiSandbox, FortiSandbox Cloud, and FortiSandbox PaaS contain an OS command injection vulnerability that allows an unauthenticated attacker to execute unauthorized commands via specifically crafted HTTP requests.",
+      "added": "2026-07-16T00:00:00Z",
+      "due": "2026-07-19",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-25089"
+    },
+    {
+      "cve": "CVE-2026-46817",
+      "name": "Oracle E-Business Suite Improper Privilege Management Vulnerability",
+      "description": "Oracle E-Business Suite contains an improper privilege management vulnerability that allows an unauthenticated attacker with network access via HTTP to compromise Oracle Payments. Successful attacks of this vulnerability can result in takeover of Oracle Payments.",
+      "added": "2026-07-15T00:00:00Z",
+      "due": "2026-07-18",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-46817"
+    },
+    {
+      "cve": "CVE-2023-4346",
+      "name": "KNX Association KNX Protocol Connection Authorization Option 1 Overly Restrictive Account Lockout Mechanism Vulnerability",
+      "description": "KNX Association KNX Protocol Connection Authorization Option 1 contains an overly restrictive account lockout mechanism vulnerability that could allow an attacker to purge all devices without additional security options enabled and set a BCU key to lock the device.",
+      "added": "2026-07-15T00:00:00Z",
+      "due": "2026-07-29",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2023-4346"
+    },
+    {
+      "cve": "CVE-2026-56164",
+      "name": "Microsoft SharePoint Server Missing Authentication for Critical Function Vulnerability",
+      "description": "Microsoft SharePoint contains a missing authentication for critical function vulnerability that allows an unauthorized attacker to elevate privileges over a network.",
+      "added": "2026-07-14T00:00:00Z",
+      "due": "2026-07-17",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-56164"
+    },
+    {
+      "cve": "CVE-2026-56155",
+      "name": "Microsoft Active Directory Federation Services Insufficient Granularity of Access Control Vulnerability",
+      "description": "Microsoft Active Directory Federation Services contains an insufficient granularity of access control vulnerability that allows an authorized attacker to elevate privileges locally.",
+      "added": "2026-07-14T00:00:00Z",
+      "due": "2026-07-28",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-56155"
+    },
+    {
+      "cve": "CVE-2026-15410",
+      "name": "SonicWall SMA1000 Appliances Code Injection Vulnerability",
+      "description": "SonicWall SMA1000 Appliances contain a code injection vulnerability which in specific conditions could potentially enable a remote authenticated attacker as administrator to execute arbitrary OS commands.",
+      "added": "2026-07-14T00:00:00Z",
+      "due": "2026-07-17",
+      "ransomware": true,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-15410"
+    },
+    {
+      "cve": "CVE-2026-15409",
+      "name": "SonicWall SMA1000 Appliances Server-Side Request Forgery Vulnerability",
+      "description": "SonicWall SMA1000 Appliances contain a server-side request forgery vulnerability that could allow a remote unauthenticated attacker to potentially cause the appliance to make requests to unintended location.",
+      "added": "2026-07-14T00:00:00Z",
+      "due": "2026-07-17",
+      "ransomware": true,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-15409"
+    },
+    {
+      "cve": "CVE-2008-4128",
+      "name": "Cisco IOS Cross-Site Request Forgery Vulnerability",
+      "description": "Cisco IOS 12.4 contains multiple cross-site forgery vulnerabilities that allows remote attackers to execute arbitrary commands via (1) a certain \"show privilege\" command to the /level/15/exec/- URI, and (2) a certain \"alias exec\" command to the /level/15/exec/-/configure/http URI.",
+      "added": "2026-07-13T00:00:00Z",
+      "due": "2026-07-16",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2008-4128"
+    },
+    {
+      "cve": "CVE-2026-56291",
+      "name": "Balbooa Forms Unrestricted Upload of File with Dangerous Type Vulnerability",
+      "description": "Balbooa Forms contains an unrestricted upload of file with dangerous type vulnerability that allows an unauthenticated arbitrary file upload which could allow uploading of executable files leading to full RCE.",
+      "added": "2026-07-10T00:00:00Z",
+      "due": "2026-07-13",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-56291"
+    },
+    {
+      "cve": "CVE-2026-48939",
+      "name": "iCagenda Unrestricted Upload of File with Dangerous Type Vulnerability",
+      "description": "iCagenda contains an unrestricted upload of file with dangerous type vulnerability that allows the upload of arbitrary files in the file attachment feature, ultimately resulting in PHP code upload and execution.",
+      "added": "2026-07-10T00:00:00Z",
+      "due": "2026-07-13",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-48939"
+    },
+    {
+      "cve": "CVE-2026-56290",
+      "name": "Joomlack Page Builder Improper Access Control Vulnerability",
+      "description": "Joomlack Page Builder contains an improper access control vulnerability that could allow for remote code execution via unauthenticated arbitrary file upload.",
+      "added": "2026-07-07T00:00:00Z",
+      "due": "2026-07-10",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-56290"
+    },
+    {
+      "cve": "CVE-2026-55255",
+      "name": "Langflow Authorization Bypass Through User-Controlled Key Vulnerability",
+      "description": "Langflow contains an authorization bypass through user-controlled key vulnerability which allows an authenticated attacker to execute any flow belonging to another user by specifying the victim's flow ID in the request.",
+      "added": "2026-07-07T00:00:00Z",
+      "due": "2026-07-10",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-55255"
+    },
+    {
+      "cve": "CVE-2026-48908",
+      "name": "JoomShaper SP Page Builder Unrestricted Upload of File with Dangerous Type Vulnerability",
+      "description": "JoomShaper SP Page Builder contains an unrestricted upload of file with dangerous type vulnerability that allows unauthenticated users to upload arbitrary files, ultimately resulting in the upload and execution of PHP code.",
+      "added": "2026-07-07T00:00:00Z",
+      "due": "2026-07-10",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-48908"
+    },
+    {
+      "cve": "CVE-2026-48282",
+      "name": "Adobe ColdFusion Path Traversal Vulnerability",
+      "description": "Adobe ColdFusion contains a path traversal vulnerability that could lead to arbitrary code execution in the context of the current user.",
+      "added": "2026-07-07T00:00:00Z",
+      "due": "2026-07-10",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-48282"
+    },
+    {
+      "cve": "CVE-2026-45659",
+      "name": "Microsoft SharePoint Server Deserialization of Untrusted Data Vulnerability",
+      "description": "Microsoft SharePoint Server contains a deserialization of untrusted data vulnerability which allows an authorized attacker to execute code over a network.",
+      "added": "2026-07-01T00:00:00Z",
+      "due": "2026-07-04",
+      "ransomware": true,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-45659"
+    },
+    {
+      "cve": "CVE-2026-48558",
+      "name": "SimpleHelp Authentication Bypass Vulnerability",
+      "description": "SimpleHelp contains an authentication bypass vulnerability in the OIDC authentication flow. When OIDC authentication is configured, identity tokens submitted during login are accepted without verifying their cryptographic signature. In a vulnerable configuration, a remote, unauthenticated attacker can submit a forged token containing arbitrary identity claims to obtain a fully authenticated technician session. In some configurations, this may also allow bypass of multi-factor authentication.",
+      "added": "2026-06-29T00:00:00Z",
+      "due": "2026-07-02",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-48558"
+    },
+    {
+      "cve": "CVE-2026-20230",
+      "name": "Cisco Unified Communications Manager Server-Side Request Forgery (SSRF) Vulnerability",
+      "description": "Cisco Unified Communications Manager (Unified CM) and Cisco Unified Communications Manager Session Management Edition (Unified CM SME) contain a server-side request forgery (SSRF) Vulnerability that could allow an unauthenticated, remote attacker to write files to the underlying operating system that could be used later to elevate to root.",
+      "added": "2026-06-25T00:00:00Z",
+      "due": "2026-06-28",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-20230"
+    },
+    {
+      "cve": "CVE-2026-12569",
+      "name": "PTC Windchill and FlexPLM Improper Input Validation Vulnerability",
+      "description": "PTC Windchill and FlexPLM contains an improper input validation vulnerability allowing an unauthenticated, remote attacker to execute arbitrary code by sending a malicious request to the network.",
+      "added": "2026-06-25T00:00:00Z",
+      "due": "2026-06-28",
+      "ransomware": true,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-12569"
+    },
+    {
+      "cve": "CVE-2026-34910",
+      "name": "Ubiquiti UniFi OS Improper Input Validation Vulnerability",
+      "description": "Ubiquiti UniFi OS contains an improper input validation vulnerability which could allow a malicious actor with access to the network to conduct command injection.",
+      "added": "2026-06-23T00:00:00Z",
+      "due": "2026-06-26",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-34910"
+    },
+    {
+      "cve": "CVE-2026-34909",
+      "name": "Ubiquiti UniFi OS Path Traversal Vulnerability",
+      "description": "Ubiquiti UniFi OS contains a path traversal vulnerability which could allow a malicious actor with access to the network to access files on the underlying system that could be manipulated to access an underlying account.",
+      "added": "2026-06-23T00:00:00Z",
+      "due": "2026-06-26",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-34909"
+    },
+    {
+      "cve": "CVE-2026-34908",
+      "name": "Ubiquiti UniFi OS Improper Access Control Vulnerability",
+      "description": "Ubiquiti UniFi OS contains an improper access control vulnerability which could allow a malicious actor with access to the network to make unauthorized changes to the system.",
+      "added": "2026-06-23T00:00:00Z",
+      "due": "2026-06-26",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-34908"
+    },
+    {
+      "cve": "CVE-2025-67038",
+      "name": "Lantronix EDS5000 Code Injection Vulnerability",
+      "description": "Lantronix EDS5000 contains a code injection vulnerability that could allow attackers to inject arbitrary OS commands into the username parameter. Injected commands are executed with root privileges.",
+      "added": "2026-06-23T00:00:00Z",
+      "due": "2026-06-26",
+      "ransomware": false,
+      "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2025-67038"
+    }
+  ]
 }

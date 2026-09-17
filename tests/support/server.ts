@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { extname, join, normalize } from 'node:path'
+import { rebaseSnapshot } from '../../build/kevFeedPlugin.ts'
 
 const DIST = new URL('../../dist/', import.meta.url).pathname
 const LAB_ORIGINS = new URL('../../lab/origins/', import.meta.url).pathname
@@ -9,6 +10,23 @@ const LAB_CONFIG = new URL('../../public/lab/config.json', import.meta.url).path
 const LAB_TARGETS = ['api-primary', 'api-secondary', 'media'] as const
 export type LabTarget = (typeof LAB_TARGETS)[number]
 const SERVICE_WORKER = 'service-worker.js'
+const KEV_SNAPSHOT = new URL('../fixtures/kev.json', import.meta.url).pathname
+const HOUR_MS = 60 * 60 * 1000
+
+/**
+ * What /feeds/kev.json answers. `fresh` is the fixture as Caddy serves a just-written snapshot; `stale` and `ancient`
+ * age it past the panel's two thresholds; `empty` is the 204 of a volume with nothing on it yet, and the other two are
+ * a server that is broken and one that answers with a document this page cannot read.
+ */
+export type KevMode = 'fresh' | 'stale' | 'ancient' | 'empty' | 'error' | 'malformed'
+
+// Half-hours, not whole ones: the page reads its own clock when it renders, which is a moment before the server
+// stamps the document, so an age of exactly five hours lands on the rounding boundary and reports four.
+const KEV_AGE_MS: Record<'fresh' | 'stale' | 'ancient', number> = {
+  fresh: 2 * 60 * 1000,
+  stale: 5.5 * HOUR_MS,
+  ancient: 8 * 24 * HOUR_MS,
+}
 
 const CONTENT_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -43,6 +61,8 @@ export interface TestServer {
    * networkidle from ever settling and add requests to origin counts, so only tests of the lab itself switch it on.
    */
   setLabClientEnabled(enabled: boolean): void
+  /** What /feeds/kev.json answers; `fresh` by default, as on a host whose hourly refresh is working. */
+  setKevSnapshot(mode: KevMode): void
   reset(): void
   close(): Promise<void>
 }
@@ -87,6 +107,7 @@ export async function startServer(): Promise<TestServer> {
   let workerOverride: string | null = null
   let siteUrl = ''
   let labClientEnabled = false
+  let kevMode: KevMode = 'fresh'
   const labSeen = Object.fromEntries(LAB_TARGETS.map((target) => [target, [] as string[]])) as Record<
     LabTarget,
     string[]
@@ -110,6 +131,29 @@ export async function startServer(): Promise<TestServer> {
   const server = createServer(async (req, res) => {
     const { pathname } = new URL(req.url ?? '/', 'http://localhost')
     const file = pathname === '/' ? 'index.html' : normalize(pathname).replace(/^\/+/, '')
+    // The KEV snapshot, as deploy/Caddyfile serves it off the darkflib-feeds volume.
+    if (pathname === '/feeds/kev.json') {
+      if (kevMode === 'empty') {
+        res.writeHead(204, { 'Cache-Control': 'no-cache' }).end()
+        return
+      }
+      if (kevMode === 'error') {
+        res.writeHead(500).end('nope')
+        return
+      }
+      const body =
+        kevMode === 'malformed'
+          ? '{"version": 99, "fetched_at": "now-ish", "entries": "plenty"}'
+          : rebaseSnapshot(await readFile(KEV_SNAPSHOT, 'utf8'), Date.now() - KEV_AGE_MS[kevMode])
+      res
+        .writeHead(200, {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, max-age=300',
+          ...(edgeTiming ? { 'Server-Timing': 'edge;desc=HIT' } : {}),
+        })
+        .end(body)
+      return
+    }
     if (file === 'lab/config.json') {
       // The production config, with each target's origin swapped for its local stand-in.
       const config = JSON.parse(await readFile(LAB_CONFIG, 'utf8')) as {
@@ -166,6 +210,9 @@ export async function startServer(): Promise<TestServer> {
     setLabClientEnabled: (enabled) => {
       labClientEnabled = enabled
     },
+    setKevSnapshot: (mode) => {
+      kevMode = mode
+    },
     bumpServiceWorker: () => {
       bump += 1
     },
@@ -180,6 +227,7 @@ export async function startServer(): Promise<TestServer> {
       edgeTiming = true
       workerOverride = null
       labClientEnabled = false
+      kevMode = 'fresh'
       for (const target of LAB_TARGETS) labSeen[target] = []
     },
     close: async () => {

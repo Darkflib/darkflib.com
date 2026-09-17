@@ -13,6 +13,7 @@ npm run lint         # Biome lint + format check
 npm run format       # apply Biome fixes
 npm run test:e2e     # build, then Playwright across Chromium, Firefox, and WebKit
 npm run images       # regenerate public/images from assets/source
+npm run kev          # fetch a real KEV snapshot into .feeds/ (needs SRETAB_PAT in .env, and Go)
 npm run fonts        # rebuild the Rajdhani files with corrected glyph bounding boxes (needs uv)
 ```
 
@@ -34,10 +35,13 @@ docker rm -f darkflib-smoke
 | `src/components/`               | One component per panel, each with its own CSS file                         |
 | `src/styles/`                   | Reset, self-hosted font faces, and global tokens and primitives             |
 | `src/content.ts`                | Projects, featured posts and tools (linking to mikepreston.org), tech stack  |
+| `src/kev/`                      | Reading and summarising the KEV snapshot the site serves at `/feeds/kev.json` |
+| `kev-snapshot/`                 | The Go program that writes that snapshot on the server, hourly              |
 | `src/sw/`                       | Service worker entry and the page↔worker message protocol                   |
 | `src/telemetry/`                | Page-side telemetry sources, including the service worker store             |
 | `build/`                        | Vite plugin that bundles the worker; build metadata                         |
 | `tests/e2e/`, `tests/support/`  | Playwright specs and a per-worker static server for `dist/`                 |
+| `tests/fixtures/`               | A real KEV snapshot, served by the dev server and the tests in place of the volume |
 | `assets/source/`                | PNG masters for generated imagery (not shipped); `projects/` are square screenshot crops |
 | `Containerfile`, `deploy/`      | Production image (Caddy + site), Quadlets, nginx vhost, scripts: see `deploy/README.md` |
 | `tests/deploy/`                 | Browser check against the production image under its real headers          |
@@ -95,6 +99,29 @@ server's stand-in origins), clearing, rejections, and per-tab scope. `tests/e2e/
 failover, circuit open, half-open, and close, stale data, Retry-After handling, timeouts, reset, the outdated-worker
 state, and re-sending rules after a worker restart (Chromium only, since stopping a worker needs DevTools). The test
 server shortens the client's clock through the config, and enables polling only for these tests.
+
+## Known exploited vulnerabilities
+
+A `KNOWN_EXPLOITED` panel lists what CISA has seen exploited in the wild, taken from
+[sre-tab](https://github.com/Darkflib/sre-tab), which already ingests the KEV catalogue. sre-tab's API needs a
+credential, so the browser never talks to it: `kev-snapshot` (in the site's own image) runs hourly on the server,
+pages through `/api/v1/feed?sources=cisa-kev` with a read-only PAT, and writes `kev.json` to a volume Caddy serves as
+`/feeds/kev.json`. Visitors fetch one static file from this origin, and no request of theirs reaches sre-tab.
+
+- **The snapshot carries only what a visitor sees.** The feed item's `read` and `bookmarked` flags are the token
+  owner's reading history, and the fetcher never copies them. It keeps the CVE, the name, the description, the date
+  added, and the deadline and ransomware flag it splits back out of sre-tab's summary text, plus CISA's own link when
+  it is https on `www.cisa.gov`. `src/kev/snapshot.ts` re-checks all of that in the browser: this is a document from
+  the network, whoever wrote it.
+- **Failure is a missing panel, never a broken one.** A failed refresh leaves the previous file in place, so the page
+  shows the last good data with its age; past three hours it is marked `STALE`, and past a week the panel hides
+  itself. An empty volume — a first deploy, or a host with no PAT — is a 204, which keeps the console clean.
+- **The numbers are relative to the snapshot, not to the reader's clock**: the 7-, 30- and 90-day counts and the
+  13-week histogram describe the file, so they stay honest whatever its age or the browser's time zone.
+
+`tests/e2e/kev.spec.ts` covers the rendered snapshot, opening an entry, showing all of it, the stale marker, and each
+way the panel hides itself. `kev-snapshot/snapshot_test.go` covers the fetch and the transform, including that no
+reader state survives it; both run in CI, the Go tests inside the image build.
 
 ## Service worker
 
