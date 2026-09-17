@@ -1,5 +1,13 @@
 import type { Page } from '@playwright/test'
-import { expect, expectControlled, openEventLog, openFaultLab, readEventLog, test } from '../support/fixtures.ts'
+import {
+  checkForUpdate,
+  expect,
+  expectControlled,
+  openEventLog,
+  openFaultLab,
+  readEventLog,
+  test,
+} from '../support/fixtures.ts'
 
 // The test server's /lab/config.json shortens the client's clock: 300 ms polls, 800 ms timeouts, a 2.5 s circuit
 // cool-off, and Retry-After waited out up to 1.5 s. Behaviour is otherwise the production client's.
@@ -155,6 +163,23 @@ test.describe('fault lab', () => {
     const cdp = await context.newCDPSession(page)
     await cdp.send('ServiceWorker.enable')
     await cdp.send('ServiceWorker.stopAllWorkers')
+
+    await expect
+      .poll(() => logEvents(page), SLOW)
+      .toContainEqual(event('faults:reapplied', /^worker had lost its rules; active: .* offline$/))
+    await expect(page.getByTestId('lab-applied-api-primary')).toHaveText('ACTIVE · OFFLINE')
+    await expect(page.getByTestId('lab-state')).toHaveText('FAILOVER', SLOW)
+  })
+
+  test('re-sends the rules to a worker that took over through UPGRADE', async ({ page, server }) => {
+    await choose(page, 'PRIMARY API', 'offline')
+    await expect(page.getByTestId('lab-applied-api-primary')).toHaveText('ACTIVE · OFFLINE')
+    const original = (await page.getByTestId('sw-version').textContent()) ?? ''
+
+    server.bumpServiceWorker()
+    await checkForUpdate(page)
+    await page.getByRole('button', { name: 'UPGRADE' }).click()
+    await expect(page.getByTestId('sw-version')).toHaveText(`${original}.test1`)
 
     await expect
       .poll(() => logEvents(page), SLOW)

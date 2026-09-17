@@ -58,13 +58,19 @@ export type Capabilities = Readonly<Record<string, number>>
 export const WORKER_CAPABILITIES = {
   'fetch-observer': 1,
   'fault-injection': 1,
+  'skip-waiting': 1,
 } as const satisfies Capabilities
 
 /**
- * Page → worker. Both expect a reply on a transferred MessagePort. `fault:set` replaces this tab's whole rule set (an
- * empty list clears it) and is answered with the rules the worker actually holds.
+ * Page → worker. `sw:hello` and `fault:set` expect a reply on a transferred MessagePort. `fault:set` replaces this tab's
+ * whole rule set (an empty list clears it) and is answered with the rules the worker actually holds. `sw:skip-waiting`
+ * goes to a waiting worker, which activates at once and takes over every open tab; the page watches the lifecycle
+ * rather than waiting for a reply. An active worker ignores it.
  */
-export type ClientMessage = { type: 'sw:hello' } | { type: 'fault:set'; rules: FaultRule[] }
+export type ClientMessage =
+  | { type: 'sw:hello' }
+  | { type: 'fault:set'; rules: FaultRule[] }
+  | { type: 'sw:skip-waiting' }
 
 /** Worker → page. */
 export type WorkerMessage =
@@ -142,7 +148,7 @@ function isObservedRequest(value: unknown): value is ObservedRequest {
 
 export function isClientMessage(value: unknown): value is ClientMessage {
   if (!isRecord(value)) return false
-  if (value.type === 'sw:hello') return true
+  if (value.type === 'sw:hello' || value.type === 'sw:skip-waiting') return true
   return value.type === 'fault:set' && Array.isArray(value.rules) && value.rules.length <= MAX_FAULT_RULES
 }
 
