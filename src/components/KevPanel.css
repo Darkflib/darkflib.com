@@ -321,9 +321,12 @@
     grid-template-columns: 14px 78px 1fr auto;
   }
 
+  /* Its own line, and wrapping rather than truncating: there is room for two lines and none to spare sideways. */
   .kev-entry .kev-name {
     grid-column: 1 / -1;
     padding-left: 24px;
+    overflow: visible;
+    white-space: normal;
   }
 
   .kev-detail {
@@ -352,6 +355,11 @@
 }
 
 @media (max-width: 560px) {
+  /* The source label and the link to it do not both fit beside the title; the note below says where this comes from. */
+  .panel-header .kev-badge {
+    display: none;
+  }
+
   .kev-entry summary {
     grid-template-columns: 14px 1fr auto;
     gap: 8px;
