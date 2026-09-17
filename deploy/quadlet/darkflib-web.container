@@ -6,10 +6,13 @@ Wants=network-online.target
 [Container]
 ContainerName=darkflib-web
 # Set by deploy/scripts/promote.sh, which verifies the signature before writing a digest here. Never hand-edit it,
-# and never use a floating tag: a restart must not change which build runs.
+# and never use a floating tag: a restart must not change which build runs. darkflib-kev.container pins the same
+# reference, and CI fails if the two differ.
 Image=ghcr.io/darkflib/darkflib.com:sha-3380251857e3f68f4e604ee1c35d7d0625a4d1d7@sha256:1da4bfc2e37cd84075abe13721cd8b8318865c3a901c75a754616bc7e1fb80a2
 Pull=missing
 Network=darkflib.network
+# The KEV snapshot darkflib-kev.service writes, served as /feeds/kev.json. Read-only: this container only publishes it.
+Volume=darkflib-feeds.volume:/srv/feeds:ro
 
 # Loopback only; host nginx terminates TLS and proxies here. The host port is host policy: DARKFLIB_WEB_PORT in
 # /etc/darkflib/install.env moves it via a drop-in that deploy/install.sh writes (8082 on ny03). The container side

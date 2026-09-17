@@ -6,12 +6,18 @@ as the inner web server, and host nginx for TLS and the edge cache.
 ```
 visitor ──TLS──▶ nginx (ny03) ──http──▶ 127.0.0.1:8082 ──▶ darkflib-web (Caddy + built site)
                  │ TLS for .darkflib.com and .darkflib.dev    │ routing by Host, security headers,
-                 │ edge cache for /assets/ and /images/       │ Cache-Control
+                 │ edge cache for /assets/, /images/, /feeds/ │ Cache-Control
                  │ X-Forwarded-For, Server-Timing edge status │ darkflib.network 10.89.62.0/24
+                                                              ▲
+                          darkflib-kev.timer ──hourly──▶ darkflib-kev (kev-snapshot, same image)
+                                                              │ GET sretab.mikepreston.org/api/v1/feed
+                                                              ▼ writes kev.json
+                                                        darkflib-feeds volume (web mounts it read-only)
 ```
 
 There is no application container or database: the image is Caddy with `dist/` and `deploy/Caddyfile` baked in, so
-the CSP and cache policy always ship with the code they describe.
+the CSP and cache policy always ship with the code they describe. The one piece of state is the KEV snapshot on the
+`darkflib-feeds` volume, written by a hourly oneshot from that same image and served as `/feeds/kev.json`.
 
 | Name                                | Served as                                                    |
 | ----------------------------------- | ------------------------------------------------------------ |
@@ -20,6 +26,7 @@ the CSP and cache policy always ship with the code they describe.
 | `api.darkflib.com`                  | Fault Lab primary API: static JSON, CORS for the site        |
 | `api.darkflib.dev`                  | Fault Lab secondary API (cross-site)                         |
 | `media.darkflib.com`                | Fault Lab media origin                                       |
+| `darkflib.com/feeds/kev.json`       | the KEV snapshot; 204 until the first refresh                 |
 | `darkflib.dev`, `www.darkflib.dev`  | 302 to `https://darkflib.com`                                |
 | any other `*.darkflib.com` / `.dev` | 404                                                          |
 
@@ -31,7 +38,10 @@ Host port 8082 comes from `~/dev/backend-allocations.md`.
 | ---------------------------------- | ------------------------------------------------- | -------------------------------------------------- |
 | `quadlet/darkflib.network`         | `/etc/containers/systemd/`                        | 10.89.62.0/24; gateway is Caddy's trusted proxy    |
 | `quadlet/darkflib-web.container`   | `/etc/containers/systemd/`                        | `Image=` pinned by digest via `promote.sh`         |
-| `install.env.example`              | `/etc/darkflib/install.env.example`               | copy to `install.env`; set `DARKFLIB_WEB_PORT=8082` |
+| `quadlet/darkflib-kev.container`   | `/etc/containers/systemd/`                        | oneshot KEV fetch; same `Image=` pin               |
+| `quadlet/darkflib-feeds.volume`    | `/etc/containers/systemd/`                        | snapshot volume, owned by uid 65532                |
+| `systemd/darkflib-kev.timer`       | `/etc/systemd/system/`                            | hourly at :37 UTC, five minutes of jitter          |
+| `install.env.example`              | `/etc/darkflib/install.env.example`               | copy to `install.env` (mode 0600); set `DARKFLIB_WEB_PORT=8082` and `SRETAB_PAT` |
 | (generated)                        | `/etc/containers/systemd/darkflib-web.container.d/` | port drop-in written by `install.sh`             |
 | `nginx/darkflib.conf`              | `/etc/nginx/conf.d/` (with `--nginx`)             | upstream port must match `DARKFLIB_WEB_PORT`       |
 | `Caddyfile`                        | inside the image                                  | not installed on the host                          |
@@ -72,8 +82,9 @@ Host port 8082 comes from `~/dev/backend-allocations.md`.
 
    ```sh
    sudo install -d -m 0755 /etc/darkflib
-   sudo install -m 0644 deploy/install.env.example /etc/darkflib/install.env
+   sudo install -m 0600 deploy/install.env.example /etc/darkflib/install.env
    sudo sed -i 's/^#DARKFLIB_WEB_PORT=.*/DARKFLIB_WEB_PORT=8082/' /etc/darkflib/install.env
+   sudo "$EDITOR" /etc/darkflib/install.env   # SRETAB_PAT=…, see "The KEV snapshot"
    ss -lntp | grep ':8082 '             # must print nothing
    sudo deploy/install.sh --start --nginx
    ```
@@ -95,6 +106,32 @@ git pull && sudo deploy/install.sh --start                                     #
 
 Visitors keep receiving cached `/assets/` and `/images/` from nginx during the restart (`proxy_cache_use_stale`).
 Service-worker updates follow the browser's normal lifecycle: the new worker waits until the old site's tabs close.
+
+## The KEV snapshot
+
+`/feeds/kev.json` is CISA's Known Exploited Vulnerabilities catalogue as sre-tab carries it, copied here so the page
+can render it without a credential in the browser and without visitors reaching sre-tab at all. `darkflib-kev.timer`
+runs `kev-snapshot` (in the site's own image) hourly at :37 UTC; it pages through
+`sretab.mikepreston.org/api/v1/feed?sources=cisa-kev`, keeps only the public fields — never the token owner's read or
+bookmark state — and replaces the file on the `darkflib-feeds` volume atomically. `darkflib-web` mounts that volume
+read-only.
+
+The credential is a personal access token from sre-tab, read-only scope, set as `SRETAB_PAT` in
+`/etc/darkflib/install.env`. Because that file then holds a secret, the installer refuses to read it unless it is
+root's and mode 0600 (or 0400), and every run copies the value into the Podman secret `darkflib-sretab-pat` — which
+only `darkflib-kev.container` receives, so the internet-facing container holds no credential. Rotating the token is
+an edit and a re-run; no restart is needed, since the next refresh picks it up.
+
+```sh
+systemctl list-timers darkflib-kev.timer
+systemctl start darkflib-kev.service && journalctl -u darkflib-kev.service -n 5   # refresh now
+curl -s -H 'Host: darkflib.com' http://127.0.0.1:8082/feeds/kev.json | head -c 200
+```
+
+A failed refresh leaves the previous snapshot in place and the unit in a failed state (`systemctl --failed`); the
+panel shows the snapshot's age, marks it stale after three hours, and hides itself after a week. Unsetting
+`SRETAB_PAT` and re-running the installer removes the secret and disables the timer, which is how the panel is turned
+off; the volume keeps the last snapshot until it ages out of the page.
 
 ## Certificate renewal
 
@@ -130,7 +167,8 @@ The `container` job builds the image and then:
   started the way the Quadlet starts it
 - loads the site in Chromium under the real headers, with no CSP violations and the service worker in control
 - runs `scripts/check-quadlets.sh` and `scripts/check-nginx.sh` on Debian 13 with podman 5.4.2 and nginx 1.26: unit
-  generation with the 8082 drop-in, and `nginx -t`
+  generation with the 8082 drop-in and an `SRETAB_PAT`, the installer's refusal to read a credential out of a
+  world-readable `install.env`, and `nginx -t`
 
 `publish` then pushes that exact image, signs it with cosign (keyless), and attests SLSA provenance and an SPDX SBOM.
 It runs only for pushes to main on a public repository. Nothing verifies the signature at container start, since

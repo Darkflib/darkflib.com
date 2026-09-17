@@ -8,6 +8,9 @@
 #
 # Uses podman if present, else docker (CONTAINER_ENGINE overrides). Leaves the container running when KEEP=1 so a
 # browser test can reuse it; SMOKE_PORT picks the host port (default 18080).
+#
+# The KEV snapshot volume is stood in for by tests/fixtures/kev.json, copied out with its fetched_at set to now, since
+# on ny03 that file is written hourly by darkflib-kev.service and the page hides a snapshot older than a week.
 
 set -eu
 
@@ -18,9 +21,21 @@ name=darkflib-smoke
 base="http://127.0.0.1:$port"
 failures=0
 
+script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+feeds=$(mktemp -d "${TMPDIR:-/tmp}/darkflib-feeds.XXXXXX")
+now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+sed "s|\"fetched_at\": \"[^\"]*\"|\"fetched_at\": \"$now\"|" "$script_dir/../../tests/fixtures/kev.json" \
+    > "$feeds/kev.json"
+# A stand-in for one of kev-snapshot's in-progress writes, which Caddy must never serve.
+cp "$feeds/kev.json" "$feeds/.kev-smoke.json"
+# Readable by the container's uid 65532, which is not the user running this.
+chmod 0755 "$feeds"
+chmod 0644 "$feeds/kev.json" "$feeds/.kev-smoke.json"
+
 cleanup() {
     if [ "${KEEP:-0}" != 1 ]; then
         "$engine" rm --force "$name" >/dev/null 2>&1 || true
+        rm -rf "$feeds"
     fi
 }
 trap cleanup EXIT
@@ -34,6 +49,7 @@ trap cleanup EXIT
     --cap-drop all --cap-add NET_BIND_SERVICE \
     --user 65532:65532 \
     --pids-limit 128 \
+    --volume "$feeds:/srv/feeds:ro" \
     --publish "127.0.0.1:$port:8080" \
     "$image" >/dev/null
 
@@ -166,9 +182,47 @@ config_origins=$( { curl --silent --header 'Host: darkflib.com' "$base/lab/confi
 csp_origins=$(printf '%s' "$csp_connect" | tr ' ' '\n' | grep -v -e "^'self'$" -e '^$' | sort | tr '\n' ' ')
 check "CSP connect-src matches lab config and contact API ($config_origins)" is "$csp_origins" "$config_origins"
 
+echo "kev snapshot"
+fetch darkflib.com /feeds/kev.json
+check "snapshot is 200" is "$status" 200
+check "snapshot is JSON" contains "$(header content-type)" application/json
+check "snapshot is cacheable for five minutes" is "$(header cache-control)" "public, max-age=300"
+check "snapshot carries the site's CSP" contains "$(header content-security-policy)" "default-src 'self'"
+check "snapshot is same-origin only (CORP)" is "$(header cross-origin-resource-policy)" same-origin
+snapshot=$(curl --silent --header 'Host: darkflib.com' "$base/feeds/kev.json")
+check "snapshot carries KEV entries" contains "$snapshot" '"cve"'
+check "snapshot carries no reader state" lacks "$snapshot" '"bookmarked"'
+fetch darkflib.com /feeds/.kev-smoke.json
+check "the fetcher's temporary files are not served" is "$status" 404
+fetch darkflib.com /feeds/
+check "the feeds directory is not listed" is "$status" 404
+fetch darkflib.com /feeds/nested/kev.json
+check "only /feeds/kev.json is served" is "$status" 404
+fetch api.darkflib.com /feeds/kev.json
+check "lab origins do not serve the snapshot" is "$status" 404
+
+# The state of a first deploy, or of a host with no SRETAB_PAT: an empty volume. 204 rather than 404, so the page can
+# hide the panel without a console error.
+nofeed=$("$engine" run --detach --rm --read-only \
+    --tmpfs /data:rw,nosuid,nodev,mode=1777 --tmpfs /config:rw,nosuid,nodev,mode=1777 \
+    --user 65532:65532 "$image")
+nofeed_status=$("$engine" exec "$nofeed" sh -c 'until wget --quiet --spider http://127.0.0.1:8080/healthz 2>/dev/null; do sleep 0.2; done
+    wget --quiet --server-response --spider --header "Host: darkflib.com" http://127.0.0.1:8080/feeds/kev.json 2>&1 | sed -n "s|.*HTTP/1.1 \([0-9]*\).*|\1|p" | head -n 1')
+"$engine" rm --force "$nofeed" >/dev/null 2>&1 || true
+check "an empty feeds volume answers 204, not 404" is "$nofeed_status" 204
+
+if kev_output=$("$engine" exec "$name" kev-snapshot 2>&1); then
+    kev_status=0
+else
+    kev_status=$?
+fi
+check "the image carries kev-snapshot, which refuses to run without a token" is "$kev_status" 2
+check "kev-snapshot names the missing setting" contains "$kev_output" "SRETAB_PAT is not set"
+
 echo "container"
 check "runs as uid 65532" is "$("$engine" exec "$name" id -u)" 65532
 check "root filesystem is read-only" sh -c "! $engine exec $name touch /srv/www/probe 2>/dev/null"
+check "the feeds volume is read-only" sh -c "! $engine exec $name touch /srv/feeds/probe 2>/dev/null"
 
 if [ "$failures" -ne 0 ]; then
     echo "$failures check(s) failed" >&2

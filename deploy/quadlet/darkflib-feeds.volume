@@ -1,0 +1,8 @@
+[Unit]
+Description=darkflib.com feed snapshots (written by darkflib-kev, served read-only by darkflib-web)
+
+[Volume]
+# Caddy's uid in the site image, which both containers run as, so the fetcher can write and the web server can read.
+# Applied when Podman creates the volume; an existing volume keeps the ownership it has.
+User=65532
+Group=65532

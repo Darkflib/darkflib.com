@@ -147,13 +147,18 @@ jobs:
                      /src/deploy/scripts/check-quadlets.sh
                      /src/deploy/scripts/check-nginx.sh'
 
-      # One digest, set by promote.sh, never a floating tag. `unpromoted` is the bootstrap marker before the first
-      # publish exists; it is reported, and verification is skipped only in that case.
+      # One digest, set by promote.sh, never a floating tag, and the same one in every unit that runs the image:
+      # kev-snapshot writes the document the page reads, so the two must never be from different builds. `unpromoted`
+      # is the bootstrap marker before the first publish exists; it is reported, and verification is skipped only then.
       - name: The deployed image is pinned by digest
         id: pin
         run: |
           set -euo pipefail
-          ref=$(sed -n 's/^Image=//p' deploy/quadlet/darkflib-web.container)
+          refs=$(sed -n 's/^Image=//p' deploy/quadlet/*.container | sort -u)
+          if [ "$(printf '%s\n' "$refs" | wc -l)" -ne 1 ]; then
+            echo "::error::deploy/quadlet units pin different images:"; printf '%s\n' "$refs"; exit 1
+          fi
+          ref=$refs
           case "$ref" in
             ghcr.io/darkflib/darkflib.com:unpromoted)
               echo "::warning::darkflib-web.container is not promoted yet; run deploy/scripts/promote.sh after the first publish"

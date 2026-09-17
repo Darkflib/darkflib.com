@@ -1,7 +1,7 @@
 #!/bin/sh
 #
-# Promote a published build: resolve a commit to its immutable digest, verify the signature, and pin
-# deploy/quadlet/darkflib-web.container to it. Upgrading is a reviewed commit, never a restart that happens to pull.
+# Promote a published build: resolve a commit to its immutable digest, verify the signature, and pin every unit that
+# runs the site image to it. Upgrading is a reviewed commit, never a restart that happens to pull.
 #
 #   deploy/scripts/promote.sh              # the build published for origin/main
 #   deploy/scripts/promote.sh 1a2b3c4      # a specific commit (must have reached main)
@@ -14,7 +14,9 @@ set -eu
 IMAGE_REPO=ghcr.io/darkflib/darkflib.com
 REGISTRY=ghcr.io
 REPO_PATH=darkflib/darkflib.com
-UNIT=deploy/quadlet/darkflib-web.container
+# Both units run the same image: the web server and the KEV snapshot fetcher inside it. They move together, and CI
+# fails if they ever disagree.
+UNITS="deploy/quadlet/darkflib-web.container deploy/quadlet/darkflib-kev.container"
 
 case "${1:-}" in
     -h|--help)
@@ -85,15 +87,21 @@ echo
 "$script_dir/verify-image.sh" "$reference"
 echo
 
-current=$(sed -n 's/^Image=\(ghcr\.io\/.*\)$/\1/p' "$UNIT" | head -n 1)
-if [ "$current" = "$reference" ]; then
-    echo "Nothing to do: $UNIT already pins this digest."
+pinned=true
+for unit in $UNITS; do
+    current=$(sed -n 's/^Image=\(ghcr\.io\/.*\)$/\1/p' "$unit" | head -n 1)
+    [ "$current" = "$reference" ] || pinned=false
+done
+if [ "$pinned" = true ]; then
+    echo "Nothing to do: every unit already pins this digest."
     exit 0
 fi
 
 tmp=$(mktemp "${TMPDIR:-/tmp}/promote.XXXXXX")
-sed "s|^Image=ghcr\.io/.*$|Image=$reference|" "$UNIT" > "$tmp"
-cat "$tmp" > "$UNIT"
+for unit in $UNITS; do
+    sed "s|^Image=ghcr\.io/.*$|Image=$reference|" "$unit" > "$tmp"
+    cat "$tmp" > "$unit"
+done
 rm -f "$tmp"
 
 cat <<EOF
@@ -101,7 +109,7 @@ Pinned $reference
 
 Next:
 
-  git diff $UNIT
+  git diff $UNITS
   git commit -am 'deploy: promote $tag'
   git push
 

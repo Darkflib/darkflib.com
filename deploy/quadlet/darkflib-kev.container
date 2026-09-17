@@ -1,0 +1,41 @@
+[Unit]
+Description=Refresh darkflib.com's KEV snapshot from sre-tab
+# Run by darkflib-kev.timer, and once by `deploy/install.sh --start`. It does not wait on darkflib-web: the snapshot
+# is data at rest, and the site serves whatever is on the volume. Quadlet orders it after the network and the volume.
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+ContainerName=darkflib-kev
+# The site's own image, and byte-identical to darkflib-web.container's pin: kev-snapshot ships with the page that
+# reads its output. deploy/scripts/promote.sh moves both pins together and CI refuses a mismatch. Never hand-edit it.
+Image=ghcr.io/darkflib/darkflib.com:sha-3380251857e3f68f4e604ee1c35d7d0625a4d1d7@sha256:1da4bfc2e37cd84075abe13721cd8b8318865c3a901c75a754616bc7e1fb80a2
+Pull=missing
+Network=darkflib.network
+Volume=darkflib-feeds.volume:/srv/feeds
+
+# sre-tab's PAT. deploy/install.sh loads it from SRETAB_PAT in /etc/darkflib/install.env; no other unit receives it,
+# so the internet-facing container never holds a credential.
+Secret=darkflib-sretab-pat,type=env,target=SRETAB_PAT
+
+# No `$` in this line: Quadlet copies Exec= into ExecStart=, where systemd would expand it first.
+Exec=/usr/local/bin/kev-snapshot -out /srv/feeds
+# The image's healthcheck probes Caddy, which this container never starts.
+HealthCmd=none
+
+ReadOnly=true
+NoNewPrivileges=true
+# Unlike darkflib-web, nothing here needs NET_BIND_SERVICE: kev-snapshot carries no file capabilities.
+DropCapability=all
+User=65532
+Group=65532
+# systemd captures stdout under this unit, so the one-line result lands in the journal once.
+LogDriver=none
+PidsLimit=32
+
+[Service]
+Type=oneshot
+# No RemainAfterExit: `systemctl list-timers` shows when it last ran, and a failed run shows in `systemctl --failed`.
+MemoryMax=64M
+# Each request times out after 30 s, and there are at most ten.
+TimeoutStartSec=6m
