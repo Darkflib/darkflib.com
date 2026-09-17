@@ -132,13 +132,24 @@ async function sendRules(rules: FaultRule[]): Promise<Ack> {
 }
 
 let config: LabConfig | null = null
+let lastController: ServiceWorker | null = null
+// A replacement is noticed at controllerchange, but the new controller's handshake has not finished then, and a request
+// may still be in flight to the old one: remember the replacement until the new controller has been sent the rules.
+let replaced = false
 
 async function apply(reason: 'set' | 'reapplied') {
   if (!config) return
   const rules = rulesFor(config, state.specs)
+  // The controller sendRules is about to use: nothing can replace it before then.
+  const target = navigator.serviceWorker?.controller ?? null
   publish({ pending: true, error: null })
   try {
     const ack = await sendRules(rules)
+    // If the worker that answered is still the controller, it holds these rules and nothing is owed.
+    if (target === (navigator.serviceWorker?.controller ?? null)) {
+      lastController = target
+      replaced = false
+    }
     publish({ applied: ack.rules, appliedBy: ack.instance, rejected: ack.rejected, pending: false })
     const active = ack.rules.length ? ack.rules.map(describeRule).join(', ') : 'none'
     const rejected = ack.rejected.length
@@ -155,33 +166,37 @@ async function apply(reason: 'set' | 'reapplied') {
     publish({ pending: false, error: message })
     recordEvent('fault', 'error', 'faults:failed', message)
   }
+  // A replacement noticed while the request was in flight was skipped then; settle it now.
+  reconcile()
+}
+
+/** Re-send the rules when the worker holding them has been replaced or restarted. Runs on every worker-store change. */
+function reconcile() {
+  if (!config) return
+  const worker = getServiceWorkerSnapshot()
+  const controller = navigator.serviceWorker?.controller ?? null
+  if (controller !== lastController) {
+    lastController = controller
+    replaced = true
+  }
+  if (state.pending) return
+  // Nothing to restore: a new controller starting empty is already right.
+  if (!state.applied.length) replaced = false
+  if (!state.applied.length || !faultLabAvailability(worker).ok) return
+  // A replacement controller starts with no rules; so does a restarted worker, which shows up as a batch from a new
+  // instance.
+  const restarted = worker.reportedWorkerInstance !== null && worker.reportedWorkerInstance !== state.appliedBy
+  if (replaced || restarted) {
+    replaced = false
+    void apply('reapplied')
+  }
 }
 
 export function configureFaultControl(labConfig: LabConfig) {
   if (config) return
   config = labConfig
-
-  let lastController: ServiceWorker | null = navigator.serviceWorker?.controller ?? null
-  // A replacement is noticed at controllerchange, but the new controller's handshake has not finished then, so the lab
-  // is briefly unavailable: remember the replacement until the rules can be sent.
-  let replaced = false
-  subscribeServiceWorker(() => {
-    const worker = getServiceWorkerSnapshot()
-    const controller = navigator.serviceWorker?.controller ?? null
-    if (controller !== lastController) {
-      lastController = controller
-      replaced = true
-    }
-    if (!state.applied.length) replaced = false
-    if (state.pending || !state.applied.length || !faultLabAvailability(worker).ok) return
-    // A replacement controller starts with no rules; so does a restarted worker, which shows up as a batch from a new
-    // instance.
-    const restarted = worker.reportedWorkerInstance !== null && worker.reportedWorkerInstance !== state.appliedBy
-    if (replaced || restarted) {
-      replaced = false
-      void apply('reapplied')
-    }
-  })
+  lastController = navigator.serviceWorker?.controller ?? null
+  subscribeServiceWorker(reconcile)
 }
 
 export function setFaultSpec(id: LabTargetId, spec: FaultSpec) {
