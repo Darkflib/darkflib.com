@@ -101,6 +101,34 @@
 			file_server
 		}
 
+		# The KEV snapshot, written hourly by darkflib-kev.service into the darkflib-feeds volume, mounted read-only
+		# here. Five minutes of freshness lets nginx absorb visitors for a file that changes at most hourly. Only
+		# kev.json is served, never the fetcher's dotfile temporaries. Before the first fetch (or with no PAT
+		# configured, or no volume at all under a plain `podman run`) the answer is 204: the page hides the panel, and
+		# unlike a 404 it leaves the console clean.
+		handle_path /feeds/* {
+			root * /srv/feeds
+
+			@snapshot {
+				path /kev.json
+				file
+			}
+			handle @snapshot {
+				header Cache-Control "public, max-age=300"
+				file_server
+			}
+
+			@no_snapshot path /kev.json
+			handle @no_snapshot {
+				header Cache-Control "no-cache"
+				respond 204
+			}
+
+			handle {
+				respond 404
+			}
+		}
+
 		# Generated imagery keeps stable names, so a day rather than forever.
 		handle /images/* {
 			@present file

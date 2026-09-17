@@ -1,0 +1,17 @@
+[Unit]
+Description=Schedule darkflib.com's KEV snapshot refresh
+
+[Timer]
+# Hourly. sre-tab refreshes its sources every 30 minutes and CISA adds entries a few times a week, so an hour's lag is
+# invisible. :37 plus up to five minutes of jitter stays clear of :00, :15, :30, and :45, and of sre-tab's hourly
+# source check (:48 to :53) on the same host.
+OnCalendar=*-*-* *:37:00 UTC
+RandomizedDelaySec=5m
+# No catch-up after downtime: the last snapshot survives on the volume, the page shows its age, and the next run is
+# under an hour away.
+Persistent=false
+AccuracySec=1m
+Unit=darkflib-kev.service
+
+[Install]
+WantedBy=timers.target
