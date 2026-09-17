@@ -35,6 +35,36 @@ test.describe('systems strip telemetry', () => {
     await expect(page.getByTestId('strip-ttfb')).toHaveText(/^TTFB: \d+ MS/)
   })
 
+  test('counts rendered frames', async ({ page }) => {
+    await page.goto('/')
+    const fps = page.getByTestId('strip-fps')
+    await expect(fps).toHaveText(/^FPS: [1-9]\d*$/)
+    await expect(page.getByText('IDEAS > CODE > IMPACT')).toHaveCount(0)
+  })
+
+  test.describe('in a time zone with an odd offset', () => {
+    // UTC+05:45 all year round.
+    test.use({ timezoneId: 'Asia/Kathmandu' })
+
+    test('shows UTC and local time from the same clock', async ({ page }) => {
+      await page.goto('/')
+      const local = page.getByTestId('strip-local')
+      // ICU may report the legacy spelling, Katmandu.
+      await expect(local).toHaveAttribute('title', /^Local time: Asia\/Kath?mandu \(GMT\+5:45\)$/)
+      // Read both in one go: they render together, so they always show the same instant.
+      const [utc, here] = await page.evaluate(() =>
+        ['strip-utc', 'strip-local'].map((id) => document.querySelector(`[data-testid="${id}"]`)?.textContent ?? ''),
+      )
+      const seconds = (text: string) => {
+        const [, h, m, s] = /(\d\d):(\d\d):(\d\d)$/.exec(text) ?? []
+        return Number(h) * 3600 + Number(m) * 60 + Number(s)
+      }
+      expect(utc).toMatch(/^UTC: \d\d:\d\d:\d\d$/)
+      expect(here).toMatch(/^LOCAL: \d\d:\d\d:\d\d$/)
+      expect((seconds(here) - seconds(utc) + 86_400) % 86_400).toBe(5 * 3600 + 45 * 60)
+    })
+  })
+
   test('plots one bar per subresource request', async ({ page }) => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')

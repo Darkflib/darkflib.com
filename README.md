@@ -53,11 +53,13 @@ Every value in the strip under the hero is read from the browser or the build, n
 | `PROTO`   | `nextHopProtocol` of the document's navigation timing                                          |
 | `EDGE`    | nginx cache status via `Server-Timing: edge`: HITs among subresources that crossed the network (`LOCAL` if all came from the browser cache, whose replayed headers are ignored; `—` with no edge) |
 | `TTFB`    | `responseStart` of the navigation, plus `(CACHE)` when no bytes were transferred               |
-| `UTC`     | Wall clock                                                                                     |
 | Bars      | Resource Timing for the last 62 subresource requests: log-scaled, dim when cached, magenta ≥ 800 ms |
+| `FPS`     | Frames rendered in the last second, counted with `requestAnimationFrame`; magenta below 30     |
+| `UTC`     | Wall clock, ticking on the second; hidden below 800 px wide, where only `LOCAL` fits           |
+| `LOCAL`   | The same clock in the browser's time zone, which the tooltip names                             |
 
 The bars will pick up Fault Lab latency injection with no extra wiring, since injected delays show up in Resource
-Timing. The slogan on the right is just decoration.
+Timing.
 
 ## Fault Lab
 
