@@ -100,8 +100,15 @@ therefore serves identical bytes, and browsers find no update. The panel shows t
 shows the page's commit; the two are independent.
 
 Current scope: registration, lifecycle observation, control detection, a `MessageChannel` version handshake, and a
-**passive fetch observer**, all feeding one bounded, emit-ordered event log. There is deliberately no `skipWaiting()`:
-an update waits until no page uses the old worker.
+**passive fetch observer**, all feeding one bounded, emit-ordered event log. The worker never calls `skipWaiting()` by
+itself: an update waits until no page uses the old worker, or until a visitor presses **UPGRADE** in the panel.
+
+- When an update is waiting, the page runs the version handshake with it too, and the panel shows its version. The
+  button is enabled only if that worker reports `skip-waiting`. Pressing it sends `sw:skip-waiting` to the waiting
+  worker, which calls `skipWaiting()` and takes over every open tab. Each tab sees `controllerchange` and repeats the
+  handshake. The worker serves nothing from a cache, so a page from an older deploy keeps working under the new
+  worker. Fault Lab rules lived in the old worker's memory, so each tab re-sends its own once the new controller has
+  answered. If the worker has not activated after 10 s, the button can be pressed again.
 
 The fetch listener never calls `respondWith`, so the browser performs every request exactly as it would without the
 worker; responses, Resource Timing, and the strip's `EDGE` and latency bars are unaffected. It records method, URL,
@@ -122,7 +129,8 @@ Timing rather than the worker.
   `updateViaCache: 'none'`.
 
 `tests/e2e/service-worker.spec.ts` covers first visit (control without reload), reload (no reinstall), update (new
-worker waits, old keeps control, takeover after the last tab closes), multiple tabs, and the kill switch. The test
+worker waits, old keeps control, takeover after the last tab closes), upgrading from the panel, multiple tabs, and
+the kill switch. The test
 server can serve a byte-different worker on demand to drive the update cases. `tests/e2e/fetch-observer.spec.ts`
 covers passivity (the network answers), the page-load row, per-tab delivery, tag filtering, and eviction order.
 

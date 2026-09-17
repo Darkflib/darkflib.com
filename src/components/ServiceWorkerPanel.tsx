@@ -1,4 +1,10 @@
-import { type ServiceWorkerSnapshot, useServiceWorker } from '../telemetry/serviceWorker'
+import {
+  canUpgrade,
+  type ServiceWorkerSnapshot,
+  upgradeWaitingWorker,
+  useServiceWorker,
+  type WaitingWorker,
+} from '../telemetry/serviceWorker'
 import { PanelHeader } from './PanelHeader'
 import './ServiceWorkerPanel.css'
 
@@ -21,6 +27,16 @@ function lifecycle({ slots }: ServiceWorkerSnapshot): string {
   if (slots.waiting) return `${active} · UPDATE WAITING`
   if (slots.installing) return `${active} · UPDATE ${slots.installing.toUpperCase()}`
   return active
+}
+
+const TAKES_OVER_LATER = 'It takes over once every darkflib.com tab has closed.'
+
+function upgradeHint(waiting: WaitingWorker): string {
+  if (waiting.upgradeRequested) return 'Waiting for the update to activate…'
+  if (waiting.unreachable) return `The waiting worker did not answer. ${TAKES_OVER_LATER}`
+  if (waiting.capabilities === null) return 'Checking what the waiting worker supports…'
+  if (!waiting.capabilities['skip-waiting']) return `This update cannot be activated from the page. ${TAKES_OVER_LATER}`
+  return 'Activate the waiting worker now. Every open darkflib.com tab switches to it.'
 }
 
 export function ServiceWorkerPanel() {
@@ -55,7 +71,7 @@ export function ServiceWorkerPanel() {
               worker.controllerCapabilities === null
                 ? undefined
                 : worker.missingCapabilities.length
-                  ? `Outdated worker: this page needs ${worker.missingCapabilities.join(', ')}. It updates once every darkflib.com tab has closed.`
+                  ? `Outdated worker: this page needs ${worker.missingCapabilities.join(', ')}. It updates once every darkflib.com tab has closed, or when you upgrade to a waiting update.`
                   : `Capabilities: ${Object.entries(worker.controllerCapabilities)
                       .map(([name, version]) => `${name} v${version}`)
                       .join(', ')}`
@@ -65,6 +81,25 @@ export function ServiceWorkerPanel() {
             {worker.missingCapabilities.length ? ' · OUTDATED' : ''}
           </dd>
         </div>
+        {worker.waiting && (
+          <div>
+            <dt>UPDATE</dt>
+            <dd className="worker-update" title={upgradeHint(worker.waiting)}>
+              <span data-testid="sw-waiting-version">
+                {worker.waiting.version ?? (worker.waiting.unreachable ? 'UNREACHABLE' : '…')}
+              </span>
+              <button
+                type="button"
+                className="worker-upgrade"
+                disabled={!canUpgrade(worker)}
+                aria-busy={worker.waiting.upgradeRequested}
+                onClick={upgradeWaitingWorker}
+              >
+                {worker.waiting.upgradeRequested ? 'UPGRADING…' : 'UPGRADE'}
+              </button>
+            </dd>
+          </div>
+        )}
       </dl>
     </section>
   )

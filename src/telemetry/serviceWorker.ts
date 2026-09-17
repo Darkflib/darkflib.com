@@ -11,6 +11,8 @@ import {
 const SCRIPT_URL = '/service-worker.js'
 export const LOG_CAPACITY = 200
 const HELLO_TIMEOUT_MS = 3000
+/** How long an upgrade request may go unanswered before the button can be pressed again. */
+const UPGRADE_TIMEOUT_MS = 10_000
 
 type Source = 'page' | 'service-worker'
 
@@ -38,6 +40,18 @@ export interface WorkerSlots {
   active: ServiceWorkerState | null
 }
 
+/** An installed update waiting to take over, as its own handshake describes it. */
+export interface WaitingWorker {
+  /** Build it reported; null until the handshake completes. */
+  version: string | null
+  /** Capabilities it reported; null until the handshake completes. */
+  capabilities: Capabilities | null
+  /** The handshake failed, so this page cannot tell whether it may ask the worker to take over. */
+  unreachable: boolean
+  /** This page has asked it to take over (sw:skip-waiting) and is waiting for it to activate. */
+  upgradeRequested: boolean
+}
+
 export interface ServiceWorkerSnapshot {
   registration: RegistrationStatus
   slots: WorkerSlots
@@ -49,6 +63,8 @@ export interface ServiceWorkerSnapshot {
   controllerCapabilities: Capabilities | null
   /** Capabilities this page build expects that its controller lacks (or has at an older version). */
   missingCapabilities: readonly string[]
+  /** The registration's waiting worker, if there is one. */
+  waiting: WaitingWorker | null
   /** Worker script instance behind the latest request batch; null until one arrives (see WorkerMessage). */
   reportedWorkerInstance: string | null
   entries: readonly LogEntry[]
@@ -61,6 +77,7 @@ let state: ServiceWorkerSnapshot = {
   controllerVersion: null,
   controllerCapabilities: null,
   missingCapabilities: [],
+  waiting: null,
   reportedWorkerInstance: null,
   entries: [],
 }
@@ -68,6 +85,11 @@ let state: ServiceWorkerSnapshot = {
 /** Whether the controlling worker supports `name` at `version` or later. */
 export function supports(snapshot: ServiceWorkerSnapshot, name: string, version = 1): boolean {
   return (snapshot.controllerCapabilities?.[name] ?? 0) >= version
+}
+
+/** Whether this page can ask the waiting worker to take over now. */
+export function canUpgrade({ waiting }: ServiceWorkerSnapshot): boolean {
+  return (waiting?.capabilities?.['skip-waiting'] ?? 0) >= 1 && !waiting?.upgradeRequested
 }
 
 function missingFrom(capabilities: Capabilities): string[] {
@@ -156,6 +178,64 @@ function syncSlots(registration: ServiceWorkerRegistration) {
     active: registration.active?.state ?? null,
   }
   publish({ slots })
+  syncWaiting(registration)
+}
+
+function patchWaiting(worker: ServiceWorker, patch: Partial<WaitingWorker>) {
+  // Ignore news about a worker that has since left the waiting slot.
+  if (waitingFor !== worker || !state.waiting) return
+  publish({ waiting: { ...state.waiting, ...patch } })
+}
+
+/** Handshake with a newly waiting worker, so the panel can show its build and whether it can take over on request. */
+function syncWaiting(registration: ServiceWorkerRegistration) {
+  const worker = registration.waiting
+  if (worker === waitingFor) return
+  waitingFor = worker
+  window.clearTimeout(upgradeTimer)
+  publish({
+    waiting: worker && { version: null, capabilities: null, unreachable: false, upgradeRequested: false },
+  })
+  if (!worker) return
+  hello(worker).then(
+    ({ version, capabilities }) => {
+      patchWaiting(worker, { version, capabilities })
+      log(
+        'lifecycle',
+        'page',
+        'info',
+        'handshake:waiting',
+        `${label(worker)} build ${version}; capabilities ${describeCapabilities(capabilities)}`,
+      )
+    },
+    (error: unknown) => {
+      patchWaiting(worker, { unreachable: true })
+      log(
+        'lifecycle',
+        'page',
+        'warn',
+        'handshake:waiting:failed',
+        error instanceof Error ? error.message : String(error),
+      )
+    },
+  )
+}
+
+/**
+ * Ask the waiting worker to activate now instead of when the last tab using the old one closes. Every open tab then
+ * sees a controllerchange; the old worker's in-memory state (Fault Lab rules) is gone, and faultControl re-sends it.
+ */
+export function upgradeWaitingWorker() {
+  const worker = registrationRef?.waiting
+  if (!worker || worker !== waitingFor || !canUpgrade(state)) return
+  patchWaiting(worker, { upgradeRequested: true })
+  log('lifecycle', 'page', 'info', 'upgrade:requested', `${label(worker)} asked to take over`)
+  const request: ClientMessage = { type: 'sw:skip-waiting' }
+  worker.postMessage(request)
+  upgradeTimer = window.setTimeout(() => {
+    patchWaiting(worker, { upgradeRequested: false })
+    log('lifecycle', 'page', 'warn', 'upgrade:timeout', `${label(worker)} still waiting after ${UPGRADE_TIMEOUT_MS} ms`)
+  }, UPGRADE_TIMEOUT_MS)
 }
 
 function observe(registration: ServiceWorkerRegistration) {
@@ -182,6 +262,9 @@ function observe(registration: ServiceWorkerRegistration) {
 }
 
 let handshakeFor: ServiceWorker | null = null
+let waitingFor: ServiceWorker | null = null
+let registrationRef: ServiceWorkerRegistration | null = null
+let upgradeTimer: number | undefined
 
 interface HelloReply {
   version: string
@@ -271,6 +354,7 @@ async function register() {
     log('lifecycle', 'page', 'info', 'register:start', SCRIPT_URL)
     // updateViaCache 'none': update checks always bypass the HTTP cache for the worker script.
     const registration = await navigator.serviceWorker.register(SCRIPT_URL, { scope: '/', updateViaCache: 'none' })
+    registrationRef = registration
     publish({ registration: 'registered' })
     log('lifecycle', 'page', 'info', 'register:complete', `scope ${new URL(registration.scope).pathname}`)
     observe(registration)

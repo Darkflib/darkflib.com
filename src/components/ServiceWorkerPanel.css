@@ -38,6 +38,7 @@
 .worker-details div {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 10px;
   padding: 4px 0;
   font-size: 9px;
@@ -49,6 +50,34 @@
   margin: 0;
   color: #e6f6ff;
   text-align: right;
+}
+
+.worker-details .worker-update {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.worker-upgrade {
+  border: 1px solid #b04ba6;
+  background: #1e1131;
+  color: #ffbef6;
+  padding: 2px 6px;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.worker-upgrade:hover:enabled {
+  border-color: #f85ade;
+  color: #fff;
+  box-shadow: 0 0 8px #eb18c966;
+}
+
+.worker-upgrade:disabled {
+  border-color: #3c5b73;
+  background: none;
+  color: #6d8aa3;
+  cursor: default;
 }
 
 @media (max-width: 1280px) {

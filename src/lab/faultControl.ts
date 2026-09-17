@@ -65,7 +65,7 @@ export function faultLabAvailability(worker: ServiceWorkerSnapshot): Availabilit
     return {
       ok: false,
       reason:
-        'This tab is controlled by an older service worker without fault injection. It updates once every darkflib.com tab has closed.',
+        'This tab is controlled by an older service worker without fault injection. It updates once every darkflib.com tab has closed, or when you upgrade it from the SERVICE_WORKER panel.',
     }
   }
   return { ok: true }
@@ -162,16 +162,25 @@ export function configureFaultControl(labConfig: LabConfig) {
   config = labConfig
 
   let lastController: ServiceWorker | null = navigator.serviceWorker?.controller ?? null
+  // A replacement is noticed at controllerchange, but the new controller's handshake has not finished then, so the lab
+  // is briefly unavailable: remember the replacement until the rules can be sent.
+  let replaced = false
   subscribeServiceWorker(() => {
     const worker = getServiceWorkerSnapshot()
     const controller = navigator.serviceWorker?.controller ?? null
-    const replaced = controller !== lastController
-    lastController = controller
+    if (controller !== lastController) {
+      lastController = controller
+      replaced = true
+    }
+    if (!state.applied.length) replaced = false
     if (state.pending || !state.applied.length || !faultLabAvailability(worker).ok) return
     // A replacement controller starts with no rules; so does a restarted worker, which shows up as a batch from a new
     // instance.
     const restarted = worker.reportedWorkerInstance !== null && worker.reportedWorkerInstance !== state.appliedBy
-    if (replaced || restarted) void apply('reapplied')
+    if (replaced || restarted) {
+      replaced = false
+      void apply('reapplied')
+    }
   })
 }
 

@@ -86,7 +86,47 @@ test.describe('service worker lifecycle', () => {
     )
   })
 
-  test('tabs share one registration: a second tab is controlled at once and both see the update', async ({
+  test('UPGRADE activates a waiting update without closing the tab', async ({ page, server }) => {
+    await page.goto('/')
+    await expectControlled(page)
+    const original = (await page.getByTestId('sw-version').textContent()) ?? ''
+    const updated = `${original}.test1`
+
+    // No update waiting, no button.
+    const upgrade = page.getByRole('button', { name: 'UPGRADE' })
+    await expect(upgrade).toHaveCount(0)
+
+    server.bumpServiceWorker()
+    await checkForUpdate(page)
+    await expect(page.getByTestId('sw-lifecycle')).toHaveText('ACTIVATED · UPDATE WAITING')
+    // The page asks the waiting worker what it is before offering to activate it.
+    await expect(page.getByTestId('sw-waiting-version')).toHaveText(updated)
+    await expect(upgrade).toBeEnabled()
+    await expect(page.getByTestId('sw-version')).toHaveText(original)
+
+    await upgrade.click()
+
+    await expect(page.getByTestId('sw-version')).toHaveText(updated)
+    await expect(page.getByTestId('sw-lifecycle')).toHaveText('ACTIVATED')
+    await expect(page.getByTestId('sw-waiting-version')).toHaveCount(0)
+    await openEventLog(page)
+    await expect
+      .poll(() => readEventLog(page))
+      .toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ source: 'PAGE', event: 'upgrade:requested' }),
+          expect.objectContaining({
+            source: 'WORKER',
+            event: 'skip-waiting',
+            detail: expect.stringContaining(updated),
+          }),
+          expect.objectContaining({ source: 'PAGE', event: 'controllerchange' }),
+        ]),
+      )
+    expect((await readEventLog(page)).map((row) => row.event)).not.toContain('upgrade:timeout')
+  })
+
+  test('tabs share one registration: a second tab is controlled at once, both see the update, and both upgrade', async ({
     page,
     context,
     server,
@@ -115,6 +155,13 @@ test.describe('service worker lifecycle', () => {
       .toContainEqual(
         expect.objectContaining({ source: 'WORKER', event: 'install', detail: expect.stringMatching(/\.test1$/) }),
       )
+
+    // UPGRADE in one tab moves every tab to the new worker.
+    await second.getByRole('button', { name: 'UPGRADE' }).click()
+    for (const tab of [page, second]) {
+      await expect(tab.getByTestId('sw-version')).toHaveText(/\.test1$/)
+      await expect(tab.getByTestId('sw-lifecycle')).toHaveText('ACTIVATED')
+    }
   })
 
   test('?sw=off unregisters the worker and skips registration', async ({ page }) => {

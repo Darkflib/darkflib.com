@@ -32,7 +32,9 @@ async function broadcast(level: LogLevel, event: string, detail?: string): Promi
 }
 
 self.addEventListener('install', (event) => {
-  // No skipWaiting(): an updated worker waits until no page is using the old one.
+  // No automatic skipWaiting(): an updated worker waits until no page is using the old one, or until a page asks it to
+  // take over (sw:skip-waiting). Taking over is safe because the worker serves nothing from a cache: open pages keep
+  // their own code and see a controllerchange.
   event.waitUntil(broadcast('info', 'install', `build ${VERSION}`))
 })
 
@@ -130,6 +132,17 @@ self.addEventListener('message', (event) => {
     }
     // A page's hello means it is listening: hand over anything that was waiting for it, such as its own navigation.
     if (clientId) event.waitUntil(deliver(clientId))
+    return
+  }
+
+  if (message.type === 'sw:skip-waiting') {
+    // Only a waiting worker has anything to do. The page messages registration.waiting, so where the browser lacks
+    // self.serviceWorker (it is recent), trust that; skipWaiting() in an active worker would be a no-op anyway.
+    const own = self.serviceWorker as ServiceWorker | undefined
+    if (own && own.state !== 'installed') return
+    event.waitUntil(
+      broadcast('info', 'skip-waiting', `build ${VERSION}, requested by a page`).then(() => self.skipWaiting()),
+    )
     return
   }
 

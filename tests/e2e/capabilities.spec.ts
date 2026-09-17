@@ -1,5 +1,5 @@
 import { WORKER_CAPABILITIES } from '../../src/sw/protocol.ts'
-import { expect, expectControlled, openEventLog, readEventLog, test } from '../support/fixtures.ts'
+import { checkForUpdate, expect, expectControlled, openEventLog, readEventLog, test } from '../support/fixtures.ts'
 
 const everyCapability = Object.entries(WORKER_CAPABILITIES)
   .map(([name, version]) => `${name} v${version}`)
@@ -48,5 +48,19 @@ test.describe('worker capabilities', () => {
           ),
         }),
       )
+  })
+
+  test('a waiting update that cannot take over on request leaves UPGRADE disabled', async ({ page, server }) => {
+    await page.goto('/')
+    await expectControlled(page)
+
+    server.setServiceWorkerOverride(LEGACY_WORKER)
+    await checkForUpdate(page)
+    await expect(page.getByTestId('sw-waiting-version')).toHaveText('legacy+00000000')
+    await expect(page.getByRole('button', { name: 'UPGRADE' })).toBeDisabled()
+    await expect(page.locator('.worker-update')).toHaveAttribute(
+      'title',
+      /^This update cannot be activated from the page/,
+    )
   })
 })
