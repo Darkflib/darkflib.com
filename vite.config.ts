@@ -9,10 +9,7 @@ export default defineConfig({
     __BUILD_INFO__: JSON.stringify(buildInfo),
   },
   plugins: [
-    serviceWorkerPlugin({
-      entry: 'src/sw/service-worker.ts',
-      // Deliberately excludes the build time: an unchanged worker must produce identical bytes.
-      build: `${buildInfo.sha}${buildInfo.dirty ? '-dirty' : ''}`,
-    }),
+    // The worker's version is a hash of its own bundle, not buildInfo: an unchanged worker must deploy identical bytes.
+    serviceWorkerPlugin({ entry: 'src/sw/service-worker.ts' }),
   ],
 })

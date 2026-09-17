@@ -16,7 +16,7 @@ test.describe('fault engine', () => {
   })
 
   test('the worker reports fault-injection', async ({ page }) => {
-    await expect(page.getByTestId('sw-build')).toHaveAttribute('title', /fault-injection v1/)
+    await expect(page.getByTestId('sw-version')).toHaveAttribute('title', /fault-injection v1/)
   })
 
   test('offline: a network error, and nothing reaches the origin', async ({ page, server }) => {

@@ -73,7 +73,7 @@ export async function readEventLog(page: Page): Promise<LogRow[]> {
 
 export async function expectControlled(page: Page) {
   await expect(page.getByTestId('sw-status')).toHaveText('CONTROLLING THIS PAGE')
-  await expect(page.getByTestId('sw-build')).toHaveText(/\+[0-9a-f]{8}/)
+  await expect(page.getByTestId('sw-version')).toHaveText(/^sw-[0-9a-f]{8}/)
 }
 
 export async function checkForUpdate(page: Page) {

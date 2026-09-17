@@ -19,12 +19,12 @@ const CONTENT_TYPES: Record<string, string> = {
   '.webp': 'image/webp',
 }
 
-// The build id the plugin bakes into the worker: "<sha>[-dirty]+<8 hex>". Coupled to build/serviceWorkerPlugin.ts.
-const VERSION_LITERAL = /"([\w-]+\+[0-9a-f]{8})"/
+// The version the plugin bakes into the worker: "sw-<8 hex>". Coupled to build/serviceWorkerPlugin.ts.
+const VERSION_LITERAL = /"(sw-[0-9a-f]{8})"/g
 
 export interface TestServer {
   url: string
-  /** Serve a byte-different worker reporting `<build>.test<n>`, so the next update check finds a new version. */
+  /** Serve a byte-different worker reporting `<version>.test<n>`, so the next update check finds a new version. */
   bumpServiceWorker(): void
   /** Emulate host nginx's `Server-Timing: edge;desc=...` header (on by default). */
   setEdgeTiming(enabled: boolean): void
@@ -138,7 +138,7 @@ export async function startServer(): Promise<TestServer> {
         file === SERVICE_WORKER && workerOverride !== null ? workerOverride : await readFile(join(DIST, file))
       if (file === SERVICE_WORKER && workerOverride === null && bump > 0) {
         const code = body.toString('utf8')
-        if (!VERSION_LITERAL.test(code)) throw new Error('service worker version literal not found')
+        if (new Set(code.match(VERSION_LITERAL)).size !== 1) throw new Error('expected one service worker version')
         body = code.replace(VERSION_LITERAL, (_match, version: string) => `"${version}.test${bump}"`)
       }
       const revalidate = file === SERVICE_WORKER || file === 'index.html'

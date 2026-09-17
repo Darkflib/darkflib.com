@@ -35,11 +35,11 @@ test.describe('service worker lifecycle', () => {
 
     await page.goto('/')
     await expectControlled(page)
-    const build = await page.getByTestId('sw-build').textContent()
+    const build = await page.getByTestId('sw-version').textContent()
 
     await page.reload()
     await expectControlled(page)
-    await expect(page.getByTestId('sw-build')).toHaveText(build ?? '')
+    await expect(page.getByTestId('sw-version')).toHaveText(build ?? '')
 
     await openEventLog(page)
     await expect.poll(() => readEventLog(page)).toContainEqual(expect.objectContaining({ event: 'handshake' }))
@@ -59,14 +59,14 @@ test.describe('service worker lifecycle', () => {
 
     await page.goto('/')
     await expectControlled(page)
-    const original = (await page.getByTestId('sw-build').textContent()) ?? ''
+    const original = (await page.getByTestId('sw-version').textContent()) ?? ''
     const updated = `${original}.test1`
 
     server.bumpServiceWorker()
     await checkForUpdate(page)
 
     await expect(page.getByTestId('sw-lifecycle')).toHaveText('ACTIVATED · UPDATE WAITING')
-    await expect(page.getByTestId('sw-build')).toHaveText(original)
+    await expect(page.getByTestId('sw-version')).toHaveText(original)
     await openEventLog(page)
     await expect
       .poll(() => readEventLog(page))
@@ -76,7 +76,7 @@ test.describe('service worker lifecycle', () => {
     await page.close()
     const next = await context.newPage()
     await next.goto('/')
-    await expect(next.getByTestId('sw-build')).toHaveText(updated)
+    await expect(next.getByTestId('sw-version')).toHaveText(updated)
     // The new worker controls the page either way (its build answered the handshake). In Playwright's WebKit, a
     // navigation that arrives while the activate event's waitUntil is still pending leaves activation unfinished for
     // good: the worker serves the page and answers messages, but reports 'activating' and never sends activate:complete.

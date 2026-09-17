@@ -19,7 +19,7 @@ test.describe('worker capabilities', () => {
   test('the controlling worker reports what it supports', async ({ page }) => {
     await page.goto('/')
     await expectControlled(page)
-    const build = page.getByTestId('sw-build')
+    const build = page.getByTestId('sw-version')
     await expect(build).toHaveAttribute('title', `Capabilities: ${everyCapability}`)
     await expect(build).not.toContainText('OUTDATED')
     await expect(page.getByTestId('strip-sw')).toHaveText('SW: CONTROLLING')
@@ -28,7 +28,7 @@ test.describe('worker capabilities', () => {
   test('a worker from before the handshake is flagged as outdated', async ({ page, server }) => {
     server.setServiceWorkerOverride(LEGACY_WORKER)
     await page.goto('/')
-    const build = page.getByTestId('sw-build')
+    const build = page.getByTestId('sw-version')
     await expect(build).toHaveText('legacy+00000000 · OUTDATED')
     await expect(build).toHaveAttribute(
       'title',

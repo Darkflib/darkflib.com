@@ -48,9 +48,9 @@ export function ServiceWorkerPanel() {
           <dd>{worker.controlled ? 'CONTROLLED' : 'NOT YET'}</dd>
         </div>
         <div>
-          <dt>WORKER BUILD</dt>
+          <dt>WORKER VERSION</dt>
           <dd
-            data-testid="sw-build"
+            data-testid="sw-version"
             title={
               worker.controllerCapabilities === null
                 ? undefined
