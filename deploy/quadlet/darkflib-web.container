@@ -8,7 +8,7 @@ ContainerName=darkflib-web
 # Set by deploy/scripts/promote.sh, which verifies the signature before writing a digest here. Never hand-edit it,
 # and never use a floating tag: a restart must not change which build runs. darkflib-kev.container pins the same
 # reference, and CI fails if the two differ.
-Image=ghcr.io/darkflib/darkflib.com:sha-3380251857e3f68f4e604ee1c35d7d0625a4d1d7@sha256:1da4bfc2e37cd84075abe13721cd8b8318865c3a901c75a754616bc7e1fb80a2
+Image=ghcr.io/darkflib/darkflib.com:sha-22808d8a62f1cdd47c00a21fff75c941fb5c935f@sha256:09663102d54a4ede7d9cbccea7ef2acca2318676f81ad58563a84f4c2f8f7714
 Pull=missing
 Network=darkflib.network
 # The KEV snapshot darkflib-kev.service writes, served as /feeds/kev.json. Read-only: this container only publishes it.
