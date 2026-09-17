@@ -41,9 +41,10 @@ function Bars({ weeks }: { weeks: KevWeek[] }) {
 }
 
 function Row({ entry, now }: { entry: KevEntry; now: number }) {
-  const due = entry.due === null ? null : Date.parse(`${entry.due}T00:00:00Z`)
-  const overdue = due !== null && due < now
-  const soon = due !== null && !overdue && due - now < DUE_SOON_MS
+  // The deadline is a calendar date, and an agency patching on the day has met it: it runs to the end of that day.
+  const deadline = entry.due === null ? null : Date.parse(`${entry.due}T00:00:00Z`) + DAY_MS
+  const overdue = deadline !== null && deadline <= now
+  const soon = deadline !== null && !overdue && deadline - now < DUE_SOON_MS
   return (
     <li>
       <details className="kev-entry" data-testid="kev-entry">

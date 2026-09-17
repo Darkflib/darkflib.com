@@ -47,6 +47,26 @@ test.describe('KEV panel', () => {
     )
   })
 
+  test('a deadline runs to the end of the day it names', async ({ page }) => {
+    await page.goto('/')
+    const snapshot = (await (await page.request.get('/feeds/kev.json')).json()) as {
+      entries: { cve: string; due: string | null }[]
+    }
+    const entry = snapshot.entries.find((candidate) => candidate.due !== null)
+    if (!entry?.due) throw new Error('the fixture has no entry with a deadline')
+    const row = page.getByTestId('kev-entry').filter({ hasText: entry.cve })
+
+    // The last minute of the deadline day: an agency patching today has met it.
+    await page.clock.setFixedTime(new Date(`${entry.due}T23:59:00Z`))
+    await page.reload()
+    await expect(row.locator('.kev-due')).toHaveText(`DUE ${entry.due.slice(5)}`)
+
+    // The following midnight, UTC.
+    await page.clock.setFixedTime(Date.parse(`${entry.due}T00:00:00Z`) + 24 * 60 * 60 * 1000)
+    await page.reload()
+    await expect(row.locator('.kev-due')).toHaveText('PAST DUE')
+  })
+
   test('shows the whole snapshot on request', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('button', { name: `SHOW ALL ${ENTRIES}` }).click()
