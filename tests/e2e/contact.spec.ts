@@ -94,6 +94,29 @@ test('the contact dialog opens from the nav and the CONNECT card, and sends a me
   await expect.poll(() => tokens.length).toBe(2)
 })
 
+// Password managers ignore autocomplete="off": 1Password filled a "Website" honeypot from an identity, and the API
+// dropped the real message as spam. The field keeps the name bots look for, and nothing autofill matches on.
+test('the honeypot is off-screen and opted out of password-manager autofill', async ({ page }) => {
+  await stubApi(page)
+  await page.goto('/?sw=off')
+  await page.getByRole('link', { name: 'CONTACT' }).click()
+
+  const honeypot = page.locator('.contact-honeypot input')
+  await expect(honeypot).toHaveAttribute('name', 'website')
+  await expect(honeypot).not.toBeInViewport()
+  for (const [attribute, value] of [
+    ['data-1p-ignore', ''],
+    ['data-lpignore', 'true'],
+    ['data-bwignore', ''],
+    ['data-form-type', 'other'],
+  ]) {
+    await expect(honeypot).toHaveAttribute(attribute, value)
+  }
+  const label = (await page.locator('.contact-honeypot').textContent())?.trim() ?? ''
+  const id = (await honeypot.getAttribute('id')) ?? ''
+  expect(`${label} ${id}`).not.toMatch(/web|site|url|home|company|name|mail|phone/i)
+})
+
 test('the form checks itself before spending a token', async ({ page }) => {
   const { posted } = await stubApi(page)
   await page.goto('/?sw=off')
