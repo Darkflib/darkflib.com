@@ -204,15 +204,22 @@ export function ContactDialog({ open, onClose }: { open: boolean; onClose: () =>
               </em>
             )}
           </label>
-          {/* Honeypot: off-screen, never announced, never tabbed to. Anything typed here is a bot. */}
-          <label className="contact-honeypot" aria-hidden="true" htmlFor="contact-website">
-            Website
+          {/* Honeypot: off-screen, never announced, never tabbed to. Anything typed here is a bot, or autofill: password
+              managers ignore autoComplete="off" and fill whatever looks like a website field (1Password's identities
+              have one). So the label and id name nothing an autofill heuristic knows, and each manager is told to skip
+              it. The name stays "website", which is what bots look for. */}
+          <label className="contact-honeypot" aria-hidden="true" htmlFor="contact-trap">
+            Leave blank
             <input
-              id="contact-website"
+              id="contact-trap"
               name="website"
               type="text"
               tabIndex={-1}
               autoComplete="off"
+              data-1p-ignore=""
+              data-lpignore="true"
+              data-bwignore=""
+              data-form-type="other"
               value={fields.website}
               onChange={set('website')}
             />
