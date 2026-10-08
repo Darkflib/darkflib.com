@@ -190,7 +190,8 @@ export async function startServer(): Promise<TestServer> {
         'Content-Type': CONTENT_TYPES[extname(file)] ?? 'application/octet-stream',
         'Cache-Control': revalidate ? 'no-cache' : 'public, max-age=3600',
       }
-      // As deploy/nginx/darkflib.conf reports it: cacheable responses are edge hits, the rest pass through.
+      // As host nginx reports it (wwff-tech/gitops quadlet/apps/darkflib/files/nginx.conf): cacheable responses are edge
+      // hits, the rest pass through.
       if (edgeTiming) headers['Server-Timing'] = `edge;desc=${revalidate ? 'MISS' : 'HIT'}`
       res.writeHead(200, headers)
       res.end(body)

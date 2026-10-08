@@ -43,7 +43,7 @@ docker rm -f darkflib-smoke
 | `tests/e2e/`, `tests/support/`  | Playwright specs and a per-worker static server for `dist/`                 |
 | `tests/fixtures/`               | A real KEV snapshot, served by the dev server and the tests in place of the volume |
 | `assets/source/`                | PNG masters for generated imagery (not shipped); `projects/` are square screenshot crops |
-| `Containerfile`, `deploy/`      | Production image (Caddy + site), Quadlets, nginx vhost, scripts: see `deploy/README.md` |
+| `Containerfile`, `deploy/`      | Production image (Caddy + site) and its smoke test: see `deploy/README.md`. Units and the nginx vhost live in wwff-tech/gitops `quadlet/apps/darkflib/` |
 | `tests/deploy/`                 | Browser check against the production image under its real headers          |
 
 ## Telemetry strip

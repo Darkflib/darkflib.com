@@ -98,7 +98,7 @@ jobs:
       - run: npm ci
 
       - name: Shellcheck deployment scripts
-        run: shellcheck deploy/install.sh deploy/scripts/*.sh
+        run: shellcheck deploy/scripts/*.sh
 
       # --format docker keeps the HEALTHCHECK that darkflib-web.container's Notify=healthy waits on.
       - name: Build image
@@ -134,49 +134,6 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-      # The runner's podman (4.9) and nginx (1.24) are older than ny03's, and nginx 1.24 rejects `http2 on`. Run the
-      # host-level checks on the Debian release ny03 runs instead.
-      - name: Quadlet generation and nginx -t on Debian 13
-        run: |
-          podman run --rm --volume "$PWD:/src:ro" \
-            docker.io/library/debian:trixie-slim@sha256:d7e12182ce18b85b93007c1dedf31f2d29e01ccf3182cc4017c709b6259bc132 \
-            sh -euc 'apt-get update -qq
-                     DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends podman nginx openssl > /dev/null
-                     podman --version
-                     nginx -v
-                     /src/deploy/scripts/check-quadlets.sh
-                     /src/deploy/scripts/check-nginx.sh'
-
-      # One digest, set by promote.sh, never a floating tag, and the same one in every unit that runs the image:
-      # kev-snapshot writes the document the page reads, so the two must never be from different builds. `unpromoted`
-      # is the bootstrap marker before the first publish exists; it is reported, and verification is skipped only then.
-      - name: The deployed image is pinned by digest
-        id: pin
-        run: |
-          set -euo pipefail
-          refs=$(sed -n 's/^Image=//p' deploy/quadlet/*.container | sort -u)
-          if [ "$(printf '%s\n' "$refs" | wc -l)" -ne 1 ]; then
-            echo "::error::deploy/quadlet units pin different images:"; printf '%s\n' "$refs"; exit 1
-          fi
-          ref=$refs
-          case "$ref" in
-            ghcr.io/darkflib/darkflib.com:unpromoted)
-              echo "::warning::darkflib-web.container is not promoted yet; run deploy/scripts/promote.sh after the first publish"
-              echo "promoted=false" >> "$GITHUB_OUTPUT" ;;
-            ghcr.io/darkflib/darkflib.com:*@sha256:*|ghcr.io/darkflib/darkflib.com@sha256:*)
-              echo "promoted=true" >> "$GITHUB_OUTPUT" ;;
-            *)
-              echo "::error::Image= must be pinned by digest via deploy/scripts/promote.sh: $ref"
-              exit 1 ;;
-          esac
-      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
-        if: steps.pin.outputs.promoted == 'true'
-      - name: The pinned image is signed, with provenance and an SBOM
-        if: steps.pin.outputs.promoted == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: deploy/scripts/verify-image.sh --require-attestations
-
       - name: Export the tested image
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         run: podman save --format docker-archive --output "$RUNNER_TEMP/image.tar" darkflib.com:ci
@@ -189,7 +146,8 @@ jobs:
           compression-level: 0
 
   # Publishes the exact image `container` tested: pushed by digest, keyless-signed with cosign, and attested with SLSA
-  # provenance and an SPDX SBOM. Deploying it is a separate, reviewed step (deploy/scripts/promote.sh).
+  # provenance and an SPDX SBOM. Deploying it is the `promote` job below: a pin in wwff-tech/gitops
+  # (quadlet/apps/darkflib/), written by quadlet/bin/promote.py there, which verifies the signature against policy.toml.
   #
   # Gated on the repository being public: GitHub artifact attestations and anonymous pulls on ny03 both depend on it.
   # workflow_dispatch on main republishes without a commit (e.g. after a base-image digest bump lands). A re-run of an
@@ -207,6 +165,9 @@ jobs:
       packages: write # push the image and its signature
       id-token: write # keyless signing: the OIDC token is the identity
       attestations: write # provenance and SBOM
+    outputs:
+      image: ${{ steps.publish.outputs.image }}
+      tag: ${{ steps.publish.outputs.tag }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -248,7 +209,7 @@ jobs:
           podman tag darkflib.com:ci "$image:latest"
           podman push --authfile "$authfile" "$image:latest"
           digest=$(cat "$RUNNER_TEMP/digest")
-          { echo "image=$image"; echo "digest=$digest"; } >> "$GITHUB_OUTPUT"
+          { echo "image=$image"; echo "digest=$digest"; echo "tag=sha-$GITHUB_SHA"; } >> "$GITHUB_OUTPUT"
           echo "published $image:sha-$GITHUB_SHA at $digest"
 
       - name: Sign the manifest
@@ -284,12 +245,64 @@ jobs:
           path: ${{ runner.temp }}/sbom.spdx.json
           retention-days: 90
 
-      # Produced is not verified: run the operator's own check against what was just pushed.
-      - name: Verify what was just published
+      - name: How to promote by hand
+        # The fallback if the promote job below fails, and how to roll back (an older commit).
         env:
-          GH_TOKEN: ${{ github.token }}
           IMAGE: ${{ steps.publish.outputs.image }}
-          DIGEST: ${{ steps.publish.outputs.digest }}
         run: |
-          echo "Promote with: deploy/scripts/promote.sh ${IMAGE}:sha-${GITHUB_SHA}@${DIGEST}" >> "$GITHUB_STEP_SUMMARY"
-          deploy/scripts/verify-image.sh --require-attestations "${IMAGE}@${DIGEST}"
+          echo "Promoted by the next job. By hand, from a wwff-tech/gitops checkout: \`python3 quadlet/bin/promote.py darkflib ${IMAGE} sha-${GITHUB_SHA} --pr\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # Opens the pin as a PR in wwff-tech/gitops and merges it once that repository's checks pass. Nothing here touches a
+  # host: each host's reconcile agent pulls the merged pin and verifies the signature again before running anything.
+  #
+  # Same gate as `publish`, spelt out rather than inherited through `needs`, so promotion can never outlive it.
+  #
+  # Secrets:
+  #   GITOPS_TOKEN  contents:write + pull-requests:write on wwff-tech/gitops
+  promote:
+    name: Promote in wwff-tech/gitops
+    if: >-
+      github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+      && !github.event.repository.private
+    needs: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15 # promote.py waits up to 8 for the PR's checks
+    permissions:
+      contents: read
+      packages: read # promote.py reads the manifest and its signature
+    env:
+      IMAGE: ${{ needs.publish.outputs.image }}
+      TAG: ${{ needs.publish.outputs.tag }}
+    steps:
+      - name: Require GITOPS_TOKEN
+        # Without this the failure is actions/checkout complaining about an empty token.
+        env:
+          GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
+        run: |
+          if [ -z "$GITOPS_TOKEN" ]; then
+            echo "::error::GITOPS_TOKEN is not set on this repository, so $IMAGE:$TAG is published and signed but not promoted. Add the secret (contents:write and pull-requests:write on wwff-tech/gitops) and re-run this job, or promote by hand from a gitops checkout: python3 quadlet/bin/promote.py darkflib $IMAGE $TAG --pr"
+            exit 1
+          fi
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Log in to GHCR for cosign
+        env:
+          REGISTRY_TOKEN: ${{ github.token }}
+        run: printf '%s' "$REGISTRY_TOKEN" | cosign login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Check out gitops
+        # Credentials persist on purpose: promote.py pushes the promote branch with them.
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: wwff-tech/gitops
+          token: ${{ secrets.GITOPS_TOKEN }}
+          path: gitops
+      - name: Promote
+        # Verifies the signature against policy.toml, pins the digest, opens a PR, and merges it once its checks pass.
+        # Does nothing if this digest is already pinned.
+        env:
+          GH_TOKEN: ${{ secrets.GITOPS_TOKEN }}
+          GHCR_TOKEN: ${{ github.token }}
+        working-directory: gitops
+        run: |
+          git config user.name "darkflib-publish"
+          git config user.email "darkflib-publish@users.noreply.github.com"
+          python3 quadlet/bin/promote.py darkflib "$IMAGE" "$TAG" --pr

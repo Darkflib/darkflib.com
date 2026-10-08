@@ -1,6 +1,9 @@
 import type { RequestSample } from './requests'
 
-/** Server-Timing metric name that host nginx uses for its cache status (deploy/nginx/darkflib.conf). */
+/**
+ * Server-Timing metric name that host nginx uses for its cache status (wwff-tech/gitops
+ * quadlet/apps/darkflib/files/nginx.conf).
+ */
 const EDGE_METRIC = 'edge'
 
 /** nginx cache statuses where the body came from the edge cache rather than the origin. */

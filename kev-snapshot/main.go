@@ -9,8 +9,8 @@
 //	kev-snapshot -env-file .env -out .feeds          # local development
 //
 // The token comes from SRETAB_PAT (a Podman secret in production), or from an env file read as a table of values,
-// never sourced, as deploy/install.sh reads install.env. Exit status is 0 on success, 1 when the fetch or the data
-// fails, and 2 for a usage or configuration error.
+// never sourced. Exit status is 0 on success, 1 when the fetch or the data fails, and 2 for a usage or configuration
+// error.
 package main
 
 import (
