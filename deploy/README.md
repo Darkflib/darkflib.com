@@ -52,8 +52,12 @@ the CSP and cache policy always ship with the code they describe. The one piece 
 ## Releasing
 
 A push to main publishes `ghcr.io/darkflib/darkflib.com:sha-<commit>`, signs it with cosign (keyless), and attests
-SLSA provenance and an SPDX SBOM. Promotion is not yet automatic here: this workflow has no promote job, so pin the
-build from a wwff-tech/gitops checkout, which opens the PR:
+SLSA provenance and an SPDX SBOM. The workflow's `promote` job then opens the pin as a PR in wwff-tech/gitops and
+merges it once that repository's checks pass; hosts pick it up on their next reconcile. It needs the `GITOPS_TOKEN`
+secret (contents and pull-requests write on wwff-tech/gitops) and fails saying so without it. Like publishing, it only
+runs while this repository is public.
+
+To promote by hand (the fallback if that job fails), from a wwff-tech/gitops checkout:
 
 ```sh
 python3 quadlet/bin/promote.py darkflib ghcr.io/darkflib/darkflib.com sha-<commit> --pr
