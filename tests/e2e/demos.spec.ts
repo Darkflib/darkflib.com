@@ -53,3 +53,44 @@ test('changing a control leaves the preset, and the held-constant line stays hon
   await expect(page.getByTestId('held-constant')).toContainText('8 workers')
   await expect(page.getByTestId('held-constant')).toContainText('unbounded FIFO queue')
 })
+
+test('breaking-the-loop: presets set the toggles, and a toggle leaves the preset', async ({ page }) => {
+  await page.goto(demoPath('breaking-the-loop'))
+  const skip = page.getByLabel('SKIP EXPIRED WORK')
+  const shed = page.getByLabel('SHED BY QUEUE AGE')
+  const lifo = page.getByLabel('NEWEST FIRST (LIFO)')
+  for (const toggle of [skip, shed, lifo]) await expect(toggle).not.toBeChecked()
+
+  await page.getByRole('button', { name: 'NEWEST FIRST + SKIP' }).click()
+  await expect(skip).toBeChecked()
+  await expect(lifo).toBeChecked()
+  await expect(shed).not.toBeChecked()
+  await expect(page.getByTestId('held-constant')).toContainText('3 retries')
+
+  await shed.check()
+  await expect(page.getByRole('button', { name: 'NEWEST FIRST + SKIP' })).toHaveAttribute('aria-pressed', 'false')
+  await expect(page.getByTestId('preset-description')).toContainText('Your own settings')
+
+  await page.getByRole('button', { name: 'SHED BY AGE' }).click()
+  await expect(shed).toBeChecked()
+  await page.getByRole('button', { name: '10×' }).click()
+  await expect(page.getByTestId('readout-health')).toContainText('HEALTHY', { timeout: 20_000 })
+})
+
+test('overload: blocking the caller piles the backlog up upstream', async ({ page }) => {
+  await page.goto(demoPath('overload'))
+  await page.getByRole('button', { name: 'BLOCK THE CALLER' }).click()
+  await expect(page.getByLabel('WHEN THE QUEUE IS FULL')).toHaveValue('block')
+  await page.getByRole('button', { name: '10×' }).click()
+  await expect(page.getByTestId('readout-blocked')).toContainText('CALLERS WAITING TO ENQUEUE')
+  await expect(page.getByTestId('readout-health')).toContainText('COLLAPSED', { timeout: 20_000 })
+  await expect(page.getByTestId('readout-queueDepth')).toContainText('50')
+})
+
+test('sandbox: nothing is held constant, and both disturbances are buttons', async ({ page }) => {
+  await page.goto(demoPath('sandbox'))
+  await expect(page.getByTestId('held-constant')).toContainText('every engine parameter is a control')
+  await expect(page.getByRole('button', { name: 'INJECT SPIKE' })).toBeVisible()
+  await page.getByRole('button', { name: 'SLOW DEPENDENCY' }).click()
+  await expect(page.locator('.sim-presets button[aria-pressed="true"]')).toHaveText('STEADY')
+})

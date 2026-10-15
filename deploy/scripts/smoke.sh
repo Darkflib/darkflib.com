@@ -125,7 +125,7 @@ check "demos page declares its canonical URL" contains "$(curl --silent --header
 fetch darkflib.com /demos
 check "/demos redirects to /demos/" one_of "$status" 301 302 307 308
 check "/demos redirect keeps the trailing slash" contains "$(header location)" /demos/
-for demo in queueing-knee retry-storms circuit-breaker; do
+for demo in queueing-knee retry-storms overload breaking-the-loop circuit-breaker sandbox; do
     fetch darkflib.com "/demos/$demo/"
     check "/demos/$demo/ is 200" is "$status" 200
     check "/demos/$demo/ revalidates (no-cache)" is "$(header cache-control)" no-cache

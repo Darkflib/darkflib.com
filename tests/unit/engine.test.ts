@@ -59,6 +59,15 @@ describe('engine', () => {
     assert.ok(sim.t < 400)
   })
 
+  it('counts server latency from the queue, not from a caller blocked upstream', () => {
+    const sim = new Simulation({ lambda: 100, retries: 0, timeoutMs: 2000, policy: 'block', cap: 50 }, 1)
+    sim.advance(30)
+    const m = sim.latest
+    assert.ok(m)
+    assert.ok(m.held > 200, `held ${m.held}`)
+    assert.ok(m.p99 < 1.5, `server p99 ${m.p99}`)
+  })
+
   it('a retry budget refuses retries once spent', () => {
     const sim = new Simulation({ lambda: 64, retries: 3, timeoutMs: 600, retryBudget: 0.1 }, 1, SPIKE)
     sim.advance(20)
@@ -84,6 +93,42 @@ describe('presets tell their story', () => {
       })
     }
   }
+
+  const run = (slug: string, presetId: string) => {
+    const demo = CONCEPTS.find((d) => d.slug === slug)
+    const preset = demo?.presets.find((p) => p.id === presetId)
+    assert.ok(demo && preset, `${slug} / ${presetId}`)
+    return new Simulation({ ...demo.base, ...preset.params }, DEMO_SEED, preset.script)
+  }
+  const at = (sim: Simulation, t: number) => {
+    sim.advance(t)
+    assert.ok(sim.latest)
+    return sim.latest
+  }
+
+  it('overload: blocking holds the server queue at its limit while the backlog builds upstream', () => {
+    const block = run('overload', 'block')
+    const early = at(block, 20)
+    const late = at(block, 40)
+    assert.equal(late.depth, 50)
+    assert.ok(late.held > early.held + 200, `held ${early.held} then ${late.held}`)
+    assert.ok(late.good < 1, `goodput ${late.good}`)
+    const reject = at(run('overload', 'reject'), 40)
+    assert.ok(reject.good > 0.6 * reject.fresh, `goodput ${reject.good} of ${reject.fresh}`)
+  })
+
+  it('breaking-the-loop: skip-expired alone never drains; newest-first strands dead work until skip clears it', () => {
+    const skip = run('breaking-the-loop', 'skip-expired')
+    for (const t of [60, 90, 120]) {
+      const m = at(skip, t)
+      assert.ok(m.good < 0.2 * m.fresh, `at ${t} s: goodput ${m.good} of ${m.fresh}`)
+    }
+    const lifo = at(run('breaking-the-loop', 'lifo'), 30)
+    assert.ok(lifo.good > 0.6 * lifo.fresh, `goodput ${lifo.good} of ${lifo.fresh}`)
+    assert.ok(lifo.depth > 500, `queue ${lifo.depth}`)
+    const both = at(run('breaking-the-loop', 'lifo-skip'), 25)
+    assert.ok(both.depth < 50, `queue ${both.depth}`)
+  })
 
   it('queueing-knee: each preset waits longer than the last, and a heavy tail at 80% beats tight work at 95%', () => {
     const demo = CONCEPTS.find((d) => d.slug === 'queueing-knee')

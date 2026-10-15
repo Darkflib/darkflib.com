@@ -171,6 +171,20 @@
   accent-color: #e512c8;
 }
 
+.sim-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.sim-toggle input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #e512c8;
+}
+
 .sim-control select {
   width: 100%;
   border: 1px solid #547f9c;

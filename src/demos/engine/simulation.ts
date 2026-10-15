@@ -25,6 +25,8 @@ export interface Request {
   attempt: number
   /** When this attempt entered the system. */
   enq: number
+  /** When it reached the server's queue: later than `enq` only for a caller the block policy held upstream. */
+  admitted: number
   state: RequestState
   /** The client has timed out on this attempt; serving it now is wasted work. */
   abandoned: boolean
@@ -123,7 +125,7 @@ export interface Sample {
   denied: number
   /** Share of completions served after the client gave up. */
   wastedPct: number
-  /** Server latency (queue wait plus service), this attempt only. */
+  /** Server latency (queue wait plus service), this attempt only, from when it reached the server's queue. */
   p50: number
   p99: number
   /** Client latency including retries, for requests that succeeded. */
@@ -272,12 +274,13 @@ export class Simulation {
   }
 
   #newRequest(born: number, attempt: number): Request {
-    return { id: ++this.#nextId, born, attempt, enq: 0, state: 'new', abandoned: false, retried: false }
+    return { id: ++this.#nextId, born, attempt, enq: 0, admitted: 0, state: 'new', abandoned: false, retried: false }
   }
 
   #arrive(r: Request): void {
     const p = this.params
     r.enq = this.t
+    r.admitted = this.t
     r.state = 'new'
     r.abandoned = false
     r.retried = false
@@ -365,9 +368,9 @@ export class Simulation {
     w.start = this.t
     w.dur = this.#serviceTime()
     w.until = this.t + w.dur
-    this.#bucket.waitSum += this.t - r.enq
+    this.#bucket.waitSum += this.t - r.admitted
     this.#bucket.waitN++
-    this.#epochWaitSum += this.t - r.enq
+    this.#epochWaitSum += this.t - r.admitted
     this.#epochWaitN++
     this.#heap.push({ t: w.until, type: 'done', worker: w })
   }
@@ -383,7 +386,7 @@ export class Simulation {
     this.#leave(r)
     const b = this.#bucket
     b.comp++
-    b.lat.push(this.t - r.enq)
+    b.lat.push(this.t - r.admitted)
     if (r.abandoned) {
       b.wasted++
       this.onFlow('waste', workerIndex)
@@ -414,7 +417,7 @@ export class Simulation {
         this.#skip(c)
         continue
       }
-      if (p.policy === 'codel' && this.t - c.enq > p.ageMs / 1000) {
+      if (p.policy === 'codel' && this.t - c.admitted > p.ageMs / 1000) {
         c.state = 'rejected'
         this.#leave(c)
         this.#bucket.drops++
@@ -432,6 +435,7 @@ export class Simulation {
     while (this.held.length && (p.policy !== 'block' || this.queue.length < p.cap)) {
       const r = this.held.shift() as Request
       r.state = 'queued'
+      r.admitted = this.t
       this.queue.push(r)
     }
   }

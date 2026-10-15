@@ -280,6 +280,14 @@ export const CHARTS: Record<ChartId, ChartSpec> = {
     fmt: fmtCount,
     series: [{ get: (s) => s.depth, tone: 'accent', label: 'queued', area: true, dot: true }],
   },
+  backlog: {
+    title: 'BACKLOG',
+    fmt: fmtCount,
+    series: [
+      { get: (s) => s.held, tone: 'warn', label: 'blocked upstream', area: true, dot: true },
+      { get: (s) => s.depth, tone: 'accent', label: 'queued at the server', area: true, dot: true },
+    ],
+  },
   latency: {
     title: 'SERVER LATENCY',
     fmt: fmtSeconds,

@@ -31,9 +31,13 @@ export const CIRCUIT_BREAKER: CatalogueEntry = {
   ],
 }
 
+const SIMULATED: readonly CatalogueEntry[] = CONCEPTS.map((demo) => ({ ...demo, kind: 'simulated' as const }))
+
+/** The sandbox goes last, after the live demo: it assumes the concepts the others teach. */
 export const CATALOGUE: readonly CatalogueEntry[] = [
-  ...CONCEPTS.map((demo) => ({ ...demo, kind: 'simulated' as const })),
+  ...SIMULATED.filter((entry) => entry.slug !== 'sandbox'),
   CIRCUIT_BREAKER,
+  ...SIMULATED.filter((entry) => entry.slug === 'sandbox'),
 ]
 
 export const demoPath = (slug: string) => `/demos/${slug}/`

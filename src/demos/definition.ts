@@ -3,7 +3,24 @@
 import type { Params } from './engine/params.ts'
 import type { Disturbance, HealthId, ScriptEvent } from './engine/simulation.ts'
 
-export type ControlId = 'utilisation' | 'variability' | 'retries' | 'retryBudget'
+export type ControlId =
+  | 'utilisation'
+  | 'load'
+  | 'workers'
+  | 'serviceTime'
+  | 'variability'
+  | 'queuePolicy'
+  | 'admission'
+  | 'queueLimit'
+  | 'queueAge'
+  | 'shedByAge'
+  | 'lifo'
+  | 'dropExpired'
+  | 'timeout'
+  | 'retries'
+  | 'backoff'
+  | 'jitter'
+  | 'retryBudget'
 export type ReadoutId =
   | 'health'
   | 'utilisation'
@@ -13,11 +30,22 @@ export type ReadoutId =
   | 'goodput'
   | 'retries'
   | 'wasted'
+  | 'shed'
   | 'queueDepth'
+  | 'blocked'
   | 'littles'
-export type ChartId = 'throughput' | 'depth' | 'latency'
+export type ChartId = 'throughput' | 'depth' | 'backlog' | 'latency'
 /** Parameters a demo may list as held constant; each has a describer in the registry. */
-export type HeldId = 'utilisation' | 'workers' | 'service' | 'queue' | 'timeout' | 'retries' | 'backoff'
+export type HeldId =
+  | 'utilisation'
+  | 'workers'
+  | 'service'
+  | 'queue'
+  | 'discipline'
+  | 'shedding'
+  | 'timeout'
+  | 'retries'
+  | 'backoff'
 
 /** A state the run must be in at a given time, for tests and for the reader's expectations. */
 export interface Expectation {
@@ -56,7 +84,7 @@ export interface DemoDefinition {
   presets: readonly Preset[]
   readouts: readonly ReadoutId[]
   charts: readonly ChartId[]
-  /** Shown as "held constant", so the limits are visible rather than hidden. */
+  /** Shown as "held constant", so the limits are visible rather than hidden. Empty when every parameter is a control. */
   held: readonly HeldId[]
   /** A visual of its own, beside the pipeline. */
   visual?: 'knee-curve'
