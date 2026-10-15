@@ -112,6 +112,29 @@ describe('engine', () => {
     assert.equal(sim.params.workers, 2)
   })
 
+  it('utilisation counts only the pool, not workers finishing up after a scale-down', () => {
+    // Eight long, widely varying requests and nothing queued behind them, then the pool is cut to two.
+    const sim = new Simulation(
+      { lambda: 1000, workers: 8, svcMs: 4000, variability: 'heavy', policy: 'drop', cap: 0, retries: 0 },
+      1,
+    )
+    sim.advance(0.1)
+    sim.set({ lambda: 0.001, workers: 2 })
+    // Find a window in which the pool sat idle while stopped workers were still busy: utilisation must read 0.
+    let idleFor = 0
+    let checked = false
+    for (let t = 0.25; t < 120 && !checked; t += 0.25) {
+      sim.advance(t)
+      const poolIdle = !sim.workers[0].req && !sim.workers[1].req
+      idleFor = poolIdle ? idleFor + 1 : 0
+      if (idleFor > 8 && sim.workers.slice(2, 8).some((w) => w.req)) {
+        assert.equal(sim.latest?.util, 0)
+        checked = true
+      }
+    }
+    assert.ok(checked, 'no window with an idle pool and busy stopped workers')
+  })
+
   it('a retry budget refuses retries once spent', () => {
     const sim = new Simulation({ lambda: 64, retries: 3, timeoutMs: 600, retryBudget: 0.1 }, 1, SPIKE)
     sim.advance(20)

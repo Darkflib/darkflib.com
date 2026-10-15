@@ -210,7 +210,6 @@ export class Simulation {
   #retryTokens = RETRY_BUDGET_CAP
   #epochWaitSum = 0
   #epochWaitN = 0
-  #busy = 0
   /** Workers on their way, newest last, so a scale-down cancels the latest ask first. */
   #booting: Extract<SimEvent, { type: 'boot' }>[] = []
   #lastScale = Number.NEGATIVE_INFINITY
@@ -416,7 +415,6 @@ export class Simulation {
 
   #start(w: Worker, r: Request): void {
     r.state = 'service'
-    this.#busy++
     w.req = r
     w.start = this.t
     w.dur = this.#serviceTime()
@@ -539,7 +537,6 @@ export class Simulation {
         const w = e.worker
         const r = w.req as Request
         w.req = null
-        this.#busy--
         this.#finish(r, this.workers.indexOf(w))
         this.#dispatch()
         break
@@ -616,10 +613,17 @@ export class Simulation {
 
   // ---------- Metrics ----------
 
+  /** Busy workers within the pool. Workers stopped by a scale-down finish what they hold, but are not the pool. */
+  #activeBusy(): number {
+    let busy = 0
+    for (let i = 0; i < this.params.workers; i++) if (this.workers[i].req) busy++
+    return busy
+  }
+
   #accrue(dt: number): void {
     const b = this.#bucket
     b.area += this.#n * dt
-    b.busyArea += Math.min(this.#busy, this.params.workers) * dt
+    b.busyArea += this.#activeBusy() * dt
     b.poolArea += this.params.workers * dt
   }
 
