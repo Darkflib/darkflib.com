@@ -1,0 +1,183 @@
+/* /tools/debug/: the session debugger. Panels on the site's usual grid, as on /projects/. */
+
+.debug-intro {
+  position: relative;
+  z-index: 2;
+  padding: 28px 1.25% 16px;
+}
+
+.debug-kicker {
+  color: #8fd8ff;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.debug-intro h1 {
+  margin: 6px 0 10px;
+  font-family: var(--font-display);
+  font-size: clamp(40px, 7vw, 84px);
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: 0.04em;
+  color: #fff;
+  text-shadow: 0 0 18px #e512c8;
+}
+
+.debug-intro p {
+  max-width: 70ch;
+  margin: 0 0 16px;
+  color: #c6d6ec;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.debug-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.debug-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr));
+  gap: 10px;
+  padding: 0 1.25% 20px;
+  position: relative;
+  z-index: 2;
+}
+
+.debug-panel {
+  padding: 14px 16px 16px;
+  min-width: 0;
+}
+
+.debug-wide {
+  grid-column: 1 / -1;
+}
+
+.debug-panel h2 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.11em;
+  color: #b8e9ff;
+}
+
+.debug-note {
+  margin: 0 0 12px;
+  color: #8faecb;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.debug-note a,
+.debug-link {
+  color: #d4bde5;
+  text-decoration: underline;
+  text-decoration-color: #b15bb19c;
+  text-underline-offset: 3px;
+}
+
+.debug-link {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 11px;
+}
+
+.debug-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 0 0 16px;
+  font-size: 12px;
+}
+
+.debug-facts dt {
+  color: #8faecb;
+  letter-spacing: 0.05em;
+}
+
+.debug-facts dd {
+  margin: 0;
+  color: #eaf3ff;
+  overflow-wrap: anywhere;
+}
+
+.debug-mono {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.debug-table {
+  width: 100%;
+  margin: 0 0 14px;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.debug-table caption {
+  margin-bottom: 6px;
+  text-align: left;
+  color: #8faecb;
+  letter-spacing: 0.05em;
+}
+
+.debug-table th,
+.debug-table td {
+  padding: 6px 8px 6px 0;
+  border-bottom: 1px solid #30506d80;
+  text-align: left;
+  vertical-align: top;
+}
+
+.debug-table thead th {
+  color: #8faecb;
+  font-weight: 500;
+}
+
+.debug-table tbody th {
+  color: #eaf3ff;
+  font-weight: 500;
+}
+
+/* Specific enough to beat the tbody th colour above. */
+.debug-table tr.debug-unproven,
+.debug-table tr.debug-unproven th {
+  color: #6483a2;
+}
+
+.debug-pass {
+  color: #61eeff;
+}
+
+.debug-fail {
+  color: #f70cdd;
+}
+
+.debug-message {
+  min-height: 18px;
+  margin: 12px 0 0;
+  color: #fdc2ed;
+  font-size: 11px;
+}
+
+.debug-raw {
+  margin: 0;
+  padding: 12px;
+  overflow-x: auto;
+  background: #030c1dbf;
+  border: 1px solid #30506d;
+  color: #c6d6ec;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+@media (max-width: 560px) {
+  .debug-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .debug-facts dd {
+    margin-bottom: 6px;
+  }
+}

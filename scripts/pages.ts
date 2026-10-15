@@ -236,6 +236,14 @@ function accessPages(): Page[] {
       description: 'The private tools.',
       noscript: indent(['<p>The tools need JavaScript.</p>', '<p><a href="/">Darkflib home</a></p>']),
     },
+    {
+      ...access,
+      path: '/tools/debug/',
+      key: 'debug',
+      title: 'SESSION DEBUGGER — TOOLS — DARKFLIB',
+      description: 'The session as wwff-auth and the gate see it.',
+      noscript: indent(['<p>The session debugger needs JavaScript.</p>', '<p><a href="/tools/">All tools</a></p>']),
+    },
   ]
 }
 

@@ -23,6 +23,7 @@ export default defineConfig({
         login: 'login/index.html',
         'login-enrol': 'login/enrol/index.html',
         tools: 'tools/index.html',
+        'tools-debug': 'tools/debug/index.html',
       },
     },
   },

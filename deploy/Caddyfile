@@ -142,6 +142,12 @@
 						copy_response
 					}
 				}
+				# The session debugger's view of what a tool receives: the X-Auth-* headers exactly as forward_auth left
+				# them (empty where /auth/verify sent none). Only wwff-auth can have set them, since client copies are
+				# stripped above, and its values are ids, level names, and Unix seconds.
+				@auth_headers path /tools/debug/headers.json
+				header @auth_headers Content-Type application/json
+				respond @auth_headers `{"X-Auth-User": "{http.request.header.X-Auth-User}", "X-Auth-Level": "{http.request.header.X-Auth-Level}", "X-Auth-Federated-At": "{http.request.header.X-Auth-Federated-At}", "X-Auth-Standard-At": "{http.request.header.X-Auth-Standard-At}", "X-Auth-High-At": "{http.request.header.X-Auth-High-At}"}` 200
 				file_server
 			}
 		}

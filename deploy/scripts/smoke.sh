@@ -190,6 +190,20 @@ check "the tools page is the tools page" contains "$(curl --silent --header 'Hos
 fetch darkflib.com /tools/ --cookie smoke=1 --header 'X-Auth-High-At: 1'
 check "a client's own X-Auth-* header is stripped before the auth service sees it" is "$status" 200
 
+echo "session debugger (/tools/debug/)"
+fetch darkflib.com /tools/debug/ --cookie smoke=1
+check "the debugger is behind the gate and served" is "$status" 200
+fetch darkflib.com /tools/debug/headers.json
+check "its headers echo needs a session too" is "$status" 401
+fetch darkflib.com /tools/debug/headers.json --cookie smoke=1 --header 'X-Auth-Level: HIGH'
+check "the headers echo is JSON" is "$(header content-type)" application/json
+check "the headers echo is never stored" is "$(header cache-control)" "private, no-store"
+echoed=$(curl --silent --header 'Host: darkflib.com' --cookie smoke=1 --header 'X-Auth-Level: HIGH' \
+    "$base/tools/debug/headers.json")
+check "it echoes what /auth/verify sent" contains "$echoed" '"X-Auth-User": "smoke-user"'
+check "it echoes the level from /auth/verify, not the client's" contains "$echoed" '"X-Auth-Level": "FEDERATED"'
+check "an absent level stays empty" contains "$echoed" '"X-Auth-High-At": ""'
+
 echo "service worker"
 fetch darkflib.com /service-worker.js
 check "worker is 200" is "$status" 200

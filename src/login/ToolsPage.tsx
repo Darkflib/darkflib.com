@@ -2,6 +2,15 @@ import { useEffect, useState } from 'react'
 import { AccessScene, PasskeyIcon } from './AccessScene'
 import { getSession, logout, type SessionState } from './auth'
 
+/** The private tools, each at /tools/<slug>/ behind forward_auth (deploy/Caddyfile). */
+const TOOLS = [
+  {
+    slug: 'debug',
+    name: 'SESSION DEBUGGER',
+    blurb: 'Your session, what a tool receives from the gate, your passkeys, and step-ups.',
+  },
+]
+
 const PROVIDER_NAMES: Record<SessionState['login_method'], string> = {
   github: 'GitHub',
   google: 'Google',
@@ -59,9 +68,22 @@ export function ToolsPage() {
         <>
           <p className="access-intro">
             {session
-              ? `Signed in as ${session.user.display_name ?? session.identities[0]?.label ?? 'you'}, with ${PROVIDER_NAMES[session.login_method]}. Nothing is deployed here yet.`
+              ? `Signed in as ${session.user.display_name ?? session.identities[0]?.label ?? 'you'}, with ${PROVIDER_NAMES[session.login_method]}.`
               : 'Checking your session…'}
           </p>
+          {session && (
+            <ul className="access-tools">
+              {TOOLS.map((tool) => (
+                <li key={tool.slug}>
+                  <a className="access-secondary" href={`/tools/${tool.slug}/`}>
+                    <span>{tool.name}</span>
+                    <span aria-hidden="true">↗</span>
+                  </a>
+                  <p>{tool.blurb}</p>
+                </li>
+              ))}
+            </ul>
+          )}
           {session && !session.has_passkey && (
             <a className="access-secondary" href="/login/enrol/?next=/tools/">
               <span className="access-provider-label">

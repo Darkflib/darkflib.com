@@ -60,5 +60,14 @@ test('the access pages run under production headers without CSP violations', asy
   await page.goto('/tools/')
   await expect(page.getByText('Signed in as Smoke, with GitHub.')).toBeVisible()
 
+  // The session debugger: the forwarded headers and the stand-in's passkey render, and a FEDERATED-only session
+  // would be asked to step up for anything that needs a passkey.
+  await page.getByRole('link', { name: /SESSION DEBUGGER/ }).click()
+  await expect(page).toHaveURL(/\/tools\/debug\/$/)
+  await expect(page.getByRole('cell', { name: 'smoke-user' })).toBeVisible()
+  await expect(page.getByRole('rowheader', { name: 'Smoke key' })).toBeVisible()
+  await expect(page.getByRole('row', { name: /STANDARD within 10m/ })).toContainText('STEP-UP: missing')
+  await expect(page.getByRole('row', { name: /FEDERATED within/ })).toContainText('PASS')
+
   expect(violations).toEqual([])
 })
