@@ -56,6 +56,7 @@ a separate image and gitops app (`quadlet/apps/wwff-auth/`); this Caddy reaches 
 | Promotion, signature check      | `quadlet/bin/promote.py`, against `quadlet/policy.toml`; reconcile verifies again before running anything |
 | Pins and unit generation in CI  | `quadlet/bin/check.py` and the per-host generator dry run                       |
 | Certificates                    | `certs/certs.toml` (`darkflib.com`, `darkflib.dev`) and the `certs` app         |
+| Sign-in (`/auth/*`, the `/tools/*` gate) | `quadlet/apps/wwff-auth/`: its own app on ny03, joining darkflib.network, with its database on the shared pg. darkflib-web is pinned at `10.89.62.20` there, so wwff-auth trusts exactly this Caddy and the network's gateway for `X-Forwarded-For` |
 
 ## Releasing
 
