@@ -39,6 +39,7 @@ docker rm -f darkflib-smoke
 | `src/demos/engine/`             | Discrete-event queueing simulation (seeded, no DOM): arrivals, workers, admission policy, timeouts, retries |
 | `src/demos/concepts/`           | One definition per simulated demo: the controls it exposes, what it holds constant, presets and their expected outcomes |
 | `src/demos/registry.ts`, `src/demos/ui/` | The controls, readouts, and charts definitions choose from, and the page that renders a definition |
+| `src/demos/burnrate/`           | The SLO burn-rate demo: a seeded day of traffic with a drawable error rate, three alerting rules judged against it, and its own page |
 | `src/components/SiteShell.tsx`  | Chrome every page shares: top bar, footer, contact dialog                   |
 | `src/styles/`                   | Reset, self-hosted font faces, and global tokens and primitives             |
 | `src/content.ts`                | Projects, featured posts and tools (linking to mikepreston.org), tech stack  |

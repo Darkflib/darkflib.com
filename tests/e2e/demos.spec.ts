@@ -111,3 +111,49 @@ test('the index groups related demos, numbered across the whole index', async ({
     await expect(section.locator('ol')).toHaveAttribute('start', String(printed))
   }
 })
+
+test('slo-burn-rate: incidents set the verdicts, and drawing one makes it your own', async ({ page }) => {
+  const messages: string[] = []
+  page.on('console', (message) => messages.push(`${message.type()}: ${message.text()}`))
+  page.on('pageerror', (error) => messages.push(`pageerror: ${error.message}`))
+
+  await page.goto(demoPath('slo-burn-rate'))
+  await expect(page.getByRole('heading', { name: 'SLO BURN RATE', level: 1 })).toBeVisible()
+  await expect(
+    page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'DEMOS' }),
+  ).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByTestId('verdict-threshold')).toContainText('PAGED FOR NOTHING')
+  await expect(page.getByTestId('verdict-multi')).toContainText('RIGHTLY QUIET')
+
+  await page.getByRole('button', { name: 'SLOW LEAK' }).click()
+  await expect(page.getByTestId('verdict-threshold')).toContainText('MISSED IT')
+  await expect(page.getByTestId('verdict-single')).toContainText('MISSED IT')
+  await expect(page.getByTestId('verdict-multi')).toContainText('CAUGHT IT')
+
+  // A looser SLO, and the leak is no longer worth a page.
+  await page.getByLabel('SLO TARGET').selectOption('0.99')
+  await expect(page.getByTestId('verdict-multi')).toContainText('RIGHTLY QUIET')
+  await page.getByLabel('SLO TARGET').selectOption('0.999')
+
+  // The replay's cursor drives the at-the-cursor table.
+  await page.getByLabel('TIME').fill('779')
+  await expect(page.getByTestId('burn-clock')).toHaveText('13:00')
+  await expect(page.getByTestId('burn-why')).toContainText('6 H')
+
+  // Drag a plateau across the error rate, high enough for every rule to page.
+  await page.getByRole('button', { name: 'DRAW YOUR OWN' }).click()
+  await expect(page.getByTestId('verdict-multi')).toContainText('RIGHTLY QUIET')
+  const canvas = page.getByRole('img', { name: /error rate/ })
+  const box = await canvas.boundingBox()
+  if (!box) throw new Error('no canvas')
+  await page.mouse.move(box.x + box.width * 0.3, box.y + 30)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width * 0.4, box.y + 30, { steps: 10 })
+  await page.mouse.up()
+  await expect(page.locator('.sim-presets button[aria-pressed="true"]')).toHaveCount(0)
+  await expect(page.getByTestId('preset-description')).toContainText('Your own drawing')
+  for (const rule of ['threshold', 'single', 'multi']) {
+    await expect(page.getByTestId(`verdict-${rule}`)).toContainText('CAUGHT IT')
+  }
+  expect(messages).toEqual([])
+})

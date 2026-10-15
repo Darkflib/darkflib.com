@@ -1,5 +1,6 @@
-// Every demo page, in index order: the simulated concepts and the live circuit breaker. Pure data, read by the index
+// Every demo page, in index order: the simulated concepts, the burn-rate demo, and the live circuit breaker. Pure data, read by the index
 // page, vite.config.ts (one HTML input per page), and scripts/pages.ts (which writes those HTML files).
+import { BURN_RATE } from './burnrate/demo.ts'
 import { CONCEPTS } from './concepts/index.ts'
 
 export interface CatalogueEntry {
@@ -32,7 +33,7 @@ export const CIRCUIT_BREAKER: CatalogueEntry = {
 }
 
 const SIMULATED: readonly CatalogueEntry[] = CONCEPTS.map((demo) => ({ ...demo, kind: 'simulated' as const }))
-const BY_SLUG = new Map([...SIMULATED, CIRCUIT_BREAKER].map((entry) => [entry.slug, entry]))
+const BY_SLUG = new Map([...SIMULATED, BURN_RATE, CIRCUIT_BREAKER].map((entry) => [entry.slug, entry]))
 
 export interface DemoGroup {
   id: string
@@ -62,6 +63,9 @@ export const DEMO_GROUPS: readonly DemoGroup[] = [
   group('retries', 'RETRIES & RECOVERY', 'How retries turn a blip into an outage, and how to stop them.', [
     'retry-storms',
     'breaking-the-loop',
+  ]),
+  group('alerting', 'ALERTING', 'How to find out something is wrong without being paged for everything that is not.', [
+    'slo-burn-rate',
   ]),
   group('failover', 'FAILOVER', 'What a client does when the service it depends on fails. Live, on real requests.', [
     'circuit-breaker',

@@ -131,7 +131,7 @@ function indexPage(): Page {
     source: 'src/demos/catalogue.ts',
     title: 'DEMOS — DARKFLIB',
     description:
-      'SRE and systems demos you can break on purpose: queueing, retry storms, circuit breakers, and failover, run in your own browser.',
+      'SRE and systems demos you can break on purpose: queueing, retry storms, SLO alerting, circuit breakers, and failover, run in your own browser.',
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'CollectionPage',

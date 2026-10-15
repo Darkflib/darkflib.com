@@ -24,6 +24,7 @@ const DemosIndex = lazy(() => import('./demos/pages/DemosIndex').then((m) => ({ 
 const CircuitBreakerPage = lazy(() =>
   import('./demos/pages/CircuitBreakerPage').then((m) => ({ default: m.CircuitBreakerPage })),
 )
+const BurnRatePage = lazy(() => import('./demos/pages/BurnRatePage').then((m) => ({ default: m.BurnRatePage })))
 const SimulatedDemoPage = lazy(() =>
   import('./demos/pages/SimulatedDemoPage').then((m) => ({ default: m.SimulatedDemoPage })),
 )
@@ -31,6 +32,7 @@ const SimulatedDemoPage = lazy(() =>
 function Page() {
   if (key === 'index') return <DemosIndex />
   if (key === 'circuit-breaker') return <CircuitBreakerPage />
+  if (key === 'slo-burn-rate') return <BurnRatePage />
   const def = CONCEPTS.find((concept) => concept.slug === key)
   if (!def) throw new Error(`No demo for data-page="${key}"`)
   return <SimulatedDemoPage def={def} />
