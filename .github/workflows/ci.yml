@@ -46,6 +46,23 @@ jobs:
       - name: tsc (app, worker, node)
         run: npm run typecheck
 
+  unit:
+    name: Unit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      # The demo engine and every preset's story, headless; and the generated demo pages against their source.
+      - name: node --test
+        run: npm run test:unit
+
   e2e:
     name: E2E (${{ matrix.browser }})
     runs-on: ubuntu-24.04
@@ -157,7 +174,7 @@ jobs:
     if: >-
       github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
       && !github.event.repository.private
-    needs: [lint, typecheck, e2e, container]
+    needs: [lint, typecheck, unit, e2e, container]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:

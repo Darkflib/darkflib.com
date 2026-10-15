@@ -13,7 +13,7 @@ export function ControlsPanel({ logOpen, onToggleLog }: ControlsPanelProps) {
     <section className="panel controls-panel" aria-labelledby="controls-title">
       <PanelHeader id="controls-title" title="CONTROLS" />
       <div className="control-list">
-        <a className="control-toggle" href={`${DEMOS_PATH}#fault-lab`}>
+        <a className="control-toggle" href={`${DEMOS_PATH}circuit-breaker/`}>
           OPEN FAULT LAB <ArrowRight size={15} />
         </a>
         <button type="button" className="control-toggle" onClick={onToggleLog} aria-expanded={logOpen}>

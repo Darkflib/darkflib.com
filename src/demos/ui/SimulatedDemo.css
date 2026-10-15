@@ -1,0 +1,506 @@
+.sim-demo {
+  --sim-ink: #e6f6ff;
+  --sim-muted: #7fa3bd;
+  --sim-rule: #2c4a6b;
+  --sim-accent: #61eeff;
+  --sim-ok: #78f6bd;
+  --sim-warn: #ffd27a;
+  --sim-crit: #ff6f9a;
+  --sim-zombie: #4f6178;
+
+  position: relative;
+  z-index: 2;
+  padding: 24px 1.25% 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sim-crumb {
+  color: #8fd8ff;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.sim-crumb:hover {
+  color: #fff;
+}
+
+.sim-header h1 {
+  margin: 6px 0 8px;
+  font-family: var(--font-display);
+  font-size: clamp(36px, 6vw, 68px);
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: 0.04em;
+  color: #fff;
+  text-shadow: 0 0 18px #e512c8;
+}
+
+.sim-question {
+  max-width: 62ch;
+  margin: 0 0 10px;
+  color: #c6d6ec;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.sim-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.sim-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #8fd8ff;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+
+.sim-badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sim-accent);
+  box-shadow: 0 0 8px var(--sim-accent);
+}
+
+.sim-grid {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.sim-rail,
+.sim-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sim-group {
+  padding-bottom: 12px;
+}
+
+.sim-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 13px 4px;
+}
+
+.sim-presets button,
+.sim-transport button,
+.sim-action {
+  border: 1px solid #547f9c;
+  background: #0d1e31;
+  color: #aee9fa;
+  padding: 7px 9px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.sim-presets button:hover,
+.sim-transport button:hover,
+.sim-action:hover {
+  border-color: #e848d6;
+  color: #fff;
+}
+
+.sim-presets button[aria-pressed="true"],
+.sim-speed button[aria-pressed="true"] {
+  border-color: #b04ba6;
+  background: #1a1030;
+  color: #ffbef6;
+}
+
+.sim-preset-note {
+  min-height: 3.2em;
+  margin: 8px 13px 0;
+  color: #a6b8da;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.sim-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 12px 13px 4px;
+}
+
+.sim-control {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.sim-control-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sim-control label {
+  color: #b8e9ff;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+.sim-control output {
+  color: var(--sim-accent);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sim-control small {
+  color: #7fa3bd;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.sim-control input[type="range"] {
+  width: 100%;
+  accent-color: #e512c8;
+}
+
+.sim-control select {
+  width: 100%;
+  border: 1px solid #547f9c;
+  background: #0b1424;
+  color: #e6f6ff;
+  padding: 6px;
+  font: inherit;
+  font-size: 11px;
+}
+
+.sim-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-color: #b5761a;
+  color: #ffd27a;
+}
+
+.sim-transport {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 13px 0;
+}
+
+.sim-transport button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sim-speed {
+  display: inline-flex;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* Named for assistive technology; the buttons say what they are. */
+.sim-speed legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.sim-speed button + button {
+  border-left: 0;
+}
+
+.sim-held {
+  margin: 12px 13px 0;
+  color: #8fb3cc;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.sim-held span {
+  display: block;
+  margin-bottom: 2px;
+  color: #b3b9e0;
+  letter-spacing: 0.12em;
+}
+
+.sim-pipeline {
+  position: relative;
+}
+
+.sim-pipeline canvas {
+  display: block;
+  width: 100%;
+  height: 230px;
+}
+
+.sim-clock {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  color: #7fa3bd;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+
+.sim-readouts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.sim-reading {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid #5799c5a6;
+  background: linear-gradient(145deg, #09101fd9, #070c18f5);
+}
+
+.sim-reading-label {
+  color: #8fb3cc;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+
+.sim-reading-value {
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sim-reading-sub {
+  color: #7fa3bd;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sim-pill {
+  width: max-content;
+  padding: 4px 7px;
+  border: 1px solid currentColor;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.tone-good,
+.tone-ok {
+  color: var(--sim-ok);
+}
+
+.tone-warn {
+  color: var(--sim-warn);
+}
+
+.tone-crit {
+  color: var(--sim-crit);
+}
+
+.tone-accent {
+  color: var(--sim-accent);
+}
+
+.tone-muted {
+  color: var(--sim-muted);
+}
+
+.sim-pill.tone-crit {
+  background: #ff6f9a1f;
+  box-shadow: 0 0 10px #ff6f9a40;
+}
+
+.sim-chart {
+  padding: 10px 12px 6px;
+}
+
+.sim-chart-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 14px;
+  align-items: baseline;
+}
+
+.sim-chart h2 {
+  margin: 0;
+  color: #b8e9ff;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.11em;
+}
+
+.sim-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: #7fa3bd;
+  font-size: 10px;
+}
+
+.sim-legend i {
+  display: inline-block;
+  width: 14px;
+  height: 2px;
+  margin-right: 4px;
+  vertical-align: middle;
+  background: currentColor;
+}
+
+.sim-legend i.dash {
+  background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px);
+}
+
+.sim-chart canvas {
+  display: block;
+  width: 100%;
+  height: 130px;
+  margin-top: 6px;
+}
+
+.sim-visual {
+  padding: 12px;
+}
+
+.knee-curve {
+  margin: 0;
+}
+
+.knee-curve svg {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+}
+
+.knee-grid line {
+  stroke: var(--sim-rule);
+  stroke-width: 1;
+}
+
+.knee-grid text,
+.knee-axis {
+  fill: var(--sim-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.knee-grid text {
+  text-anchor: end;
+  dominant-baseline: middle;
+}
+
+.knee-axis {
+  text-anchor: middle;
+}
+
+.knee-line {
+  fill: none;
+  stroke: var(--sim-muted);
+  stroke-width: 1;
+  opacity: 0.45;
+}
+
+.knee-line.current {
+  stroke: var(--sim-accent);
+  stroke-width: 2;
+  opacity: 1;
+  filter: drop-shadow(0 0 4px #61eeff80);
+}
+
+.knee-marker {
+  stroke: #ff48ea;
+  stroke-dasharray: 3 3;
+  opacity: 0.6;
+}
+
+.knee-theory {
+  fill: none;
+  stroke: var(--sim-ink);
+  stroke-width: 1.5;
+}
+
+.knee-measured {
+  fill: #ff48ea;
+  filter: drop-shadow(0 0 5px #ff48ea);
+}
+
+.knee-curve figcaption {
+  margin-top: 6px;
+  color: #8fb3cc;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.knee-key-theory {
+  color: var(--sim-ink);
+}
+
+.knee-key-measured {
+  color: #ff48ea;
+}
+
+.sim-takeaways {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+  padding: 6px 2px 0;
+}
+
+.sim-takeaways h2 {
+  margin: 0 0 6px;
+  color: #ff8df0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+}
+
+.sim-takeaways p {
+  margin: 0;
+  max-width: 62ch;
+  color: #a6b8da;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .sim-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* The live system first on a phone; the controls follow. */
+  .sim-stage {
+    order: -1;
+  }
+}
+
+@media (max-width: 800px) {
+  .sim-demo {
+    padding: 18px 3% 16px;
+  }
+}

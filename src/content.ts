@@ -149,23 +149,3 @@ export const tools = [
   { slug: 'cidr-calc', blurb: 'IPv4/IPv6 subnet calculator.' },
   { slug: 'codename-gen', blurb: 'Cold War codenames for your next side project.' },
 ] as const
-
-export interface Demo {
-  /** Anchor on the demos page, and the panel's id. */
-  id: string
-  title: string
-  /** What it demonstrates, in a sentence. */
-  summary: string
-  tags: readonly string[]
-}
-
-// The SRE and systems demos on /demos/, in page order. Each runs in the visitor's own browser.
-export const demos: readonly Demo[] = [
-  {
-    id: 'fault-lab',
-    title: 'CIRCUIT BREAKER',
-    summary:
-      "Break this page's own API calls from inside your browser, and watch the client retry with backoff, trip its circuit breaker, and fail over to a secondary.",
-    tags: ['RETRIES', 'CIRCUIT BREAKER', 'FAILOVER', 'SERVICE WORKER'],
-  },
-]

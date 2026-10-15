@@ -52,7 +52,7 @@ export async function openEventLog(page: Page) {
   if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()
 }
 
-/** On the demos page, where the lab lives. It starts open there; this also reopens it after a test collapses it. */
+/** On the circuit breaker page, where the lab lives. It starts open there; this also reopens it after a test collapses it. */
 export async function openFaultLab(page: Page) {
   const toggle = page.locator('#fault-lab').getByRole('button', { name: /^(EXPAND|COLLAPSE)$/ })
   if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()

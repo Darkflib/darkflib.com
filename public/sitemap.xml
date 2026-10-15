@@ -7,4 +7,13 @@
   <url>
     <loc>https://darkflib.com/demos/</loc>
   </url>
+  <url>
+    <loc>https://darkflib.com/demos/queueing-knee/</loc>
+  </url>
+  <url>
+    <loc>https://darkflib.com/demos/retry-storms/</loc>
+  </url>
+  <url>
+    <loc>https://darkflib.com/demos/circuit-breaker/</loc>
+  </url>
 </urlset>

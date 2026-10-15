@@ -40,7 +40,7 @@ export function Hero() {
           <a href="#skills">
             <ChevronRight size={13} /> BUILD
           </a>
-          <a href={`${DEMOS_PATH}#fault-lab`}>
+          <a href={DEMOS_PATH}>
             <ChevronRight size={13} /> BREAK
           </a>
           <a href="#contact">

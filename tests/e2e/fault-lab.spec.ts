@@ -36,7 +36,7 @@ const event = (name: string, detail?: string | RegExp) =>
 test.describe('fault lab', () => {
   test.beforeEach(async ({ page, server }) => {
     server.setLabClientEnabled(true)
-    await page.goto('/demos/')
+    await page.goto('/demos/circuit-breaker/')
     await expectControlled(page)
     await openFaultLab(page)
     await expect(page.getByTestId('lab-state')).toHaveText('HEALTHY', SLOW)
@@ -192,7 +192,7 @@ test.describe('fault lab', () => {
 test('with an older worker the lab explains why, and the status client still runs', async ({ page, server }) => {
   server.setServiceWorkerOverride(LEGACY_WORKER)
   server.setLabClientEnabled(true)
-  await page.goto('/demos/')
+  await page.goto('/demos/circuit-breaker/')
   await openFaultLab(page)
   await expect(page.getByTestId('lab-unavailable')).toHaveText(/older service worker without fault injection/, SLOW)
   await expect(page.getByLabel('Fault for PRIMARY API')).toBeDisabled()
@@ -203,14 +203,14 @@ test('with polling switched off in the config, the lab is idle and this page mak
   page,
   server,
 }) => {
-  await page.goto('/demos/')
+  await page.goto('/demos/circuit-breaker/')
   await openFaultLab(page)
   await expect(page.getByTestId('lab-state')).toHaveText('IDLE', SLOW)
   await page.waitForTimeout(1000)
   expect(await pageLabRequests(page, server.labOrigins)).toEqual([])
 })
 
-test('the home page makes no lab requests, and its control opens the lab on the demos page', async ({
+test('the home page makes no lab requests, and its control opens the circuit breaker page', async ({
   page,
   server,
 }) => {
@@ -224,13 +224,16 @@ test('the home page makes no lab requests, and its control opens the lab on the 
   // Only the landing is checked here: Playwright's Firefox leaves the page uncontrolled after this worker-observed
   // navigation (see FIREFOX_PASSIVE_NAVIGATION), which would disable the lab. The next test drives it on a direct load.
   await page.getByRole('link', { name: 'OPEN FAULT LAB' }).click()
-  await expect(page).toHaveURL(/\/demos\/#fault-lab$/)
+  await expect(page).toHaveURL(/\/demos\/circuit-breaker\/$/)
   await expect(page.getByRole('button', { name: 'COLLAPSE' })).toHaveAttribute('aria-expanded', 'true')
 })
 
-test('the demos page polls while the lab is open, and stops when it is collapsed', async ({ page, server }) => {
+test('the circuit breaker page polls while the lab is open, and stops when it is collapsed', async ({
+  page,
+  server,
+}) => {
   server.setLabClientEnabled(true)
-  await page.goto('/demos/')
+  await page.goto('/demos/circuit-breaker/')
   await expectControlled(page)
   await expect(page.getByTestId('lab-state')).toHaveText('HEALTHY', SLOW)
   await choose(page, 'PRIMARY API', 'offline')
@@ -245,28 +248,19 @@ test('the demos page polls while the lab is open, and stops when it is collapsed
   expect(await pageLabRequests(page, server.labOrigins)).toHaveLength(closedAt)
 })
 
-test('old links to /#fault-lab land on the demos page, and the index reopens a collapsed lab', async ({ page }) => {
-  await page.goto('/#fault-lab')
-  await expect(page).toHaveURL(/\/demos\/#fault-lab$/)
-  await expect(page.getByRole('heading', { name: 'DEMOS', level: 1 })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'DEMOS' })).toHaveAttribute('aria-current', 'page')
-
-  await page.getByRole('button', { name: 'COLLAPSE' }).click()
-  await expect(page.getByRole('button', { name: 'EXPAND' })).toHaveAttribute('aria-expanded', 'false')
-  // The hash is already #fault-lab, so this is caught as a click rather than a hashchange.
-  await page
-    .getByRole('navigation', { name: 'INDEX' })
-    .getByRole('link', { name: /CIRCUIT BREAKER/ })
-    .click()
-  await expect(page.getByRole('button', { name: 'COLLAPSE' })).toHaveAttribute('aria-expanded', 'true')
-})
-
-test('the /#fault-lab redirect keeps the query, so ?sw=off still applies on the demos page', async ({ page }) => {
-  await page.goto('/?sw=off#fault-lab')
-  await expect(page).toHaveURL(/\/demos\/\?sw=off#fault-lab$/)
-  await expect(page.getByTestId('sw-status')).toContainText('DISABLED (?sw=off)')
-  expect(await page.evaluate(() => navigator.serviceWorker.controller)).toBeNull()
-})
+for (const from of ['/#fault-lab', '/demos/#fault-lab']) {
+  test(`old links to ${from} land on the circuit breaker page, query and all`, async ({ page }) => {
+    await page.goto(from.replace('#', '?sw=off#'))
+    await expect(page).toHaveURL(/\/demos\/circuit-breaker\/\?sw=off$/)
+    await expect(page.getByRole('heading', { name: 'CIRCUIT BREAKER', level: 1 })).toBeVisible()
+    await expect(
+      page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'DEMOS' }),
+    ).toHaveAttribute('aria-current', 'page')
+    // ?sw=off survived the redirect, so the worker stays off.
+    await expect(page.getByTestId('sw-status')).toContainText('DISABLED (?sw=off)')
+    expect(await page.evaluate(() => navigator.serviceWorker.controller)).toBeNull()
+  })
+}
 
 /**
  * This page's own requests to the lab origins, from Resource Timing rather than the origins' counters: a delayed
