@@ -80,6 +80,23 @@ export async function getSession(): Promise<SessionState | null> {
   }
 }
 
+/** An enrolled passkey (GET /auth/credentials). */
+export interface Passkey {
+  id: string
+  nickname: string
+  tier: Exclude<Tier, 'FEDERATED'>
+  /** Why it is not HIGH, e.g. "backup_eligible"; null when HIGH or not requested. */
+  tier_reason: string | null
+  created_at: string
+  last_used_at: string | null
+  synced: boolean
+  in_cooldown: boolean
+  cooldown_until: string | null
+  flagged: boolean
+}
+
+export const listCredentials = () => request<Passkey[]>('/auth/credentials')
+
 export const acceptInvite = (token: string) => request<void>('/auth/invite', { json: { token } })
 
 export const logout = () => request<void>('/auth/logout', { json: {} })

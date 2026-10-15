@@ -312,6 +312,21 @@
   gap: 12px;
 }
 
+.access-tools {
+  display: grid;
+  gap: 14px;
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.access-tools p {
+  margin: 6px 0 0;
+  color: #8faecb;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
 .access-divider {
   display: flex;
   gap: 14px;
