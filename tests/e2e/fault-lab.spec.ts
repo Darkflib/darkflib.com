@@ -210,7 +210,10 @@ test('with polling switched off in the config, the lab is idle and this page mak
   expect(await pageLabRequests(page, server.labOrigins)).toEqual([])
 })
 
-test('the home page makes no lab requests; the demos page polls while the lab is open', async ({ page, server }) => {
+test('the home page makes no lab requests, and its control opens the lab on the demos page', async ({
+  page,
+  server,
+}) => {
   server.setLabClientEnabled(true)
   await page.goto('/')
   await expectControlled(page)
@@ -218,9 +221,17 @@ test('the home page makes no lab requests; the demos page polls while the lab is
   await page.waitForTimeout(1000)
   expect(await pageLabRequests(page, server.labOrigins)).toEqual([])
 
+  // Only the landing is checked here: Playwright's Firefox leaves the page uncontrolled after this worker-observed
+  // navigation (see FIREFOX_PASSIVE_NAVIGATION), which would disable the lab. The next test drives it on a direct load.
   await page.getByRole('link', { name: 'OPEN FAULT LAB' }).click()
   await expect(page).toHaveURL(/\/demos\/#fault-lab$/)
   await expect(page.getByRole('button', { name: 'COLLAPSE' })).toHaveAttribute('aria-expanded', 'true')
+})
+
+test('the demos page polls while the lab is open, and stops when it is collapsed', async ({ page, server }) => {
+  server.setLabClientEnabled(true)
+  await page.goto('/demos/')
+  await expectControlled(page)
   await expect(page.getByTestId('lab-state')).toHaveText('HEALTHY', SLOW)
   await choose(page, 'PRIMARY API', 'offline')
   await expect(page.getByTestId('lab-applied-api-primary')).toHaveText('ACTIVE · OFFLINE')
