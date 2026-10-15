@@ -250,6 +250,13 @@ test('old links to /#fault-lab land on the demos page, and the index reopens a c
   await expect(page.getByRole('button', { name: 'COLLAPSE' })).toHaveAttribute('aria-expanded', 'true')
 })
 
+test('the /#fault-lab redirect keeps the query, so ?sw=off still applies on the demos page', async ({ page }) => {
+  await page.goto('/?sw=off#fault-lab')
+  await expect(page).toHaveURL(/\/demos\/\?sw=off#fault-lab$/)
+  await expect(page.getByTestId('sw-status')).toContainText('DISABLED (?sw=off)')
+  expect(await page.evaluate(() => navigator.serviceWorker.controller)).toBeNull()
+})
+
 /**
  * This page's own requests to the lab origins, from Resource Timing rather than the origins' counters: a delayed
  * request from a previous test's latency fault can still land on the shared stand-in servers.
