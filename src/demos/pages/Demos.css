@@ -74,9 +74,43 @@ a.demos-kicker:hover {
   color: #61eeff;
 }
 
+.demos-group {
+  position: relative;
+  z-index: 2;
+}
+
+.demos-group-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+  margin: 0 1.25% 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #537caa70;
+}
+
+.demos-group-header h2 {
+  margin: 0;
+  color: #b8e9ff;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.11em;
+}
+
+.demos-group-header h2 span {
+  color: #b3b9e0;
+}
+
+.demos-group-header p {
+  margin: 0;
+  color: #7fa3bd;
+  font-size: 11px;
+}
+
 .demos-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  /* At most three across, so a two-demo group fills most of the row rather than half of it. */
+  grid-template-columns: repeat(auto-fill, minmax(max(300px, calc((100% - 20px) / 3)), 1fr));
   gap: 10px;
   margin: 0;
   padding: 0 1.25% 20px;
@@ -150,5 +184,9 @@ a.demos-kicker:hover {
 
   .demos-cards {
     padding: 0 3% 16px;
+  }
+
+  .demos-group-header {
+    margin-inline: 3%;
   }
 }

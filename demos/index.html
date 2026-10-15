@@ -45,10 +45,10 @@
             "@id": "https://darkflib.com/demos/queueing-knee/#page"
           },
           {
-            "@id": "https://darkflib.com/demos/retry-storms/#page"
+            "@id": "https://darkflib.com/demos/overload/#page"
           },
           {
-            "@id": "https://darkflib.com/demos/overload/#page"
+            "@id": "https://darkflib.com/demos/retry-storms/#page"
           },
           {
             "@id": "https://darkflib.com/demos/breaking-the-loop/#page"
@@ -69,13 +69,27 @@
     <noscript>
       <h1>DEMOS</h1>
       <p>Reliability patterns you can break on purpose. The demos need JavaScript.</p>
+      <h2>QUEUEING &amp; CAPACITY</h2>
+      <p>How load turns into waiting, and where the excess goes.</p>
       <ul>
         <li><a href="/demos/queueing-knee/">The queueing knee</a>: Why does latency explode when the service is only 85% busy?</li>
-        <li><a href="/demos/retry-storms/">Retry storms</a>: Why does the service stay down after the spike that broke it has gone?</li>
         <li><a href="/demos/overload/">Where does overload go?</a>: When requests arrive faster than they can be served, where does the excess end up?</li>
+      </ul>
+      <h2>RETRIES &amp; RECOVERY</h2>
+      <p>How retries turn a blip into an outage, and how to stop them.</p>
+      <ul>
+        <li><a href="/demos/retry-storms/">Retry storms</a>: Why does the service stay down after the spike that broke it has gone?</li>
         <li><a href="/demos/breaking-the-loop/">Breaking the loop</a>: Which server-side defence gets a service out of a retry storm?</li>
+      </ul>
+      <h2>FAILOVER</h2>
+      <p>What a client does when the service it depends on fails. Live, on real requests.</p>
+      <ul>
         <li><a href="/demos/circuit-breaker/">Circuit breaker</a>: What should a client do when the service it depends on starts failing?</li>
-        <li><a href="/demos/sandbox/">Sandbox</a>: What happens when every knob is yours?</li>
+      </ul>
+      <h2>BUILD YOUR OWN</h2>
+      <p>Every control at once, for when you know what you are looking for.</p>
+      <ul>
+        <li><a href="/demos/sandbox/">Full sandbox</a>: What happens when every knob is yours?</li>
       </ul>
       <p><a href="/">Darkflib home</a></p>
     </noscript>

@@ -17,3 +17,16 @@ it('every generated page is in the sitemap', async () => {
     assert.ok(sitemap.includes(`<loc>https://darkflib.com${path}</loc>`), `${path} is missing from the sitemap`)
   }
 })
+
+it('every demo is in exactly one index group', async () => {
+  const { CATALOGUE, CIRCUIT_BREAKER, DEMO_GROUPS } = await import('../../src/demos/catalogue.ts')
+  const { CONCEPTS } = await import('../../src/demos/concepts/index.ts')
+  const grouped = DEMO_GROUPS.flatMap((group) => group.demos.map((entry) => entry.slug))
+  assert.equal(new Set(grouped).size, grouped.length, 'a demo is in two groups')
+  assert.deepEqual(
+    [...grouped].sort(),
+    [...CONCEPTS.map((concept) => concept.slug), CIRCUIT_BREAKER.slug].sort(),
+    'a demo is missing from the groups',
+  )
+  assert.equal(CATALOGUE.length, grouped.length)
+})

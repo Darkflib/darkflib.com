@@ -94,3 +94,20 @@ test('sandbox: nothing is held constant, and both disturbances are buttons', asy
   await page.getByRole('button', { name: 'SLOW DEPENDENCY' }).click()
   await expect(page.locator('.sim-presets button[aria-pressed="true"]')).toHaveText('STEADY')
 })
+
+test('the index groups related demos, numbered across the whole index', async ({ page }) => {
+  const { DEMO_GROUPS } = await import('../../src/demos/catalogue.ts')
+  await page.goto('/demos/')
+  for (const group of DEMO_GROUPS) {
+    const section = page.getByRole('region', { name: group.title })
+    await expect(section.getByRole('heading', { level: 2 })).toContainText(group.title)
+    const hrefs = await section
+      .locator('.demos-card a')
+      .evaluateAll((links) => links.map((a) => a.getAttribute('href')))
+    expect(hrefs).toEqual(group.demos.map((entry) => `/demos/${entry.slug}/`))
+    // The list's own numbering agrees with the number printed on the first card.
+    const first = section.locator('.demos-card').first()
+    const printed = Number(await first.locator('.demos-card-meta span').first().textContent())
+    await expect(section.locator('ol')).toHaveAttribute('start', String(printed))
+  }
+})
