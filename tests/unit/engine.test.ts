@@ -103,6 +103,15 @@ describe('engine', () => {
     assert.equal(sim.params.workers, 2)
   })
 
+  it('switching the autoscaler off stops it at once, even with a decision already queued', () => {
+    const sim = new Simulation({ lambda: 60, workers: 2, autoscale: true, retries: 0 }, 1)
+    sim.advance(1)
+    sim.set({ autoscale: false })
+    sim.advance(10)
+    assert.equal(sim.scaleLog.length, 0)
+    assert.equal(sim.params.workers, 2)
+  })
+
   it('a retry budget refuses retries once spent', () => {
     const sim = new Simulation({ lambda: 64, retries: 3, timeoutMs: 600, retryBudget: 0.1 }, 1, SPIKE)
     sim.advance(20)

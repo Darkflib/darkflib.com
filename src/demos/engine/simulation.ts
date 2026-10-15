@@ -552,6 +552,8 @@ export class Simulation {
         break
       case 'scale':
         this.#scaling = false
+        // Queued before the autoscaler was switched off: let it lapse, and schedule no successor.
+        if (!this.params.autoscale) break
         this.#scheduleScale()
         this.#autoscale()
         break
