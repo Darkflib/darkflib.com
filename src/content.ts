@@ -6,7 +6,7 @@ export const PROJECTS_PATH = '/projects/'
 export const FEATURED_PROJECTS = 3
 
 /** The top-level pages, each its own HTML document. */
-export type SitePage = 'home' | 'projects' | 'demos'
+export type SitePage = 'home' | 'projects' | 'demos' | 'login'
 
 // Root-relative, so the same links work from every page: on the home page they are fragment navigations.
 export const nav = [

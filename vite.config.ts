@@ -20,9 +20,14 @@ export default defineConfig({
         projects: 'projects/index.html',
         demos: 'demos/index.html',
         ...Object.fromEntries(CATALOGUE.map(({ slug }) => [`demos-${slug}`, `demos/${slug}/index.html`])),
+        login: 'login/index.html',
+        'login-enrol': 'login/enrol/index.html',
       },
     },
   },
+  // Production proxies /auth/* to wwff-auth through Caddy. Locally, AUTH_ORIGIN=http://localhost:8000 points the dev
+  // server at a running copy; without it /auth answers 404 and the login pages behave as signed out.
+  server: process.env.AUTH_ORIGIN ? { proxy: { '/auth': process.env.AUTH_ORIGIN } } : undefined,
   plugins: [
     // The worker's version is a hash of its own bundle, not buildInfo: an unchanged worker must deploy identical bytes.
     serviceWorkerPlugin({ entry: 'src/sw/service-worker.ts' }),

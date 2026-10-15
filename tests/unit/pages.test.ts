@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { it } from 'node:test'
-import { sitePages } from '../../scripts/pages.ts'
+import { sitePages, sitePaths } from '../../scripts/pages.ts'
 
 it('the committed pages match what scripts/pages.ts generates (run `npm run pages`)', async () => {
   for (const [file, html] of sitePages()) {
@@ -10,11 +10,22 @@ it('the committed pages match what scripts/pages.ts generates (run `npm run page
   }
 })
 
-it('every generated page is in the sitemap', async () => {
+it('every listed page is in the sitemap, and no unlisted one is', async () => {
   const sitemap = await readFile(new URL('../../public/sitemap.xml', import.meta.url), 'utf8')
-  for (const file of sitePages().keys()) {
-    const path = `/${file.replace(/index\.html$/, '')}`
-    assert.ok(sitemap.includes(`<loc>https://darkflib.com${path}</loc>`), `${path} is missing from the sitemap`)
+  for (const { path, listed } of sitePaths()) {
+    const present = sitemap.includes(`<loc>https://darkflib.com${path}</loc>`)
+    assert.equal(
+      present,
+      listed,
+      listed ? `${path} is missing from the sitemap` : `${path} is unlisted but in the sitemap`,
+    )
+  }
+})
+
+it('unlisted pages ask not to be indexed', () => {
+  const pages = sitePages()
+  for (const { file, listed } of sitePaths()) {
+    assert.equal(pages.get(file)?.includes('content="noindex, nofollow"'), !listed, file)
   }
 })
 
