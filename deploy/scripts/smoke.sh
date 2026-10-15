@@ -33,7 +33,8 @@ sed "s|\"fetched_at\": \"[^\"]*\"|\"fetched_at\": \"$now\"|" "$script_dir/../../
     > "$feeds/kev.json"
 # A stand-in for one of kev-snapshot's in-progress writes, which Caddy must never serve.
 cp "$feeds/kev.json" "$feeds/.kev-smoke.json"
-# Readable by the container's uid 65532, which is not the user running this.
+# Readable by the container's uid 65532, which is not the user running this. The mounts below add :Z, so an
+# SELinux-enforcing host relabels each directory for its container.
 chmod 0755 "$feeds"
 chmod 0644 "$feeds/kev.json" "$feeds/.kev-smoke.json"
 stub=$(mktemp -d "${TMPDIR:-/tmp}/darkflib-auth-stub.XXXXXX")
@@ -58,7 +59,7 @@ trap cleanup EXIT
     --tmpfs /data:rw,nosuid,nodev,mode=1777 \
     --tmpfs /config:rw,nosuid,nodev,mode=1777 \
     --user 65532:65532 \
-    --volume "$stub:/etc/auth-stub:ro" \
+    --volume "$stub:/etc/auth-stub:ro,Z" \
     "$image" caddy run --config /etc/auth-stub/Caddyfile --adapter caddyfile >/dev/null
 "$engine" run --detach --name "$name" --network "$network" \
     --env "WWFF_AUTH_UPSTREAM=$auth_name:8000" \
@@ -69,7 +70,7 @@ trap cleanup EXIT
     --cap-drop all --cap-add NET_BIND_SERVICE \
     --user 65532:65532 \
     --pids-limit 128 \
-    --volume "$feeds:/srv/feeds:ro" \
+    --volume "$feeds:/srv/feeds:ro,Z" \
     --publish "127.0.0.1:$port:8080" \
     "$image" >/dev/null
 
@@ -177,8 +178,10 @@ echo "tools (behind forward_auth)"
 fetch darkflib.com /tools/ --header 'Sec-Fetch-Mode: navigate'
 check "a page load without a session is sent to sign in" is "$status" 303
 check "the sign-in redirect comes back here" is "$(header location)" /login/?next=/tools/
+check "the redirect is never stored" is "$(header cache-control)" "private, no-store"
 fetch darkflib.com /tools/
 check "anything else without a session gets the service's 401" is "$status" 401
+check "the 401 is never stored" is "$(header cache-control)" "private, no-store"
 fetch darkflib.com /tools/ --cookie smoke=1
 check "a session gets the tools page" is "$status" 200
 check "the tools page is private and never stored" is "$(header cache-control)" "private, no-store"

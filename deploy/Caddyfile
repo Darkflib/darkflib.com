@@ -125,6 +125,9 @@
 			# leaves one out.
 			route {
 				request_header -X-Auth-*
+				# Only for whoever asked: nginx must never hand a stored copy to the next visitor. Deferred and ahead of
+				# forward_auth, so the redirect and the 401 carry it as well as the page.
+				header >Cache-Control "private, no-store"
 				forward_auth {$WWFF_AUTH_UPSTREAM:wwff-auth:8000} {
 					uri /auth/verify
 					copy_headers X-Auth-User X-Auth-Level X-Auth-Federated-At X-Auth-Standard-At X-Auth-High-At
@@ -139,8 +142,6 @@
 						copy_response
 					}
 				}
-				# Only for whoever passed the gate: nginx must never hand a stored copy to the next visitor.
-				header Cache-Control "private, no-store"
 				file_server
 			}
 		}
