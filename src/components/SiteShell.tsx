@@ -1,4 +1,5 @@
 import { createContext, type ReactNode, useContext, useEffect, useState } from 'react'
+import type { SitePage } from '../content'
 import { ContactDialog } from './ContactDialog'
 import { Footer } from './Footer'
 import { Topbar } from './Topbar'
@@ -8,7 +9,7 @@ const CONTACT_LINKS = 'a[href="#contact"], a[href="/#contact"]'
 
 interface SiteShellProps {
   /** Which top-level page this is, for the nav's active link. */
-  page: 'home' | 'demos'
+  page: SitePage
   children: ReactNode
   /** Overlays that sit outside <main>, such as page-specific dialogs. */
   overlays?: ReactNode

@@ -1,5 +1,13 @@
 import { WORKER_CAPABILITIES } from '../../src/sw/protocol.ts'
-import { checkForUpdate, expect, expectControlled, openEventLog, readEventLog, test } from '../support/fixtures.ts'
+import {
+  checkForUpdate,
+  expect,
+  expectControlled,
+  LOG_PAGE,
+  openEventLog,
+  readEventLog,
+  test,
+} from '../support/fixtures.ts'
 
 const everyCapability = Object.entries(WORKER_CAPABILITIES)
   .map(([name, version]) => `${name} v${version}`)
@@ -36,6 +44,8 @@ test.describe('worker capabilities', () => {
     )
     await expect(page.getByTestId('strip-sw')).toHaveText('SW: CONTROLLING · OUTDATED')
 
+    // The log lives on LOG_PAGE; that page's own handshake reports the same.
+    await page.goto(LOG_PAGE)
     await openEventLog(page)
     await expect
       .poll(() => readEventLog(page))

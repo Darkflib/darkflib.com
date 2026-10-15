@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { ConnectPanel } from './components/ConnectPanel'
 import { ControlsPanel } from './components/ControlsPanel'
-import { EventLog } from './components/EventLog'
 import { Hero } from './components/Hero'
 import { KevPanel } from './components/KevPanel'
 import { PostsPanel } from './components/PostsPanel'
@@ -21,7 +20,6 @@ const SRE_TAB = projects.find((project) => project.slug === 'sre-tab') ?? null
 
 export function App() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
-  const [logOpen, setLogOpen] = useState(false)
 
   return (
     <SiteShell
@@ -38,7 +36,7 @@ export function App() {
         </div>
         <div className="side-column">
           <ServiceWorkerPanel />
-          <ControlsPanel logOpen={logOpen} onToggleLog={() => setLogOpen((open) => !open)} />
+          <ControlsPanel />
         </div>
       </div>
       <div className="writing-grid">
@@ -46,7 +44,6 @@ export function App() {
         <ToolsPanel />
       </div>
       <KevPanel onOpenSource={() => setSelectedProject(SRE_TAB)} />
-      {logOpen && <EventLog />}
     </SiteShell>
   )
 }

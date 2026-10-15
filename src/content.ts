@@ -1,11 +1,18 @@
 /** The SRE and systems demos page, a separate document from the home page. */
 export const DEMOS_PATH = '/demos/'
 
+/** Every project, on a page of its own; the home page shows the first FEATURED_PROJECTS. */
+export const PROJECTS_PATH = '/projects/'
+export const FEATURED_PROJECTS = 3
+
+/** The top-level pages, each its own HTML document. */
+export type SitePage = 'home' | 'projects' | 'demos'
+
 // Root-relative, so the same links work from every page: on the home page they are fragment navigations.
 export const nav = [
   { label: 'HOME', href: '/#home', page: 'home' },
   { label: 'ABOUT', href: '/#about' },
-  { label: 'PROJECTS', href: '/#projects' },
+  { label: 'PROJECTS', href: PROJECTS_PATH, page: 'projects' },
   { label: 'POSTS', href: '/#posts' },
   { label: 'DEMOS', href: DEMOS_PATH, page: 'demos' },
   { label: 'CONTACT', href: '/#contact' },
@@ -23,8 +30,6 @@ export interface Project {
   image: string | null
   links: { live?: string; source?: string }
 }
-
-export const PROJECTS_URL = 'https://mikepreston.org/projects'
 
 export const projects: readonly Project[] = [
   {
@@ -92,47 +97,10 @@ export const stack = [
   { mark: 'Pg', name: 'PostgreSQL', color: 'blue' },
 ] as const
 
-// A selection from mikepreston.org, newest first, not the full archive; links go to the canonical copies there.
+// The newest posts come from this feed at build time (build/postsPlugin.ts); links go to the canonical copies there.
 export const WRITING_URL = 'https://mikepreston.org/writing'
-
-export const posts = [
-  {
-    slug: 'your-monitoring-stack-knows-too-much',
-    title: 'Your Monitoring Stack Knows Too Much',
-    subtitle: 'The largest, least-governed copy of your production data is sitting in your observability platform.',
-    date: '2026-08-18',
-  },
-  {
-    slug: 'stop-putting-secrets-in-env-vars',
-    title: 'Stop Putting Secrets in Environment Variables',
-    subtitle: 'Right up until it leaks through a child process, a crash dump, or a curious read of /proc.',
-    date: '2026-07-31',
-  },
-  {
-    slug: 'its-always-dns',
-    title: "It's Always DNS: A Practical Debugging Guide for the Usual Suspect",
-    subtitle: 'How to trace name resolution end to end and stop guessing.',
-    date: '2026-07-24',
-  },
-  {
-    slug: 'retries-should-have-a-budget-not-just-a-backoff',
-    title: 'Retries Should Have a Budget—Not Just a Backoff',
-    subtitle: "Backoff decides when you borrow capacity. A budget decides whether you're allowed to at all.",
-    date: '2026-07-21',
-  },
-  {
-    slug: 'prompt-injection-new-sql-injection',
-    title: 'Prompt Injection Is the New SQL Injection: Securing Agentic Systems',
-    subtitle: 'Trusted instructions and untrusted content in one context window, with no parameterised query.',
-    date: '2026-07-10',
-  },
-  {
-    slug: 'systemd-is-the-orchestrator-you-already-have',
-    title: 'Systemd Is the Orchestrator You Already Have',
-    subtitle: 'Dependency ordering, timers, sandboxing, socket activation: you are already paying for it.',
-    date: '2026-06-18',
-  },
-] as const
+export const WRITING_FEED = 'https://mikepreston.org/rss.xml'
+export const LATEST_POSTS = 6
 
 // The contact form posts to mikepreston.org's API (form token, honeypot, behaviour score, rate limits, Mailgun)
 // rather than exposing an address here. deploy/Caddyfile's CSP admits this origin for connect-src.

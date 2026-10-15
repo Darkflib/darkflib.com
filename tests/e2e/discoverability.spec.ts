@@ -18,6 +18,7 @@ test('the sitemap lists every page, and each page declares itself canonical', as
   const locs = [...(await response.text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1])
   expect(locs).toEqual([
     `${ORIGIN}/`,
+    `${ORIGIN}/projects/`,
     `${ORIGIN}/demos/`,
     ...CATALOGUE.map((entry) => `${ORIGIN}${demoPath(entry.slug)}`),
   ])
@@ -28,6 +29,13 @@ test('the sitemap lists every page, and each page declares itself canonical', as
     await expect(page.locator('meta[property="og:url"]')).toHaveAttribute('content', loc)
     expect(JSON.parse((await page.locator('script[type="application/ld+json"]').textContent()) ?? '')).toBeTruthy()
   }
+})
+
+test("the home page's no-script fallback links this site's own pages", async ({ request }) => {
+  const home = await (await request.get('/')).text()
+  const fallback = home.slice(home.indexOf('<noscript>'), home.indexOf('</noscript>'))
+  expect(fallback).toContain('href="/projects/"')
+  expect(fallback).toContain('href="/demos/"')
 })
 
 test('the document carries canonical, link-preview, and structured metadata', async ({ page, request }) => {

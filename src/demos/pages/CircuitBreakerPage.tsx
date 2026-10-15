@@ -1,4 +1,3 @@
-import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
 import { useState } from 'react'
 import { EventLog } from '../../components/EventLog'
 import { FaultLab } from '../../components/FaultLab'
@@ -12,7 +11,6 @@ import './Demos.css'
 export function CircuitBreakerPage() {
   // Open on arrival: this page exists to run it. Collapsing stops the status client polling.
   const [labOpen, setLabOpen] = useState(true)
-  const [logOpen, setLogOpen] = useState(false)
 
   return (
     <SiteShell page="demos">
@@ -28,21 +26,13 @@ export function CircuitBreakerPage() {
             <span className="demos-kind kind-live">LIVE</span>
             <TagList tags={CIRCUIT_BREAKER.tags} />
           </div>
-          <button
-            type="button"
-            className="button-secondary demos-log-toggle"
-            onClick={() => setLogOpen((open) => !open)}
-            aria-expanded={logOpen}
-          >
-            {logOpen ? 'HIDE EVENT LOG' : 'VIEW EVENT LOG'}
-            {logOpen ? <ArrowUpRight size={15} /> : <ArrowDownRight size={15} />}
-          </button>
         </div>
         {/* The demo runs through this worker: its state, and UPGRADE when a new one is waiting, belong beside it. */}
         <ServiceWorkerPanel />
       </section>
       <FaultLab open={labOpen} onToggle={() => setLabOpen((open) => !open)} />
-      {logOpen && <EventLog />}
+      {/* Always shown: the log is where the worker's side of the demo appears. */}
+      <EventLog />
     </SiteShell>
   )
 }

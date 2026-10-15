@@ -1,5 +1,5 @@
 import { ArrowRight, ArrowUpRight } from 'lucide-react'
-import { PROJECTS_URL, type Project, projectNumber, projects } from '../content'
+import { FEATURED_PROJECTS, PROJECTS_PATH, type Project, projectNumber, projects } from '../content'
 import { PanelHeader } from './PanelHeader'
 import { ProjectImage } from './ProjectImage'
 import { TagList } from './TagList'
@@ -9,13 +9,13 @@ export function ProjectsPanel({ onSelect }: { onSelect: (project: Project) => vo
   return (
     <section className="panel projects-panel" id="projects" aria-labelledby="projects-title">
       <PanelHeader id="projects-title" title="FEATURED_PROJECTS">
-        <a className="panel-link" href={PROJECTS_URL}>
+        <a className="panel-link" href={PROJECTS_PATH}>
           ALL PROJECTS <ArrowRight size={14} />
         </a>
       </PanelHeader>
-      {/* A scrolling row: three cards in view, the next one peeking so the overflow is discoverable. */}
+      {/* The first few; the rest are on the projects page. */}
       <ul className="project-grid">
-        {projects.map((project) => (
+        {projects.slice(0, FEATURED_PROJECTS).map((project) => (
           <li key={project.slug}>
             <button
               type="button"
