@@ -11,7 +11,7 @@
     "format": "biome check --write .",
     "test:unit": "node --test 'tests/unit/*.test.ts'",
     "images": "node scripts/optimise-images.ts",
-    "pages": "node scripts/demo-pages.ts",
+    "pages": "node scripts/pages.ts",
     "kev": "mkdir -p .feeds && go -C kev-snapshot run . -env-file ../.env -out ../.feeds",
     "fonts": "uv run scripts/fix-font-bboxes.py",
     "test:e2e": "npm run build && playwright test"

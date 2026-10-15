@@ -22,8 +22,3 @@
   border-color: #e848d6;
   color: #fff;
 }
-
-.control-toggle[aria-expanded="true"] {
-  border-color: #b04ba6;
-  color: #ffbef6;
-}

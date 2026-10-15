@@ -1,9 +1,9 @@
 import { Globe2, Menu, X } from 'lucide-react'
 import { useState } from 'react'
-import { nav } from '../content'
+import { nav, type SitePage } from '../content'
 import './Topbar.css'
 
-export function Topbar({ page }: { page: 'home' | 'demos' }) {
+export function Topbar({ page }: { page: SitePage }) {
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (

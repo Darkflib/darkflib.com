@@ -1,12 +1,13 @@
+import { posts } from 'virtual:posts'
 import { ArrowRight, ArrowUpRight } from 'lucide-react'
-import { posts, WRITING_URL } from '../content'
+import { WRITING_URL } from '../content'
 import { PanelHeader } from './PanelHeader'
 import './PostsPanel.css'
 
 export function PostsPanel() {
   return (
     <section className="panel posts-panel" id="posts" aria-labelledby="posts-title">
-      <PanelHeader id="posts-title" title="FEATURED_POSTS">
+      <PanelHeader id="posts-title" title="LATEST_POSTS">
         <a className="panel-link" href={WRITING_URL}>
           ALL WRITING <ArrowRight size={14} />
         </a>

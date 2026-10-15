@@ -3,6 +3,7 @@ import {
   expect,
   expectControlled,
   FIREFOX_PASSIVE_NAVIGATION,
+  LOG_PAGE,
   openEventLog,
   readEventLog,
   test,
@@ -10,7 +11,7 @@ import {
 
 test.describe('service worker lifecycle', () => {
   test('first visit registers, activates, and takes control without a reload', async ({ page }) => {
-    await page.goto('/')
+    await page.goto(LOG_PAGE)
     await expectControlled(page)
     await expect(page.getByTestId('sw-registration')).toHaveText('REGISTERED')
     await expect(page.getByTestId('sw-lifecycle')).toHaveText('ACTIVATED')
@@ -33,7 +34,7 @@ test.describe('service worker lifecycle', () => {
   test('reload is controlled from the start and does not reinstall', async ({ page, browserName }) => {
     test.skip(browserName === 'firefox', FIREFOX_PASSIVE_NAVIGATION)
 
-    await page.goto('/')
+    await page.goto(LOG_PAGE)
     await expectControlled(page)
     const build = await page.getByTestId('sw-version').textContent()
 
@@ -57,7 +58,7 @@ test.describe('service worker lifecycle', () => {
   }) => {
     test.skip(browserName === 'firefox', FIREFOX_PASSIVE_NAVIGATION)
 
-    await page.goto('/')
+    await page.goto(LOG_PAGE)
     await expectControlled(page)
     const original = (await page.getByTestId('sw-version').textContent()) ?? ''
     const updated = `${original}.test1`
@@ -75,7 +76,7 @@ test.describe('service worker lifecycle', () => {
     // The waiting worker activates once no page is using the old one.
     await page.close()
     const next = await context.newPage()
-    await next.goto('/')
+    await next.goto(LOG_PAGE)
     await expect(next.getByTestId('sw-version')).toHaveText(updated)
     // The new worker controls the page either way (its build answered the handshake). In Playwright's WebKit, a
     // navigation that arrives while the activate event's waitUntil is still pending leaves activation unfinished for
@@ -87,7 +88,7 @@ test.describe('service worker lifecycle', () => {
   })
 
   test('UPGRADE activates a waiting update without closing the tab', async ({ page, server }) => {
-    await page.goto('/')
+    await page.goto(LOG_PAGE)
     await expectControlled(page)
     const original = (await page.getByTestId('sw-version').textContent()) ?? ''
     const updated = `${original}.test1`
@@ -134,11 +135,11 @@ test.describe('service worker lifecycle', () => {
   }) => {
     test.skip(browserName === 'firefox', FIREFOX_PASSIVE_NAVIGATION)
 
-    await page.goto('/')
+    await page.goto(LOG_PAGE)
     await expectControlled(page)
 
     const second = await context.newPage()
-    await second.goto('/')
+    await second.goto(LOG_PAGE)
     await expectControlled(second)
     await openEventLog(second)
     await expect.poll(() => readEventLog(second)).toContainEqual(expect.objectContaining({ event: 'handshake' }))

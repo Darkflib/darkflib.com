@@ -1,0 +1,38 @@
+[
+  {
+    "slug": "cloud-bill-is-a-design-document",
+    "title": "The Cloud Bill Is a Design Document: Reading Your Architecture in the Invoice",
+    "subtitle": "Nobody writes the invoice, which is exactly why it describes the system you are running rather than the one you meant to build.",
+    "date": "2026-10-09"
+  },
+  {
+    "slug": "ci-runner-privileged-false-still-root",
+    "title": "Your CI Runner Said privileged: false. It Was Still Root.",
+    "subtitle": "CVE-2026-73802 is a CVSS 9.9 in the Gitea runner. The privileged flag was forced off. Everything else the workflow author asked for went straight through.",
+    "date": "2026-10-05"
+  },
+  {
+    "slug": "fewer-agents-more-bureaucracy",
+    "title": "The Future Needs Fewer Agents and More Bureaucracy",
+    "subtitle": "Supervision trees, approval gates, audit logs, and change registers are not friction on an agentic system. They are the conditions under which you can run one at all.",
+    "date": "2026-10-02"
+  },
+  {
+    "slug": "same-byte-billed-three-times",
+    "title": "The Same Byte, Billed Three Times",
+    "subtitle": "AWS data transfer isn't a price, it's a lookup on which boundary the byte crossed — and one of those boundaries sits inside a single availability zone.",
+    "date": "2026-09-29"
+  },
+  {
+    "slug": "idempotency-keys",
+    "title": "Idempotency Keys: The Cheapest Insurance in Distributed Systems",
+    "subtitle": "A timeout can't tell you whether the work happened. An idempotency key makes that stop mattering.",
+    "date": "2026-09-25"
+  },
+  {
+    "slug": "publishing-a-hash-of-someones-email",
+    "title": "Publishing a Hash of Someone's Email Is Publishing Their Email",
+    "subtitle": "A hash hides a value in proportion to how hard that value is to guess, and an email address is barely a guess at all.",
+    "date": "2026-09-22"
+  }
+]

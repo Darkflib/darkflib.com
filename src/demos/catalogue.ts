@@ -1,5 +1,5 @@
 // Every demo page, in index order: the simulated concepts and the live circuit breaker. Pure data, read by the index
-// page, vite.config.ts (one HTML input per page), and scripts/demo-pages.ts (which writes those HTML files).
+// page, vite.config.ts (one HTML input per page), and scripts/pages.ts (which writes those HTML files).
 import { CONCEPTS } from './concepts/index.ts'
 
 export interface CatalogueEntry {

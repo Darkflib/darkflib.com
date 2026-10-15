@@ -18,6 +18,7 @@ test('the sitemap lists every page, and each page declares itself canonical', as
   const locs = [...(await response.text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1])
   expect(locs).toEqual([
     `${ORIGIN}/`,
+    `${ORIGIN}/projects/`,
     `${ORIGIN}/demos/`,
     ...CATALOGUE.map((entry) => `${ORIGIN}${demoPath(entry.slug)}`),
   ])

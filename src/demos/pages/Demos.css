@@ -49,11 +49,6 @@ a.demos-kicker:hover {
   margin-bottom: 14px;
 }
 
-.demos-log-toggle[aria-expanded="true"] {
-  border-color: #b04ba6;
-  color: #ffbef6;
-}
-
 .demos-kind {
   display: inline-flex;
   align-items: center;

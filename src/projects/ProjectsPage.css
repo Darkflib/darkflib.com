@@ -1,0 +1,113 @@
+.projects-intro {
+  position: relative;
+  z-index: 2;
+  padding: 28px 1.25% 16px;
+}
+
+.projects-kicker {
+  color: #8fd8ff;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.projects-intro h1 {
+  margin: 6px 0 10px;
+  font-family: var(--font-display);
+  font-size: clamp(40px, 7vw, 84px);
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: 0.04em;
+  color: #fff;
+  text-shadow: 0 0 18px #e512c8;
+}
+
+.projects-intro p {
+  max-width: 62ch;
+  margin: 0;
+  color: #c6d6ec;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.projects-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 560px), 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0 1.25% 20px;
+  list-style: none;
+  position: relative;
+  z-index: 2;
+}
+
+.project-entry {
+  display: grid;
+  grid-template-columns: 42% minmax(0, 1fr);
+  scroll-margin-top: 80px;
+}
+
+.project-entry .project-image {
+  height: 100%;
+  min-height: 220px;
+  border-bottom: 0;
+  border-right: 1px solid #8197bc88;
+}
+
+.project-entry-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px 16px;
+}
+
+.project-entry h2 {
+  margin: 0;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.project-entry-copy p {
+  margin: 0;
+  color: #a6b8da;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.project-entry-copy .project-entry-description {
+  color: #ff8df0;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.project-entry-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+@media (max-width: 800px) {
+  .projects-intro,
+  .projects-list {
+    padding-inline: 3%;
+  }
+}
+
+@media (max-width: 560px) {
+  .project-entry {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .project-entry .project-image {
+    height: 200px;
+    min-height: 0;
+    border-right: 0;
+    border-bottom: 1px solid #8197bc88;
+  }
+}

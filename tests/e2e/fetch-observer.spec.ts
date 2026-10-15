@@ -3,6 +3,7 @@ import {
   expect,
   expectControlled,
   FIREFOX_PASSIVE_NAVIGATION,
+  LOG_PAGE,
   openEventLog,
   readEventLog,
   test,
@@ -26,7 +27,7 @@ const fetchRow = (detail: string | RegExp) =>
 
 test.describe('passive fetch observer', () => {
   test('observes requests from a controlled page without answering them', async ({ page }) => {
-    await page.goto('/')
+    await page.goto(LOG_PAGE)
     await expectControlled(page)
 
     const marker = `probe=${Date.now()}`
@@ -40,31 +41,39 @@ test.describe('passive fetch observer', () => {
 
   test('reports the page load itself once the new page exists', async ({ page, browserName }) => {
     test.skip(browserName === 'firefox', FIREFOX_PASSIVE_NAVIGATION)
-    await page.goto('/')
+    await page.goto(LOG_PAGE)
     await expectControlled(page)
 
     // The navigation's fetch event fires before its page exists; the worker holds the row until it can deliver it.
     const marker = `nav=${Date.now()}`
-    await page.goto(`/?${marker}`)
+    await page.goto(`${LOG_PAGE}?${marker}`)
     await expectControlled(page)
     await openEventLog(page)
     await expect
       .poll(() => readEventLog(page))
       .toEqual(
         expect.arrayContaining([
-          fetchRow(`^GET /\\?${marker} · navigate$`),
-          fetchRow(/^GET \/assets\/index-.*\.js · script$/),
+          fetchRow(`^GET ${LOG_PAGE}\\?${marker} · navigate$`),
+          fetchRow(/^GET \/assets\/demos-main-.*\.js · script$/),
         ]),
       )
+  })
+
+  test('the systems strip reports a page load routed through the worker', async ({ page, browserName }) => {
+    test.skip(browserName === 'firefox', FIREFOX_PASSIVE_NAVIGATION)
+    await page.goto('/')
+    await expectControlled(page)
+    await page.reload()
+    await expectControlled(page)
     await expect(page.getByTestId('strip-ttfb')).toHaveAttribute('title', /via service worker, startup \d+ ms$/)
   })
 
   test('delivers each tab only its own requests', async ({ page, context, browserName }) => {
     test.skip(browserName === 'firefox', FIREFOX_PASSIVE_NAVIGATION)
-    await page.goto('/')
+    await page.goto(LOG_PAGE)
     await expectControlled(page)
     const other = await context.newPage()
-    await other.goto('/')
+    await other.goto(LOG_PAGE)
     await expectControlled(other)
 
     await probe(page, 'tab=first')
@@ -84,7 +93,7 @@ test.describe('passive fetch observer', () => {
   })
 
   test('log tags can be hidden, and the choice persists', async ({ page }) => {
-    await page.goto('/')
+    await page.goto(LOG_PAGE)
     await expectControlled(page)
     await probe(page, 'tagged=1')
     await openEventLog(page)
@@ -104,7 +113,7 @@ test.describe('passive fetch observer', () => {
   })
 
   test('request rows are evicted before lifecycle history', async ({ page }) => {
-    await page.goto('/')
+    await page.goto(LOG_PAGE)
     await expectControlled(page)
     await openEventLog(page)
     await expect.poll(() => readEventLog(page)).toContainEqual(expect.objectContaining({ event: 'handshake' }))

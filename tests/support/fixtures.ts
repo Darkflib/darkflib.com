@@ -47,9 +47,12 @@ export interface LogRow {
 export const FIREFOX_PASSIVE_NAVIGATION =
   "Playwright's Firefox leaves pages uncontrolled after a navigation the worker observes without responding; real Firefox does not"
 
+/** The page whose event log the worker tests read: the log is always open there. */
+export const LOG_PAGE = '/demos/circuit-breaker/'
+
+/** The event log, on LOG_PAGE. */
 export async function openEventLog(page: Page) {
-  const toggle = page.getByRole('button', { name: /EVENT LOG/ })
-  if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()
+  await expect(page.getByTestId('sw-log')).toBeVisible()
 }
 
 /** On the circuit breaker page, where the lab lives. It starts open there; this also reopens it after a test collapses it. */

@@ -115,6 +115,11 @@ fetch darkflib.com / --header 'Accept-Encoding: zstd, gzip'
 check "compressed for capable clients" one_of "$(header content-encoding)" zstd gzip
 check "varies on Accept-Encoding" contains "$(header vary)" Accept-Encoding
 
+echo "projects page"
+fetch darkflib.com /projects/
+check "GET /projects/ is 200" is "$status" 200
+check "projects page revalidates (no-cache)" is "$(header cache-control)" no-cache
+
 echo "demos page"
 fetch darkflib.com /demos/
 check "GET /demos/ is 200" is "$status" 200

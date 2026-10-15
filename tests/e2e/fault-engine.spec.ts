@@ -2,6 +2,7 @@ import {
   expect,
   expectControlled,
   FIREFOX_PASSIVE_NAVIGATION,
+  LOG_PAGE,
   openEventLog,
   pageFetch,
   readEventLog,
@@ -10,8 +11,9 @@ import {
 } from '../support/fixtures.ts'
 
 test.describe('fault engine', () => {
+  // LOG_PAGE, so the offline case can read the event log. The fault lab there leaves rules set here alone.
   test.beforeEach(async ({ page }) => {
-    await page.goto('/')
+    await page.goto(LOG_PAGE)
     await expectControlled(page)
   })
 
@@ -110,7 +112,7 @@ test.describe('fault engine', () => {
     await setFaults(page, [{ origin: primary, mode: 'offline', probability: 1 }])
 
     const other = await context.newPage()
-    await other.goto('/')
+    await other.goto(LOG_PAGE)
     await expectControlled(other)
     expect(await pageFetch(other, `${primary}/v1/status.json`)).toMatchObject({ ok: true, status: 200 })
     expect(await pageFetch(page, `${primary}/v1/status.json`)).toMatchObject({ ok: false })
