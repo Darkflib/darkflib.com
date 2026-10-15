@@ -4,6 +4,7 @@ import { useNow } from '../hooks/useNow'
 import {
   AuthError,
   getSession,
+  getSessionStrict,
   isCancel,
   linkUrl,
   listCredentials,
@@ -155,8 +156,15 @@ export function DebugPage() {
     try {
       if (!(await freshPasskey())) return
       await unlinkIdentity(id)
-      // Unlinking the identity this session signed in with ends the session.
-      const state = await getSession()
+      // Unlinking the identity this session signed in with ends the session. Only a definite "no session" sends
+      // you to sign in: a failed check here says so instead.
+      let state: SessionState | null
+      try {
+        state = await getSessionStrict()
+      } catch {
+        setMessage(`${label} removed, but the session couldn't be checked afterwards. Refresh to see where you stand.`)
+        return
+      }
       if (state === null) {
         window.location.assign('/login/?next=/tools/debug/')
         return
@@ -409,7 +417,7 @@ export function DebugPage() {
                             className="debug-inline"
                             type="button"
                             onClick={() => unlink(identity.id, `${provider.name} (${identity.label})`)}
-                            disabled={busy || !passkeysSupported()}
+                            disabled={busy || !passkeysSupported() || !session.has_passkey}
                           >
                             Unlink
                           </button>
@@ -437,7 +445,7 @@ export function DebugPage() {
             </table>
             {!session.has_passkey && (
               <p className="debug-note">
-                Linking needs a passkey. <a href="/login/enrol/?next=/tools/debug/">Add one</a> first.
+                Linking and unlinking need a passkey. <a href="/login/enrol/?next=/tools/debug/">Add one</a> first.
               </p>
             )}
             {session.assurance.STANDARD?.credential_in_cooldown && (

@@ -79,6 +79,14 @@ async function request<T>(path: string, init?: { json?: unknown; method?: 'DELET
   return (response.status === 204 ? undefined : await response.json()) as T
 }
 
+/**
+ * The signed-in session, or null only when the service says there is none (204). Anything else, a network error
+ * or an unexpected status, throws: for callers that must not mistake a failed check for a signed-out session.
+ */
+export async function getSessionStrict(): Promise<SessionState | null> {
+  return (await request<SessionState | undefined>('/auth/session')) ?? null
+}
+
 /** The signed-in session, or null when there is none (or no service answering). */
 export async function getSession(): Promise<SessionState | null> {
   try {
