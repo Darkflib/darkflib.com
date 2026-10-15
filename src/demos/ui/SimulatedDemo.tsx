@@ -85,6 +85,22 @@ export function SimulatedDemo({ def }: { def: DemoDefinition }) {
                     </div>
                   )
                 }
+                if (control.kind === 'toggle') {
+                  return (
+                    <div className="sim-control sim-toggle" key={id}>
+                      <label htmlFor={inputId}>
+                        <input
+                          id={inputId}
+                          type="checkbox"
+                          checked={control.get(sim.params)}
+                          onChange={(event) => demo.change(control.patch(event.target.checked, sim.params))}
+                        />
+                        {control.label}
+                      </label>
+                      <small>{control.help}</small>
+                    </div>
+                  )
+                }
                 return (
                   <div className="sim-control" key={id}>
                     <label htmlFor={inputId}>{control.label}</label>
@@ -137,7 +153,10 @@ export function SimulatedDemo({ def }: { def: DemoDefinition }) {
               </button>
             </div>
             <p className="sim-held" data-testid="held-constant">
-              <span>HELD CONSTANT</span> {def.held.map((id) => HELD[id](sim.params)).join(' · ')}
+              <span>HELD CONSTANT</span>{' '}
+              {def.held.length
+                ? def.held.map((id) => HELD[id](sim.params)).join(' · ')
+                : 'nothing: every engine parameter is a control'}
             </p>
           </section>
         </aside>

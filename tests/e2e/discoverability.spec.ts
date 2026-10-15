@@ -1,3 +1,4 @@
+import { CATALOGUE, demoPath } from '../../src/demos/catalogue.ts'
 import { expect, test } from '../support/fixtures.ts'
 
 const ORIGIN = 'https://darkflib.com'
@@ -18,9 +19,7 @@ test('the sitemap lists every page, and each page declares itself canonical', as
   expect(locs).toEqual([
     `${ORIGIN}/`,
     `${ORIGIN}/demos/`,
-    `${ORIGIN}/demos/queueing-knee/`,
-    `${ORIGIN}/demos/retry-storms/`,
-    `${ORIGIN}/demos/circuit-breaker/`,
+    ...CATALOGUE.map((entry) => `${ORIGIN}${demoPath(entry.slug)}`),
   ])
 
   for (const loc of locs) {
