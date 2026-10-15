@@ -432,11 +432,20 @@ export class Simulation {
 
   #refill(): void {
     const p = this.params
-    while (this.held.length && (p.policy !== 'block' || this.queue.length < p.cap)) {
+    while (this.held.length && (p.policy === 'unbounded' || this.queue.length < p.cap)) {
       const r = this.held.shift() as Request
       r.state = 'queued'
       r.admitted = this.t
       this.queue.push(r)
+    }
+    // Callers still held after a switch away from blocking meet the new policy at a full queue: rejected.
+    while (this.held.length && p.policy !== 'block') {
+      const r = this.held.shift() as Request
+      r.state = 'rejected'
+      this.#leave(r)
+      this.#bucket.drops++
+      this.onFlow('drop')
+      this.#scheduleRetry(r)
     }
   }
 

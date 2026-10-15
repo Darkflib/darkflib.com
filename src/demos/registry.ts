@@ -267,7 +267,10 @@ export const HELD: Record<HeldId, (p: Params) => string> = {
       ? `unbounded ${p.discipline.toUpperCase()} queue`
       : `${p.policy} queue of ${p.cap}, ${p.discipline.toUpperCase()}`,
   discipline: (p) => `${p.discipline === 'lifo' ? 'newest' : 'oldest'} first (${p.discipline.toUpperCase()})`,
-  shedding: (p) => `shedding by age turns away work queued over ${p.ageMs} ms, with at most ${p.cap} queued`,
+  shedding: (p) =>
+    p.policy === 'codel'
+      ? `shedding by age turns away work queued over ${p.ageMs} ms, with at most ${p.cap} queued`
+      : `when on, shedding by age turns away work queued over ${p.ageMs} ms, with at most ${p.cap} queued`,
   timeout: (p) => (p.timeoutMs >= 3_600_000 ? 'no client timeout' : `${p.timeoutMs} ms client timeout`),
   retries: (p) => (p.retries === 0 ? 'no retries' : `${p.retries} retries`),
   backoff: (p) => `${p.backoffMs} ms exponential backoff, ${p.jitter ? 'jittered' : 'no jitter'}`,

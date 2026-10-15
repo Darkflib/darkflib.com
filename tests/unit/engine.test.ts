@@ -68,6 +68,17 @@ describe('engine', () => {
     assert.ok(m.p99 < 1.5, `server p99 ${m.p99}`)
   })
 
+  it('leaving block mode admits held callers only up to the new limit, and rejects the rest', () => {
+    const sim = new Simulation({ lambda: 100, retries: 0, timeoutMs: 2000, policy: 'block', cap: 50 }, 1)
+    sim.advance(10)
+    assert.ok(sim.held.length > 100, `held ${sim.held.length}`)
+    sim.set({ policy: 'drop' })
+    assert.equal(sim.held.length, 0)
+    assert.ok(sim.queue.length <= 50, `queue ${sim.queue.length}`)
+    sim.advance(12)
+    assert.ok(sim.samples.some((s) => s.drops > 0))
+  })
+
   it('a retry budget refuses retries once spent', () => {
     const sim = new Simulation({ lambda: 64, retries: 3, timeoutMs: 600, retryBudget: 0.1 }, 1, SPIKE)
     sim.advance(20)
