@@ -26,7 +26,8 @@ export function DemosIndex() {
             </h2>
             <p>{group.blurb}</p>
           </header>
-          <ol className="demos-cards">
+          {/* Numbered across the whole index, so the list position matches the number on the card. */}
+          <ol className="demos-cards" start={CATALOGUE.indexOf(group.demos[0]) + 1}>
             {group.demos.map((entry) => (
               <DemoCard key={entry.slug} entry={entry} />
             ))}

@@ -105,5 +105,9 @@ test('the index groups related demos, numbered across the whole index', async ({
       .locator('.demos-card a')
       .evaluateAll((links) => links.map((a) => a.getAttribute('href')))
     expect(hrefs).toEqual(group.demos.map((entry) => `/demos/${entry.slug}/`))
+    // The list's own numbering agrees with the number printed on the first card.
+    const first = section.locator('.demos-card').first()
+    const printed = Number(await first.locator('.demos-card-meta span').first().textContent())
+    await expect(section.locator('ol')).toHaveAttribute('start', String(printed))
   }
 })
