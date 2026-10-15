@@ -13,7 +13,7 @@ npm run lint         # Biome lint + format check
 npm run format       # apply Biome fixes
 npm run test:unit    # demo engine and preset stories, headless (node --test)
 npm run test:e2e     # build, then Playwright across Chromium, Firefox, and WebKit
-npm run pages        # regenerate projects/ and demos/**/index.html from their sources
+npm run pages        # regenerate projects/, demos/**, login/** and tools/** index.html from their sources
 npm run images       # regenerate public/images from assets/source
 npm run kev          # fetch a real KEV snapshot into .feeds/ (needs SRETAB_PAT in .env, and Go)
 npm run fonts        # rebuild the Rajdhani files with corrected glyph bounding boxes (needs uv)
@@ -43,7 +43,7 @@ docker rm -f darkflib-smoke
 | `src/components/SiteShell.tsx`  | Chrome every page shares: top bar, footer, contact dialog                   |
 | `src/styles/`                   | Reset, self-hosted font faces, and global tokens and primitives             |
 | `src/content.ts`                | Projects, featured posts and tools (linking to mikepreston.org), tech stack  |
-| `src/login/`                    | `/login/`, `/login/enrol/`, and `/tools/`, in front of the private tools: GitHub or Google by invite, then a passkey. The API is [wwff-auth](https://github.com/Darkflib/wwff-auth)'s `docs/contract.md`; `AUTH_ORIGIN=http://localhost:8000 npm run dev` proxies `/auth` to a local copy. `/tools/` is the landing page behind `forward_auth` (deploy/Caddyfile). Kept out of search and the sitemap |
+| `src/login/`                    | The access pages and the tools behind them: `/login/`, `/login/enrol/`, `/tools/`, and the session debugger at `/tools/debug/`. See [Private tools](#private-tools). Kept out of search and the sitemap |
 | `src/kev/`                      | Reading and summarising the KEV snapshot the site serves at `/feeds/kev.json` |
 | `kev-snapshot/`                 | The Go program that writes that snapshot on the server, hourly              |
 | `src/sw/`                       | Service worker entry and the page↔worker message protocol                   |
@@ -131,6 +131,67 @@ pages through `/api/v1/feed?sources=cisa-kev` with a read-only PAT, and writes `
 `tests/e2e/kev.spec.ts` covers the rendered snapshot, opening an entry, showing all of it, the stale marker, and each
 way the panel hides itself. `kev-snapshot/snapshot_test.go` covers the fetch and the transform, including that no
 reader state survives it; both run in CI, the Go tests inside the image build.
+
+## Private tools
+
+Some tools cost credits or touch a service agreement, so they live behind a login at `/tools/*`. Sign-in is
+[wwff-auth](https://github.com/Darkflib/wwff-auth) (private repo), a separate service this site's Caddy reaches as
+`wwff-auth:8000` on darkflib.network; its API is that repo's `docs/contract.md`, and it is deployed as the gitops app
+`quadlet/apps/wwff-auth/`. This repository holds the pages and the routing.
+
+```
+browser ── /login/, /login/enrol/      static pages here (src/login/), talking to /auth/* with fetch
+        ── /auth/*                     Caddy → wwff-auth (never stored; /auth/verify is a 404 from outside)
+        ── /tools/*                    Caddy forward_auth → wwff-auth /auth/verify, then the tool
+```
+
+- **Signing in.** Invite-only: Mike runs `wwff-auth invite` on ny03 and sends the `/login/#invite=…` link it prints.
+  The page redeems the token once and drops it from the address bar, then the visitor signs in with GitHub or Google
+  and is sent to `/login/enrol/` to add a passkey. Returning visitors can use either provider or the passkey.
+  `?next=` is resolved as a URL and must stay on this origin; anything else goes to `/tools/`.
+- **The gate.** Every `/tools/*` request asks `/auth/verify` first. Without a session, a page load gets a 303 to
+  `/login/?next=<path>` and anything else gets the service's 401. With one, the request goes on carrying
+  `X-Auth-User`, `X-Auth-Level`, and `X-Auth-Federated-At` / `-Standard-At` / `-High-At` (Unix seconds, absent where
+  that level is unproven). Client-sent `X-Auth-*` headers are stripped first, inside a `route` block, because Caddy's
+  default order runs `forward_auth` before `request_header`. Gated responses, including the 303 and the 401, are
+  `private, no-store`.
+- **Levels.** `FEDERATED` is GitHub or Google, `STANDARD` any passkey, `HIGH` a hardware key that passed FIDO MDS3
+  attestation. The gate lets in any session; a tool decides what each action needs. Opening a tool needs nothing
+  more, while anything that spends credits should ask for `STANDARD` within a few minutes.
+- **Second provider.** The session debugger's Linked accounts panel links GitHub to Google (or back) and unlinks them,
+  running the passkey step-up the service requires first. By hand: step up, then within five minutes open
+  `/auth/<provider>/start?link=1&next=/tools/debug/`. Accounts are never matched by email.
+
+### Adding a tool
+
+- **A page with no backend**: add it to `accessPages()` in `scripts/pages.ts` (unlisted, so `noindex` and out of the
+  sitemap), a key in `src/login-main.tsx`, an input in `vite.config.ts`, and an entry in `TOOLS` in
+  `src/login/ToolsPage.tsx`. `/tools/*` is gated as a whole, so nothing in the Caddyfile changes.
+- **A tool with a backend**: route its path inside the `/tools/*` `route` block in `deploy/Caddyfile`, after
+  `forward_auth` and before `file_server` (`reverse_proxy` to a container on darkflib.network), and run that container
+  from gitops so nothing but Caddy can reach it: the backend trusts the `X-Auth-*` headers only because of that.
+  Check them per action with wwff-auth's `contrib/python/wwff_auth_headers.py` (copied in, not installed), which
+  answers with the same step-up 401 the service sends. The page calls the backend through wwff-auth's
+  `contrib/ts` `fetchWithStepUp`, which runs the passkey prompt on that 401 and retries once.
+- Add the route's checks to `deploy/scripts/smoke.sh` alongside the existing gate checks.
+
+### The session debugger
+
+`/tools/debug/` is the first tool and a placeholder: the session as `/auth/session` reports it (each level's proof
+time, with live ages), the `X-Auth-*` headers a tool behind the gate receives, example requirements checked against
+them, the enrolled passkeys, linked accounts with link and unlink, and passkey and hardware-key step-ups that refresh
+all of it. Caddy answers `/tools/debug/headers.json` itself, inside the gate, by echoing the forwarded headers, so it
+needs no backend.
+
+### Locally
+
+`AUTH_ORIGIN=http://localhost:8000 npm run dev` proxies `/auth` to a local wwff-auth (its README covers running one).
+Without it `/auth` is a 404 and the pages behave as signed out. The Vite dev server does not gate `/tools/*`; only
+Caddy does, so check the gate against the production image: `smoke.sh` runs `deploy/scripts/auth-stub.Caddyfile` in a
+second container as a stand-in for wwff-auth (the cookie `smoke=1` is a session), and checks the redirect, the 401,
+the stripped headers (the check fails if the strip is removed), the cache headers, and the debugger's echo. The
+deploy browser test then loads `/login/`, `/tools/`, and `/tools/debug/` signed out and signed in, with no CSP
+violations or console errors. Passkey prompts need a secure origin, so step-ups are only exercised on darkflib.com.
 
 ## Service worker
 
