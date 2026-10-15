@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#060a15">
+  <meta name="description" content="Darkflib access gateway — mirrored-grid visual login prototype.">
+  <title>Access Gateway // DARKFLIB — Mirror Grid</title>
+  <style>
+    :root {
+      --ink: #eaf3ff;
+      --muted: #90b2cd;
+      --dim: #6483a2;
+      --bg: #060a15;
+      --cyan: #61eeff;
+      --cyan-soft: #7ebfe4;
+      --magenta: #f70cdd;
+      --line: #5799c5;
+      --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+      --font-display: Rajdhani, "Arial Narrow", "Helvetica Neue", sans-serif;
+      font-family: var(--font-mono);
+      background: var(--bg);
+      color: var(--ink);
+      color-scheme: dark;
+      font-synthesis: none;
+      -webkit-font-smoothing: antialiased;
+    }
+    * {box-sizing:border-box}
+    body {margin:0;min-width:320px;min-height:100vh;min-height:100svh}
+    button,input {font:inherit}
+    button {cursor:pointer}
+    a {color:inherit;text-decoration:none}
+    button:focus-visible, a:focus-visible, input:focus-visible {outline:2px solid var(--cyan);outline-offset:4px}
+    ::selection {background:var(--magenta);color:#fff}
+
+    .scene {
+      position:relative;
+      min-height:100vh;
+      min-height:100svh;
+      overflow:hidden;
+      isolation:isolate;
+      background:
+        radial-gradient(ellipse 75% 33% at 50% 57%,rgba(22,59,107,.21),transparent 72%),
+        radial-gradient(ellipse 45% 54% at -18% 67%,rgba(11,108,152,.14),transparent 80%),
+        radial-gradient(ellipse 45% 50% at 115% 77%,rgba(93,17,118,.12),transparent 72%),
+        linear-gradient(180deg,#050814 0%,#060a15 50%,#071427 100%);
+    }
+    .scene::before {
+      content:""; position:absolute;inset:0;pointer-events:none;z-index:2;
+      background:repeating-linear-gradient(to bottom,transparent 0,transparent 3px,rgba(95,151,196,.055) 4px);
+      opacity:.45;
+    }
+    .scene::after {
+      content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
+      background:radial-gradient(ellipse 74% 70% at 50% 52%,transparent 30%,#02050eae 100%);
+    }
+    #grid-canvas {position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+    .horizon-haze {pointer-events:none;position:absolute;top:44%;left:0;right:0;height:18%;z-index:1;
+      background:linear-gradient(180deg,transparent 0,rgba(12,42,70,.05) 36%,rgba(7,20,35,.18) 50%,rgba(12,42,70,.05) 64%,transparent 100%)}
+    .vertical-streams {position:absolute;inset:60px 0 0;z-index:1;pointer-events:none;opacity:.5;
+      background:
+        linear-gradient(180deg, transparent, rgba(39,141,179,.25) 50%,transparent) 13% 20% / 1px 130px no-repeat,
+        linear-gradient(180deg,transparent,rgba(71,161,194,.15),transparent) 20% 27% / 1px 180px no-repeat,
+        linear-gradient(180deg,transparent,rgba(75,164,222,.28),transparent) 82% 21% / 1px 170px no-repeat,
+        linear-gradient(180deg,transparent,rgba(239,51,222,.2),transparent) 90% 33% / 1px 110px no-repeat;}
+
+    .topbar {height:62px;padding:0 clamp(22px,4vw,68px);display:flex;align-items:center;justify-content:space-between;
+      gap:12px;background:rgba(6,11,25,.80);border-bottom:1px solid rgba(54,155,212,.36);
+      box-shadow:0 8px 30px #03081244;position:relative;z-index:5;}
+    .topbar::after {content:"";position:absolute;bottom:-1px;left:clamp(22px,4vw,68px);height:2px;width:65px;background:var(--magenta);box-shadow:0 0 13px #f62ad88a}
+    .brand {display:flex;align-items:center;gap:12px;white-space:nowrap}
+    .brand-symbol {font-family:var(--font-display);font-weight:700;font-size:23px;color:var(--cyan);line-height:1;letter-spacing:-.1em}
+    .brand-name {font-size:14px;font-weight:700;letter-spacing:.18em}
+    .brand-divider {opacity:.44;font-size:17px;margin:0 6px}
+    .brand-small {font-size:10px;letter-spacing:.16em;color:#9db8d1}
+    .top-status {display:flex;align-items:center;gap:14px;font-size:10px;letter-spacing:.15em;color:#a1b9d3}
+    .status-led {width:6px;height:6px;border-radius:50%;background:#61eeff;box-shadow:0 0 9px #61eeffa5}
+    .top-status b {font-weight:500;color:var(--cyan)}
+
+    .body {min-height:calc(100svh - 123px);padding:35px clamp(22px,7vw,118px) 35px;
+      max-width:1500px;margin:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(350px,440px);
+      align-items:center;gap:clamp(30px,8vw,150px);position:relative;z-index:3;}
+    .masthead {max-width:630px;align-self:center;padding-bottom:80px;text-shadow:0 4px 16px #040711}
+    .micro {display:flex;align-items:center;gap:12px;font-size:10px;font-weight:600;letter-spacing:.2em;color:var(--cyan-soft)}
+    .micro::before {content:"";width:24px;height:1px;background:var(--magenta);box-shadow:0 0 10px var(--magenta)}
+    h1 {font-family:var(--font-display);font-weight:700;font-size:clamp(72px,8vw,124px);line-height:.86;letter-spacing:-.025em;margin:28px 0 25px}
+    h1 em {font-style:normal;color:var(--magenta);text-shadow:0 0 26px #f70cdd65}
+    .masthead p {font-size:12px;line-height:1.95;letter-spacing:.075em;color:#a7c6df;max-width:420px}
+    .masthead .stamp {display:inline-flex;align-items:center;gap:13px;margin-top:45px;
+      padding:9px 12px;border-left:1px solid rgba(97,238,255,.57);background:#061222b8;
+      color:#6f98ba;font-size:10px;letter-spacing:.17em}
+    .stamp span {color:#d9f7ff}
+    .stamp .pulse {width:5px;height:5px;background:var(--magenta);box-shadow:0 0 12px var(--magenta)}
+
+    .login-panel {position:relative;width:100%;align-self:center;
+      border:1px solid rgba(94,166,209,.64);
+      background:linear-gradient(150deg,rgba(10,22,44,.91),rgba(5,11,24,.85) 66%,rgba(15,19,42,.90));
+      box-shadow:0 0 0 1px #030917b3,0 30px 100px #0009,0 0 62px #0b76ad13,inset 0 0 24px #09284934;
+      -webkit-backdrop-filter:blur(15px);backdrop-filter:blur(15px);
+      padding:0 34px 32px;}
+    .login-panel::before, .login-panel::after {content:"";position:absolute;pointer-events:none;width:35px;height:35px}
+    .login-panel::before {top:-1px;left:-1px;border-top:2px solid var(--cyan);border-left:2px solid var(--cyan);box-shadow:-3px -3px 20px #61eeff16}
+    .login-panel::after {bottom:-1px;right:-1px;border-bottom:2px solid var(--magenta);border-right:2px solid var(--magenta);box-shadow:3px 3px 22px #f70cdd18}
+    .panel-bar {margin:0 -34px 28px;height:43px;display:flex;align-items:center;justify-content:space-between;padding:0 33px;
+      border-bottom:1px solid rgba(83,124,170,.38);font-size:10px;letter-spacing:.15em;color:#a8c3dc}
+    .panel-bar strong {color:var(--cyan);font-size:10px;font-weight:500}
+    .tiny-dot {color:var(--magenta);font-size:16px;line-height:0}
+    h2 {font-family:var(--font-display);font-size:45px;font-weight:700;letter-spacing:.015em;line-height:1.05;margin:0 0 9px}
+    .panel-intro {margin:0 0 31px;color:#8faecb;font-size:11px;line-height:1.8;letter-spacing:.02em}
+    label.field-label {display:flex;align-items:center;justify-content:space-between;margin:0 0 11px;
+      font-size:10px;letter-spacing:.15em;color:#bcd9f4;font-weight:600;text-transform:uppercase}
+    label.field-label span {color:#6c90ae;font-weight:400}
+    .field-wrap {position:relative;margin-bottom:25px}
+    .field-wrap input {display:block;width:100%;height:50px;padding:0 16px;border:1px solid #396482;
+      border-radius:0;background:rgba(3,12,29,.75);color:#effaff;font-size:13px;letter-spacing:.025em;
+      outline:none;transition:border-color .17s,box-shadow .17s}
+    .field-wrap input::placeholder {color:#58738d;opacity:1}
+    .field-wrap input:hover {border-color:#548cae}
+    .field-wrap input:focus {border-color:var(--cyan);box-shadow:0 0 0 1px #61eeff44,inset 0 0 20px #1d719318}
+    .field-wrap.has-toggle input {padding-right:80px}
+    .show-password {position:absolute;right:13px;top:13px;height:24px;padding:0 3px;border:0;background:transparent;
+      font-size:10px;letter-spacing:.08em;color:#a7d9f2}
+    .show-password:hover {color:var(--cyan)}
+    .panel-actions {margin-top:-2px;display:flex;align-items:center;justify-content:space-between;gap:15px;
+      font-size:10px;color:#91adcb}
+    .remember {display:flex;align-items:center;gap:10px;cursor:pointer}
+    .remember input {accent-color:var(--magenta);width:14px;height:14px;margin:0}
+    .inline-action {padding:0;border:0;background:none;color:#d4bde5;font-size:10px;text-decoration:underline;text-decoration-color:#b15bb19c;text-underline-offset:4px}
+    .inline-action:hover {color:#fff}
+    .submit {width:100%;min-height:50px;display:flex;align-items:center;justify-content:space-between;
+      border:1px solid #fb62e5;background:#e512c8;color:white;font-weight:700;font-size:12px;
+      letter-spacing:.19em;padding:0 18px;margin-top:29px;
+      box-shadow:0 0 15px #eb18c92c,inset 0 0 10px #ff70e751;
+      transition:transform .16s,box-shadow .16s,background .16s}
+    .submit:hover {background:#f021d5;transform:translateY(-2px);box-shadow:0 0 25px #eb18c95c}
+    .submit span:last-child {font-size:22px;font-weight:400;line-height:1}
+    .divider {display:flex;gap:14px;align-items:center;margin:26px 0 17px;color:#7598b5;font-size:10px;letter-spacing:.11em}
+    .divider::before,.divider::after {content:"";flex:1;height:1px;background:#30506d}
+    .passkey {width:100%;min-height:46px;border:1px solid #5689a9;background:#0a1b30bd;color:#bfe9fb;
+      display:flex;align-items:center;justify-content:center;gap:10px;font-size:11px;letter-spacing:.1em;
+      transition:border-color .16s,background .16s}
+    .passkey:hover {background:#102940;border-color:var(--cyan)}
+    .passkey svg {width:17px;height:17px;stroke:var(--cyan);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+    .feedback {min-height:19px;margin:14px 0 0;font-size:10px;line-height:1.6;color:#fdc2ed}
+    .panel-footer {margin:0 -34px;padding:15px 33px 0;border-top:1px solid #44698470;
+      display:flex;align-items:center;justify-content:space-between;gap:8px;
+      color:#6f93b0;font-size:9px;letter-spacing:.08em}
+    .panel-footer span:last-child {color:#b1a4c8}
+
+    .bottom {height:61px;padding:0 clamp(22px,4vw,68px);position:relative;z-index:5;
+      display:flex;justify-content:space-between;align-items:center;gap:20px;
+      border-top:1px solid #3066877d;background:#050a16c9;
+      font-size:10px;letter-spacing:.13em;color:#6c93b1}
+    .bottom strong {font-weight:500;color:#a7bdd7}
+    .bottom .safe {color:#b9a7c4}
+    .bottom a {color:#aad5e9;text-decoration:underline;text-decoration-color:#3a6480;text-underline-offset:3px}
+    .bottom a:hover {color:var(--cyan)}
+    @media (max-width:950px) {
+      .body {grid-template-columns:1fr;max-width:600px;gap:30px;padding:55px 24px 60px}
+      .masthead {padding-bottom:0;text-align:left}
+      .masthead h1 {font-size:clamp(55px,12vw,89px);margin:17px 0 14px}
+      .masthead p,.masthead .stamp {display:none}
+      .login-panel {max-width:460px;margin:0 auto}
+      .top-status span:not(.status-led) {display:none}
+    }
+    @media (max-width:480px) {
+      .body {padding:40px 18px 50px}
+      .brand-small,.brand-divider {display:none}
+      .login-panel {padding-left:23px;padding-right:23px}
+      .panel-bar,.panel-footer {margin-left:-23px;margin-right:-23px;padding-left:23px;padding-right:23px}
+      h2 {font-size:40px}
+      .bottom {font-size:8px;letter-spacing:.05em}
+      .bottom .safe {display:none}
+    }
+    @media (prefers-reduced-motion:reduce) {
+      *, *::before, *::after {animation:none !important;transition:none !important;scroll-behavior:auto !important}
+    }
+  </style>
+</head>
+<body>
+  <div class="scene">
+    <canvas id="grid-canvas" aria-hidden="true"></canvas>
+    <div class="horizon-haze" aria-hidden="true"></div>
+    <div class="vertical-streams" aria-hidden="true"></div>
+    <header class="topbar">
+      <a class="brand" href="https://darkflib.com/" aria-label="Darkflib home">
+        <span class="brand-symbol" aria-hidden="true">&lt;/</span>
+        <span class="brand-name">DARKFLIB</span>
+        <span class="brand-divider" aria-hidden="true">//</span>
+        <span class="brand-small">ACCESS GATEWAY</span>
+      </a>
+      <div class="top-status" aria-label="Visual demonstration">
+        <span class="status-led" aria-hidden="true"></span>
+        <span>NODE <b>DF-001</b> &nbsp; / &nbsp; SECURE CHANNEL</span>
+      </div>
+    </header>
+
+    <main class="body">
+      <section class="masthead" aria-label="Access gateway introduction">
+        <div class="micro">DARKFLIB // IDENTITY LAYER</div>
+        <h1>ACCESS<br><em>_</em>CONTROL</h1>
+        <p>Identity is the only perimeter.<br>Connect to your workspace through the access gateway.</p>
+        <div class="stamp"><i class="pulse" aria-hidden="true"></i> SYSTEM STATE <span>/</span> AUTHENTICATION REQUIRED</div>
+      </section>
+
+      <section class="login-panel" aria-labelledby="login-heading">
+        <div class="panel-bar"><span>01 / AUTHENTICATION</span><span><span class="tiny-dot" aria-hidden="true">✦</span> &nbsp; ENCRYPTED SESSION</span></div>
+        <h2 id="login-heading">Identify yourself<span style="color:#f70cdd">.</span></h2>
+        <p class="panel-intro">Enter your credentials to continue.</p>
+        <form id="login-form" novalidate>
+          <label class="field-label" for="email">EMAIL ADDRESS <span>01</span></label>
+          <div class="field-wrap"><input id="email" name="username" type="email" inputmode="email" autocomplete="username" placeholder="you@example.com" required></div>
+          <label class="field-label" for="password">PASSWORD <span>02</span></label>
+          <div class="field-wrap has-toggle">
+            <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
+            <button class="show-password" id="toggle-password" type="button" aria-label="Show password" aria-pressed="false">SHOW</button>
+          </div>
+          <div class="panel-actions">
+            <label class="remember"><input name="remember" type="checkbox">Remember this device</label>
+            <button class="inline-action" type="button" data-demo="Recovery is not connected in this visual prototype.">Recover access</button>
+          </div>
+          <button class="submit" type="submit"><span>AUTHENTICATE</span><span aria-hidden="true">↗</span></button>
+        </form>
+        <div class="divider" aria-hidden="true">OR CONTINUE WITH</div>
+        <button class="passkey" type="button" data-demo="Passkey authentication is not connected in this visual prototype.">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M12 15h9m-4 0v3m3-3v2M8 11V7a4 4 0 0 1 8 0v2"/></svg>
+          USE A PASSKEY
+        </button>
+        <p class="feedback" id="feedback" role="status" aria-live="polite"></p>
+        <div class="panel-footer"><span>DF :: AUTH / 01</span><span>ZERO-TRUST / IDENTITY</span></div>
+      </section>
+    </main>
+    <footer class="bottom"><span>© DARKFLIB <strong>— CREATIVE SYSTEMS</strong></span><span class="safe">DESIGN PREVIEW / NO CREDENTIALS SENT</span><a href="https://darkflib.com/">RETURN TO MAIN SITE ↗</a></footer>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+      const form = document.querySelector('#login-form');
+      const feedback = document.querySelector('#feedback');
+      const password = document.querySelector('#password');
+      const toggle = document.querySelector('#toggle-password');
+      // Important: this is a visual demonstration only. No credentials leave the browser.
+      form.addEventListener('submit', event => {
+        event.preventDefault();
+        feedback.textContent = 'Visual prototype only — authentication is not connected. No credentials were transmitted.';
+      });
+      toggle.addEventListener('click', () => {
+        const isVisible = password.type === 'password';
+        password.type = isVisible ? 'text' : 'password';
+        toggle.textContent = isVisible ? 'HIDE' : 'SHOW';
+        toggle.setAttribute('aria-label', isVisible ? 'Hide password' : 'Show password');
+        toggle.setAttribute('aria-pressed', String(isVisible));
+      });
+      document.querySelectorAll('[data-demo]').forEach(button => {
+        button.addEventListener('click', () => { feedback.textContent = button.dataset.demo; });
+      });
+
+      const canvas = document.querySelector('#grid-canvas');
+      const ctx = canvas.getContext('2d', { alpha: true });
+      if (!ctx) return;
+      const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+      let width = 0, height = 0, dpr = 1, raf = 0, previous = 0, travel = 0, motionTime = 0;
+      let visible = true;
+
+      // All geometry uses immutable world coordinates. Only the camera moves.
+      // Absolute row IDs preserve both accent colours and attached objects;
+      // there is no scene-wide modulo reset or teleporting object pool.
+      const GRID_SPACING = 2.4;
+      const LANE_SPACING = 1.8;
+      const HIGHLIGHT_INTERVAL = 4;
+      const SPEED = 0.45; // calmer grid drift; packet timing is independent
+      const SIGNAL_SPEED = 7.2; // cyan traffic relative to the grid, world units/s
+      const NEAR = 1.9;
+      const FAR = 95;
+      const CAMERA_HEIGHT = 1.62;
+      const smooth = (a, b, value) => {
+        const t = Math.max(0, Math.min(1, (value - a) / (b - a)));
+        return t * t * (3 - 2 * t);
+      };
+      const hash = n => {
+        const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+        return x - Math.floor(x);
+      };
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = canvas.clientWidth;
+        height = canvas.clientHeight;
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        paint();
+      }
+
+      // Two horizontal planes, viewed from the space between them. The floor
+      // projects below the vanishing point, and the ceiling uses the EXACT
+      // same geometry above it. They share the same motion and never drift.
+      function paint() {
+        ctx.clearRect(0, 0, width, height);
+        const horizon = height * (width < 950 ? 0.482 : 0.492);
+        const centre = width / 2;
+        const focal = Math.max(width * 0.76, 620);
+        const project = (x, z, direction) => [
+          centre + x * focal / z,
+          horizon + direction * CAMERA_HEIGHT * focal / z,
+        ];
+
+        function towerColor(kind, alpha) {
+          return kind === 'magenta'
+            ? `rgba(247,12,221,${alpha})`
+            : `rgba(97,238,255,${alpha})`;
+        }
+
+        // Identical depth envelope for the grid and everything grounded on it.
+        // Its zero slopes hide row entry/exit and prevent a visible loop seam.
+        const depthFade = z => smooth(NEAR, NEAR + 4.8, z)
+          * (1 - smooth(58, FAR, z))
+          * smooth(8, 80, CAMERA_HEIGHT * focal / z);
+        const firstRow = Math.floor((travel + NEAR) / GRID_SPACING) - 2;
+        const lastRow = Math.ceil((travel + FAR) / GRID_SPACING) + 2;
+
+        function drawTower(row, direction, intensity) {
+          const seed = row + (direction < 0 ? 1009 : 0);
+          const z = NEAR + row * GRID_SPACING - travel;
+          const alpha = depthFade(z) * intensity * 0.35;
+          if (alpha <= 0) return;
+          // A stable row ID determines the tower's lane, height and colour.
+          const lane = (hash(seed + 1) < 0.5 ? -1 : 1)
+            * (2 + Math.floor(hash(seed + 2) * 7));
+          const x = lane * LANE_SPACING;
+          const h = 0.45 + hash(seed + 3) * 0.85;
+          const half = 0.14 + hash(seed + 4) * 0.13;
+          const kind = hash(seed + 5) > 0.76 ? 'magenta' : 'cyan';
+          // Both ends of every vertical edge use the same 3D projection.
+          // The footprint is centred exactly on a grid intersection.
+          const point = (dx, dz, y) => {
+            const p = project(x + dx, z + dz, direction);
+            p[1] -= direction * y * focal / (z + dz);
+            return p;
+          };
+          const base = [[-half,-half],[half,-half],[half,half],[-half,half]]
+            .map(([dx,dz]) => point(dx,dz,0));
+          const top = [[-half,-half],[half,-half],[half,half],[-half,half]]
+            .map(([dx,dz]) => point(dx,dz,h));
+          ctx.fillStyle = towerColor(kind, alpha * 0.12);
+          ctx.strokeStyle = towerColor(kind, alpha);
+          ctx.lineWidth = 0.85;
+          for (let j = 0; j < 4; j++) {
+            const k = (j + 1) % 4;
+            ctx.beginPath();
+            ctx.moveTo(...base[j]); ctx.lineTo(...base[k]);
+            ctx.lineTo(...top[k]); ctx.lineTo(...top[j]);
+            ctx.closePath(); ctx.fill(); ctx.stroke();
+          }
+          // Small grounded cross makes the attachment legible without bloom.
+          ctx.beginPath();
+          ctx.moveTo(...project(x-half*2,z,direction));
+          ctx.lineTo(...project(x+half*2,z,direction));
+          ctx.moveTo(...project(x,z-half*2,direction));
+          ctx.lineTo(...project(x,z+half*2,direction));
+          ctx.stroke();
+        }
+
+        function drawSignals(row, direction, intensity, horizontal, flow = 1) {
+          const rowZ = NEAR + row * GRID_SPACING;
+          const time = motionTime;
+          const seed = row + (direction < 0 ? 2027 : 0) + (flow < 0 ? 4093 : 0);
+          const phase = time * 0.825 * flow + hash(seed + 20) * Math.PI * 2;
+          // Cross-row traffic remains on an advancing horizontal grid edge.
+          // Cyan traffic advances continuously across cells on a fixed lane.
+          // Absolute stream IDs enter and exit through the depth fade; no wrap.
+          const x = horizontal ? Math.sin(phase) * LANE_SPACING * 7
+            : (Math.floor(hash(seed + 21) * 13) - 6) * LANE_SPACING;
+          const worldZ = horizontal ? rowZ
+            : rowZ - time * SIGNAL_SPEED * flow;
+          const z = worldZ - travel;
+          const alpha = depthFade(z) * intensity * 0.72;
+          if (alpha <= 0) return;
+          const length = 0.18;
+          const a = project(x - (horizontal ? length : 0),
+            z - (horizontal ? 0 : length), direction);
+          const b = project(x + (horizontal ? length : 0),
+            z + (horizontal ? 0 : length), direction);
+          const kind = horizontal ? 'magenta' : 'cyan';
+          ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b);
+          ctx.strokeStyle = towerColor(kind, alpha);
+          ctx.lineWidth = Math.max(0.8, Math.min(2.2, focal / z * 0.035));
+          ctx.stroke();
+          const dot = project(x,z,direction);
+          ctx.beginPath();
+          ctx.arc(...dot, Math.max(0.9, Math.min(2.6, focal / z * 0.0325)), 0, Math.PI*2);
+          ctx.fillStyle = towerColor(kind, alpha); ctx.fill();
+        }
+
+        function drawPlane(direction, intensity) {
+          ctx.save();
+          ctx.beginPath();
+          if (direction > 0) ctx.rect(0, horizon, width, height - horizon);
+          else ctx.rect(0, 0, width, horizon);
+          ctx.clip();
+
+          // Grid lines leading into the distance. These do not scroll.
+          // Fade them as they approach the shared horizon so the join feels softer.
+          for (let i = -21; i <= 21; i++) {
+            const x = i * LANE_SPACING;
+            const a = project(x, FAR, direction);
+            const b = project(x, NEAR, direction);
+            const gradient = ctx.createLinearGradient(...a, ...b);
+            const accent = i % 4 === 0;
+            const rgb = accent ? '51,190,237' : '43,140,193';
+            for (let j = 0; j <= 24; j++) {
+              const t = j / 24;
+              const z = 1 / (1 / FAR + t * (1 / NEAR - 1 / FAR));
+              gradient.addColorStop(t, `rgba(${rgb},${(accent ? 0.28 : 0.19) * intensity * depthFade(z)})`);
+            }
+            ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b);
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = accent ? 1.1 : 0.8;
+            ctx.stroke();
+          }
+
+          // Enumerate visible absolute world rows. A row and its objects
+          // keep the same ID as the camera travels past them.
+          for (let i = firstRow; i <= lastRow; i++) {
+            const z = NEAR + i * GRID_SPACING - travel;
+            if (z <= NEAR || z >= FAR) continue;
+            const attenuation = depthFade(z);
+            const a = project(-44, z, direction);
+            const b = project(44, z, direction);
+            const horizonDistance = Math.abs(a[1] - horizon);
+            const horizonFade = Math.max(0, Math.min(1, (horizonDistance - 8) / 64));
+            const alpha = Math.min(0.5, 0.07 + 22 / (z + 40)) * attenuation * intensity;
+            ctx.beginPath();
+            ctx.moveTo(...a);
+            ctx.lineTo(...b);
+            ctx.strokeStyle = i % HIGHLIGHT_INTERVAL === 0
+              ? `rgba(102,223,247,${alpha})`
+              : `rgba(70,138,198,${alpha * 0.62})`;
+            ctx.lineWidth = i % HIGHLIGHT_INTERVAL === 0 ? 1.05 : 0.68;
+            ctx.stroke();
+          }
+
+          // Far-to-near ordering keeps foreground tower edges in front.
+          for (let row = lastRow; row >= firstRow; row--) {
+            if (direction > 0
+              ? row % 8 === 0 || row % 16 === 4
+              : row % 8 === 2 || row % 16 === 6) drawTower(row, direction, intensity * 0.82);
+            if (row % 8 === (direction > 0 ? 2 : 6))
+              drawSignals(row, direction, intensity * 0.78, true, 1);
+            if (row % 8 === (direction > 0 ? 4 : 0))
+              drawSignals(row, direction, intensity * 0.78, true, -1);
+          }
+
+          // Cyan has its own world-space velocity, while using the same
+          // camera and projection as the grid. Enumerate its visible stream
+          // IDs using the relative distance, rather than recycling positions.
+          for (const flow of [1, -1]) {
+            const streamTravel = travel + motionTime * SIGNAL_SPEED * flow;
+            const streamFirst = Math.floor((streamTravel + NEAR) / GRID_SPACING) - 2;
+            const streamLast = Math.ceil((streamTravel + FAR) / GRID_SPACING) + 2;
+            for (let row = streamLast; row >= streamFirst; row--) {
+              // Outbound streams can have negative absolute IDs. Positive
+              // modulo preserves their spacing across world origin as well.
+              if ((row % 8 + 8) % 8 === (direction > 0 ? 5 : 1))
+                drawSignals(row, direction, intensity * 0.78, false, flow);
+            }
+          }
+          ctx.restore();
+        }
+
+        // Grid planes reflect about the horizon; their traffic and towers use
+        // independent world-row placements and deterministic seeds. The ceiling is dimmer
+        // so that the foreground controls retain visual priority.
+        drawPlane(-1, 0.72);
+        drawPlane(1, 1);
+
+        // Dark digital haze, not a sunset. It binds the two grids together.
+        const haze = ctx.createLinearGradient(0, horizon - 116, 0, horizon + 116);
+        haze.addColorStop(0, 'rgba(8,23,46,0)');
+        haze.addColorStop(0.34, 'rgba(10,36,63,0.08)');
+        haze.addColorStop(0.46, 'rgba(11,48,76,0.14)');
+        haze.addColorStop(0.5, 'rgba(8,24,42,0.26)');
+        haze.addColorStop(0.54, 'rgba(11,48,76,0.14)');
+        haze.addColorStop(0.66, 'rgba(10,36,63,0.08)');
+        haze.addColorStop(1, 'rgba(8,23,46,0)');
+        ctx.fillStyle = haze;
+        ctx.fillRect(0, horizon - 116, width, 232);
+        ctx.beginPath();
+        ctx.moveTo(0, horizon);
+        ctx.lineTo(width, horizon);
+        ctx.strokeStyle = 'rgba(65,151,196,.08)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
+      function frame(timestamp) {
+        if (!visible || reduceMotion.matches) return;
+        if (timestamp - previous >= 33) {
+          const elapsed = previous ? Math.min((timestamp - previous) / 1000, 0.08) : 0;
+          previous = timestamp;
+          travel += elapsed * SPEED;
+          motionTime += elapsed;
+          paint();
+        }
+        raf = requestAnimationFrame(frame);
+      }
+
+      function syncMotion() {
+        cancelAnimationFrame(raf);
+        visible = !document.hidden;
+        previous = 0;
+        if (visible && !reduceMotion.matches) raf = requestAnimationFrame(frame);
+        else paint();
+      }
+      window.addEventListener('resize', resize, { passive: true });
+      document.addEventListener('visibilitychange', syncMotion);
+      if (reduceMotion.addEventListener) reduceMotion.addEventListener('change', syncMotion);
+      resize(); syncMotion();
+    })();
+  </script>
+</body>
+</html>
