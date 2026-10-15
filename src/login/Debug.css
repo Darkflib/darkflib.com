@@ -146,6 +146,30 @@
   color: #6483a2;
 }
 
+.debug-cell-action {
+  text-align: right;
+}
+
+.debug-inline {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #d4bde5;
+  font-size: 11px;
+  text-decoration: underline;
+  text-decoration-color: #b15bb19c;
+  text-underline-offset: 3px;
+}
+
+.debug-inline:hover:not(:disabled) {
+  color: #fff;
+}
+
+.debug-inline:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .debug-pass {
   color: #61eeff;
 }
