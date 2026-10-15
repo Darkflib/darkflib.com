@@ -6,7 +6,12 @@ export type Tier = 'FEDERATED' | 'STANDARD' | 'HIGH'
 
 export interface Assurance {
   auth_at: string
+  /** Seconds since `auth_at`, as the service saw it. */
   age: number
+  /** STANDARD and HIGH only: the passkey that proved it. */
+  credential_id?: string | null
+  /** STANDARD and HIGH only: that passkey is still in its first-day cooldown, so cooldown-sensitive actions ignore it. */
+  credential_in_cooldown?: boolean
 }
 
 export interface SessionState {
@@ -46,12 +51,17 @@ export function startUrl(provider: Provider, next: string): string {
   return `/auth/${provider}/start?${new URLSearchParams({ next })}`
 }
 
-async function request<T>(path: string, init?: { json: unknown }): Promise<T> {
+/** Adds `provider` to the signed-in account; the service wants a passkey step-up within the last 5 minutes first. */
+export function linkUrl(provider: Provider, next: string): string {
+  return `/auth/${provider}/start?${new URLSearchParams({ link: '1', next })}`
+}
+
+async function request<T>(path: string, init?: { json?: unknown; method?: 'DELETE' }): Promise<T> {
   const response = await fetch(path, {
-    method: init ? 'POST' : 'GET',
+    method: init?.method ?? (init ? 'POST' : 'GET'),
     credentials: 'same-origin',
-    headers: init ? { 'Content-Type': 'application/json' } : undefined,
-    body: init ? JSON.stringify(init.json) : undefined,
+    headers: init?.json !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+    body: init?.json !== undefined ? JSON.stringify(init.json) : undefined,
   })
   if (!response.ok) {
     let body: { reason?: unknown; step_up?: AuthError['stepUp'] } = {}
@@ -100,6 +110,13 @@ export const listCredentials = () => request<Passkey[]>('/auth/credentials')
 export const acceptInvite = (token: string) => request<void>('/auth/invite', { json: { token } })
 
 export const logout = () => request<void>('/auth/logout', { json: {} })
+
+/**
+ * Removes a GitHub or Google identity from the account: a passkey step-up within 5 minutes first, and never the
+ * last way in (`reason: "last_way_in"`). Ends the session if it signed in with that identity.
+ */
+export const unlinkIdentity = (id: string) =>
+  request<void>(`/auth/identities/${encodeURIComponent(id)}`, { method: 'DELETE' })
 
 /** The browser has WebAuthn and the Level 3 JSON helpers this code relies on. */
 export function passkeysSupported(): boolean {

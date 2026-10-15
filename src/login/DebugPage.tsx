@@ -5,13 +5,16 @@ import {
   AuthError,
   getSession,
   isCancel,
+  linkUrl,
   listCredentials,
   logout,
   type Passkey,
+  type Provider,
   passkeysSupported,
   type SessionState,
   stepUp,
   type Tier,
+  unlinkIdentity,
 } from './auth'
 import './Debug.css'
 
@@ -39,6 +42,16 @@ const REQUIREMENTS: { tier: Tier; maxAge: number; example: string }[] = [
   { tier: 'STANDARD', maxAge: 600, example: 'spend credits' },
   { tier: 'HIGH', maxAge: 300, example: 'admin action' },
 ]
+
+const PROVIDERS: { id: Provider; name: string }[] = [
+  { id: 'github', name: 'GitHub' },
+  { id: 'google', name: 'Google' },
+]
+
+/** Linking and unlinking need a passkey proven within 5 minutes (wwff-auth's identity.link and identity.unlink). */
+const LINK_MAX_AGE = 300
+/** Step up again below this much headroom, so the proof can't lapse between here and the service. */
+const LINK_MARGIN = 30
 
 /** "4m 05s" for a span in seconds; "—" when there is none. */
 function span(seconds: number | null): string {
@@ -98,6 +111,66 @@ export function DebugPage() {
       if (isCancel(error)) setMessage('Step-up cancelled.')
       else if (error instanceof AuthError) setMessage(`Step-up refused: ${error.reason ?? `HTTP ${error.status}`}.`)
       else setMessage(`Step-up failed: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  /**
+   * A passkey proof fresh enough for linking or unlinking: reuses the session's if it has the headroom, else runs a
+   * step-up, straight from the click that called this so browsers allow the prompt. False if it was cancelled or
+   * refused (and says why).
+   */
+  async function freshPasskey(): Promise<boolean> {
+    const age = sessionAge('STANDARD')
+    const cooling = session?.assurance.STANDARD?.credential_in_cooldown ?? false
+    if (age !== null && !cooling && age < LINK_MAX_AGE - LINK_MARGIN) return true
+    try {
+      await stepUp('STANDARD')
+      return true
+    } catch (error) {
+      if (isCancel(error)) setMessage('Cancelled.')
+      else if (error instanceof AuthError)
+        setMessage(`Passkey step-up refused: ${error.reason ?? `HTTP ${error.status}`}.`)
+      else setMessage(`Passkey step-up failed: ${error instanceof Error ? error.message : String(error)}`)
+      return false
+    }
+  }
+
+  async function link(provider: Provider) {
+    setBusy(true)
+    setMessage('')
+    if (await freshPasskey()) {
+      // A navigation: the provider's consent screen, then back here with the identity added.
+      window.location.assign(linkUrl(provider, '/tools/debug/'))
+      return
+    }
+    setBusy(false)
+  }
+
+  async function unlink(id: string, label: string) {
+    if (!window.confirm(`Remove ${label} from this account? You will no longer be able to sign in with it.`)) return
+    setBusy(true)
+    setMessage('')
+    try {
+      if (!(await freshPasskey())) return
+      await unlinkIdentity(id)
+      // Unlinking the identity this session signed in with ends the session.
+      const state = await getSession()
+      if (state === null) {
+        window.location.assign('/login/?next=/tools/debug/')
+        return
+      }
+      setMessage(`${label} removed.`)
+      await refresh()
+    } catch (error) {
+      if (error instanceof AuthError && error.reason === 'last_way_in') {
+        setMessage(`${label} is your last way in, so it can't be removed. Link another account or add a passkey first.`)
+      } else if (error instanceof AuthError) {
+        setMessage(`Unlink refused: ${error.reason ?? `HTTP ${error.status}`}.`)
+      } else {
+        setMessage(`Unlink failed: ${error instanceof Error ? error.message : String(error)}`)
+      }
     } finally {
       setBusy(false)
     }
@@ -314,6 +387,67 @@ export function DebugPage() {
             Add another passkey
           </a>
         </section>
+
+        {session && (
+          <section className="panel debug-panel" aria-labelledby="debug-accounts">
+            <h2 id="debug-accounts">{'// LINKED ACCOUNTS'}</h2>
+            <p className="debug-note">
+              Every account here signs you in to the same user. Linking and unlinking ask for a passkey first (one
+              proven in the last 5 minutes counts), and the last way in can't be removed.
+            </p>
+            <table className="debug-table">
+              <tbody>
+                {PROVIDERS.map((provider) => {
+                  const linked = session.identities.filter((identity) => identity.provider === provider.id)
+                  return linked.length > 0 ? (
+                    linked.map((identity) => (
+                      <tr key={identity.id}>
+                        <th scope="row">{provider.name}</th>
+                        <td>{identity.label}</td>
+                        <td className="debug-cell-action">
+                          <button
+                            className="debug-inline"
+                            type="button"
+                            onClick={() => unlink(identity.id, `${provider.name} (${identity.label})`)}
+                            disabled={busy || !passkeysSupported()}
+                          >
+                            Unlink
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr key={provider.id} className="debug-unproven">
+                      <th scope="row">{provider.name}</th>
+                      <td>not linked</td>
+                      <td className="debug-cell-action">
+                        <button
+                          className="debug-inline"
+                          type="button"
+                          onClick={() => link(provider.id)}
+                          disabled={busy || !passkeysSupported() || !session.has_passkey}
+                        >
+                          Link {provider.name}
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+            {!session.has_passkey && (
+              <p className="debug-note">
+                Linking needs a passkey. <a href="/login/enrol/?next=/tools/debug/">Add one</a> first.
+              </p>
+            )}
+            {session.assurance.STANDARD?.credential_in_cooldown && (
+              <p className="debug-note">
+                Your last passkey proof was with a key still in its first-day cooldown, which doesn't count for linking:
+                use an older passkey when asked.
+              </p>
+            )}
+          </section>
+        )}
 
         <section className="panel debug-panel" aria-labelledby="debug-stepup">
           <h2 id="debug-stepup">{'// STEP-UP'}</h2>
