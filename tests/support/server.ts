@@ -35,6 +35,10 @@ const CONTENT_TYPES: Record<string, string> = {
   '.woff2': 'font/woff2',
   '.avif': 'image/avif',
   '.webp': 'image/webp',
+  '.jpg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml',
 }
 
 // The version the plugin bakes into the worker: "sw-<8 hex>". Coupled to build/serviceWorkerPlugin.ts.
@@ -130,7 +134,8 @@ export async function startServer(): Promise<TestServer> {
 
   const server = createServer(async (req, res) => {
     const { pathname } = new URL(req.url ?? '/', 'http://localhost')
-    const file = pathname === '/' ? 'index.html' : normalize(pathname).replace(/^\/+/, '')
+    // Directory URLs serve their index.html, as Caddy's file_server does (/demos/ is the demos page).
+    const file = `${normalize(pathname).replace(/^\/+/, '')}${pathname.endsWith('/') ? 'index.html' : ''}`
     // The KEV snapshot, as deploy/Caddyfile serves it off the darkflib-feeds volume.
     if (pathname === '/feeds/kev.json') {
       if (kevMode === 'empty') {
@@ -185,7 +190,7 @@ export async function startServer(): Promise<TestServer> {
         if (new Set(code.match(VERSION_LITERAL)).size !== 1) throw new Error('expected one service worker version')
         body = code.replace(VERSION_LITERAL, (_match, version: string) => `"${version}.test${bump}"`)
       }
-      const revalidate = file === SERVICE_WORKER || file === 'index.html'
+      const revalidate = file === SERVICE_WORKER || file.endsWith('index.html')
       const headers: Record<string, string> = {
         'Content-Type': CONTENT_TYPES[extname(file)] ?? 'application/octet-stream',
         'Cache-Control': revalidate ? 'no-cache' : 'public, max-age=3600',
