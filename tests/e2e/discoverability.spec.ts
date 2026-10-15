@@ -31,6 +31,13 @@ test('the sitemap lists every page, and each page declares itself canonical', as
   }
 })
 
+test("the home page's no-script fallback links this site's own pages", async ({ request }) => {
+  const home = await (await request.get('/')).text()
+  const fallback = home.slice(home.indexOf('<noscript>'), home.indexOf('</noscript>'))
+  expect(fallback).toContain('href="/projects/"')
+  expect(fallback).toContain('href="/demos/"')
+})
+
 test('the document carries canonical, link-preview, and structured metadata', async ({ page, request }) => {
   await page.goto('/')
 
