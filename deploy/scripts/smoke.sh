@@ -11,6 +11,9 @@
 #
 # The KEV snapshot volume is stood in for by tests/fixtures/kev.json, copied out with its fetched_at set to now, since
 # on ny03 that file is written hourly by darkflib-kev.service and the page hides a snapshot older than a week.
+#
+# wwff-auth is stood in for by a second container from the same image running deploy/scripts/auth-stub.Caddyfile, on a
+# network of its own, as wwff-auth shares darkflib.network on the host.
 
 set -eu
 
@@ -18,6 +21,8 @@ image=${DARKFLIB_IMAGE:-darkflib.com:ci}
 port=${SMOKE_PORT:-18080}
 engine=${CONTAINER_ENGINE:-$(command -v podman >/dev/null 2>&1 && echo podman || echo docker)}
 name=darkflib-smoke
+auth_name=darkflib-smoke-auth
+network=darkflib-smoke
 base="http://127.0.0.1:$port"
 failures=0
 
@@ -28,20 +33,36 @@ sed "s|\"fetched_at\": \"[^\"]*\"|\"fetched_at\": \"$now\"|" "$script_dir/../../
     > "$feeds/kev.json"
 # A stand-in for one of kev-snapshot's in-progress writes, which Caddy must never serve.
 cp "$feeds/kev.json" "$feeds/.kev-smoke.json"
-# Readable by the container's uid 65532, which is not the user running this.
+# Readable by the container's uid 65532, which is not the user running this. The mounts below add :Z, so an
+# SELinux-enforcing host relabels each directory for its container.
 chmod 0755 "$feeds"
 chmod 0644 "$feeds/kev.json" "$feeds/.kev-smoke.json"
+stub=$(mktemp -d "${TMPDIR:-/tmp}/darkflib-auth-stub.XXXXXX")
+cp "$script_dir/auth-stub.Caddyfile" "$stub/Caddyfile"
+chmod 0755 "$stub"
+chmod 0644 "$stub/Caddyfile"
 
 cleanup() {
     if [ "${KEEP:-0}" != 1 ]; then
-        "$engine" rm --force "$name" >/dev/null 2>&1 || true
-        rm -rf "$feeds"
+        "$engine" rm --force "$name" "$auth_name" >/dev/null 2>&1 || true
+        "$engine" network rm "$network" >/dev/null 2>&1 || true
+        rm -rf "$feeds" "$stub"
     fi
 }
 trap cleanup EXIT
 
-"$engine" rm --force "$name" >/dev/null 2>&1 || true
-"$engine" run --detach --name "$name" \
+"$engine" rm --force "$name" "$auth_name" >/dev/null 2>&1 || true
+"$engine" network rm "$network" >/dev/null 2>&1 || true
+"$engine" network create "$network" >/dev/null
+"$engine" run --detach --name "$auth_name" --network "$network" \
+    --read-only \
+    --tmpfs /data:rw,nosuid,nodev,mode=1777 \
+    --tmpfs /config:rw,nosuid,nodev,mode=1777 \
+    --user 65532:65532 \
+    --volume "$stub:/etc/auth-stub:ro,Z" \
+    "$image" caddy run --config /etc/auth-stub/Caddyfile --adapter caddyfile >/dev/null
+"$engine" run --detach --name "$name" --network "$network" \
+    --env "WWFF_AUTH_UPSTREAM=$auth_name:8000" \
     --read-only \
     --tmpfs /data:rw,nosuid,nodev,mode=1777 \
     --tmpfs /config:rw,nosuid,nodev,mode=1777 \
@@ -49,7 +70,7 @@ trap cleanup EXIT
     --cap-drop all --cap-add NET_BIND_SERVICE \
     --user 65532:65532 \
     --pids-limit 128 \
-    --volume "$feeds:/srv/feeds:ro" \
+    --volume "$feeds:/srv/feeds:ro,Z" \
     --publish "127.0.0.1:$port:8080" \
     "$image" >/dev/null
 
@@ -135,6 +156,39 @@ for demo in queueing-knee retry-storms overload breaking-the-loop circuit-breake
     check "/demos/$demo/ is 200" is "$status" 200
     check "/demos/$demo/ revalidates (no-cache)" is "$(header cache-control)" no-cache
 done
+
+echo "access pages"
+for page in /login/ /login/enrol/; do
+    fetch darkflib.com "$page"
+    check "$page is 200" is "$status" 200
+    check "$page revalidates (no-cache)" is "$(header cache-control)" no-cache
+    check "$page is kept out of search" contains "$(curl --silent --header 'Host: darkflib.com' "$base$page")" \
+        '<meta name="robots" content="noindex, nofollow"'
+done
+
+echo "wwff-auth"
+fetch darkflib.com /auth/session --cookie smoke=1
+check "/auth/* reaches the auth service" is "$status" 200
+check "/auth/* is never stored, whatever the service says" is "$(header cache-control)" no-store
+check "/auth/* carries the site's CSP" contains "$(header content-security-policy)" "default-src 'self'"
+fetch darkflib.com /auth/verify --cookie smoke=1
+check "/auth/verify is not reachable from outside" is "$status" 404
+
+echo "tools (behind forward_auth)"
+fetch darkflib.com /tools/ --header 'Sec-Fetch-Mode: navigate'
+check "a page load without a session is sent to sign in" is "$status" 303
+check "the sign-in redirect comes back here" is "$(header location)" /login/?next=/tools/
+check "the redirect is never stored" is "$(header cache-control)" "private, no-store"
+fetch darkflib.com /tools/
+check "anything else without a session gets the service's 401" is "$status" 401
+check "the 401 is never stored" is "$(header cache-control)" "private, no-store"
+fetch darkflib.com /tools/ --cookie smoke=1
+check "a session gets the tools page" is "$status" 200
+check "the tools page is private and never stored" is "$(header cache-control)" "private, no-store"
+check "the tools page is the tools page" contains "$(curl --silent --header 'Host: darkflib.com' --cookie smoke=1 \
+    "$base/tools/")" 'data-page="tools"'
+fetch darkflib.com /tools/ --cookie smoke=1 --header 'X-Auth-High-At: 1'
+check "a client's own X-Auth-* header is stripped before the auth service sees it" is "$status" 200
 
 echo "service worker"
 fetch darkflib.com /service-worker.js

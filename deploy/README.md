@@ -14,6 +14,9 @@ visitor ──TLS──▶ nginx (ny03) ──http──▶ 127.0.0.1:8082 ─�
                  │ TLS for .darkflib.com and .darkflib.dev    │ routing by Host, security headers,
                  │ edge cache for /assets/, /images/, /feeds/ │ Cache-Control
                  │ X-Forwarded-For, Server-Timing edge status │ darkflib.network
+                                                              │
+                              /auth/*, and forward_auth ──────┴──▶ wwff-auth:8000 (its own app in gitops,
+                              for /tools/*                          on darkflib.network and the shared Postgres)
                                                               ▲
                           darkflib-kev.timer ──hourly──▶ darkflib-kev (kev-snapshot, same image)
                                                               │ GET sretab.mikepreston.org/api/v1/feed
@@ -21,8 +24,9 @@ visitor ──TLS──▶ nginx (ny03) ──http──▶ 127.0.0.1:8082 ─�
                                                         darkflib-feeds volume (web mounts it read-only)
 ```
 
-There is no application container or database: the image is Caddy with `dist/` and `deploy/Caddyfile` baked in, so
-the CSP and cache policy always ship with the code they describe. The one piece of state is the KEV snapshot on the
+This image has no application server or database: it is Caddy with `dist/` and `deploy/Caddyfile` baked in, so
+the CSP and cache policy always ship with the code they describe. Sign-in is [wwff-auth](https://github.com/Darkflib/wwff-auth),
+a separate image and gitops app (`quadlet/apps/wwff-auth/`); this Caddy reaches it by name on darkflib.network. The one piece of state is the KEV snapshot on the
 `darkflib-feeds` volume, written by an hourly oneshot from that same image and served as `/feeds/kev.json`.
 
 | Name                                | Served as                                              |
@@ -33,6 +37,9 @@ the CSP and cache policy always ship with the code they describe. The one piece 
 | `api.darkflib.dev`                  | Fault Lab secondary API (cross-site)                   |
 | `media.darkflib.com`                | Fault Lab media origin                                 |
 | `darkflib.com/feeds/kev.json`       | the KEV snapshot; 204 until the first refresh          |
+| `darkflib.com/login/`, `/login/enrol/` | sign-in and passkey enrolment pages (static, `noindex`) |
+| `darkflib.com/auth/*`               | proxied to wwff-auth, `no-store`; `/auth/verify` is a 404 from outside |
+| `darkflib.com/tools/*`              | `forward_auth` to wwff-auth's `/auth/verify` first: a page load without a session is a 303 to `/login/?next=…`, anything else the service's 401; passed requests carry `X-Auth-*` (client copies stripped) and are `private, no-store` |
 | `darkflib.dev`, `www.darkflib.dev`  | 302 to `https://darkflib.com`                          |
 | any other `*.darkflib.com` / `.dev` | 404                                                    |
 
@@ -84,8 +91,10 @@ The `container` job builds the image and then:
 
 - checks the image has a healthcheck, runs as uid 65532, and contains no setuid files
 - runs `scripts/smoke.sh`: every route, security header, cache policy, and hardening flag above, against the container
-  started the way the Quadlet starts it
-- loads the site in Chromium under the real headers, with no CSP violations and the service worker in control
+  started the way the Quadlet starts it, with `scripts/auth-stub.Caddyfile` (in a second container from the same
+  image) standing in for wwff-auth
+- loads the site in Chromium under the real headers, with no CSP violations and the service worker in control; and the
+  access pages, signed out and then signed in through `forward_auth`
 
 `publish` then pushes that exact image, signs it, and attests it. It runs only for pushes to main on a public
 repository. Unit generation, digest pins, and signature verification are gitops' checks, not this repository's.

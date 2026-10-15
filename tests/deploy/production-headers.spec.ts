@@ -31,3 +31,34 @@ test('the site runs under production headers without CSP violations', async ({ p
 
   expect(violations).toEqual([])
 })
+
+// The access pages and the tools index under the same policy, with deploy/scripts/auth-stub.Caddyfile standing in for
+// wwff-auth: signed out at /login/, signed in (its smoke=1 cookie) through forward_auth at /tools/.
+test('the access pages run under production headers without CSP violations', async ({ page, context }) => {
+  const violations: string[] = []
+  page.on('console', (message) => {
+    if (message.type() === 'error') violations.push(message.text())
+  })
+  await page.exposeFunction('reportViolation', (violation: string) => violations.push(violation))
+  await page.addInitScript(() => {
+    document.addEventListener('securitypolicyviolation', (event) => {
+      ;(window as unknown as { reportViolation: (v: string) => void }).reportViolation(
+        `${event.violatedDirective} ${event.blockedURI}`,
+      )
+    })
+  })
+
+  await page.goto('/login/')
+  await expect(page.getByRole('heading', { name: 'Identify yourself.' })).toBeVisible()
+  // The grid paints: the canvas has a backing store sized to the scene.
+  expect(await page.locator('canvas').evaluate((canvas: HTMLCanvasElement) => canvas.width)).toBeGreaterThan(0)
+
+  await page.goto('/tools/')
+  await expect(page).toHaveURL(/\/login\/\?next=\/tools\/$/)
+
+  await context.addCookies([{ name: 'smoke', value: '1', domain: 'darkflib.com', path: '/' }])
+  await page.goto('/tools/')
+  await expect(page.getByText('Signed in as Smoke, with GitHub.')).toBeVisible()
+
+  expect(violations).toEqual([])
+})
