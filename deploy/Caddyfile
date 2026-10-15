@@ -200,5 +200,16 @@
 		respond 404
 	}
 
-	log
+	# The access log, minus what would let a reader sign in as someone else: wwff-auth's OAuth callbacks
+	# (/auth/<provider>/callback) carry the provider's authorization code and the attempt's state in the query, and
+	# a code is good until it is redeemed. Replaced rather than dropped, so a log still shows that a callback had
+	# them. Cookie and Authorization headers are already redacted by Caddy's default.
+	log {
+		format filter {
+			request>uri query {
+				replace code REDACTED
+				replace state REDACTED
+			}
+		}
+	}
 }
