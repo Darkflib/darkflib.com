@@ -204,6 +204,16 @@ check "it echoes what /auth/verify sent" contains "$echoed" '"X-Auth-User": "smo
 check "it echoes the level from /auth/verify, not the client's" contains "$echoed" '"X-Auth-Level": "FEDERATED"'
 check "an absent level stays empty" contains "$echoed" '"X-Auth-High-At": ""'
 
+echo "access log"
+# An OAuth callback's code and state must never reach the access log: a code is good until it is redeemed.
+curl --silent --output /dev/null --header 'Host: darkflib.com' \
+    "$base/auth/github/callback?code=smoke-code-0123456789&state=smoke-state-9876543210"
+sleep 1
+access_log=$("$engine" logs "$name" 2>&1)
+check "the callback was logged" contains "$access_log" /auth/github/callback
+check "the callback's code is redacted in the access log" lacks "$access_log" smoke-code-0123456789
+check "the callback's state is redacted in the access log" lacks "$access_log" smoke-state-9876543210
+
 echo "service worker"
 fetch darkflib.com /service-worker.js
 check "worker is 200" is "$status" 200
