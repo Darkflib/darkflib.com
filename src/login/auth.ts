@@ -34,8 +34,12 @@ export class AuthError extends Error {
 /** Where to go after signing in: a same-origin path from `?next=`, or the tools index. */
 export function nextPath(search: string): string {
   const next = new URLSearchParams(search).get('next')
-  // A path on this origin only: "/x", never "//host" or "/\host", which browsers treat as another origin.
-  return next && /^\/(?![/\\])/.test(next) ? next : '/tools/'
+  if (!next?.startsWith('/')) return '/tools/'
+  // Resolve it the way navigation will, rather than pattern-matching the text: the URL parser strips tabs and
+  // newlines and reads "\" as "/", so "/\t/evil.com" and "/\evil.com" both become another origin.
+  const origin = window.location.origin
+  const url = new URL(next, origin)
+  return url.origin === origin ? url.pathname + url.search + url.hash : '/tools/'
 }
 
 export function startUrl(provider: Provider, next: string): string {

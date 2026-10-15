@@ -94,10 +94,14 @@ export function LoginPage() {
 
   async function signOut() {
     setBusy(true)
+    setMessage('')
     try {
       await logout()
-    } finally {
       setSession(null)
+    } catch {
+      // The session cookie is HttpOnly, so only the service can end it: never show signed out unless it did.
+      setMessage('Sign-out did not complete, so you are still signed in. Please try again.')
+    } finally {
       setBusy(false)
     }
   }
@@ -131,6 +135,9 @@ export function LoginPage() {
         <button className="access-link" type="button" onClick={signOut} disabled={busy}>
           Sign out
         </button>
+        <p className="access-feedback" role="status" aria-live="polite">
+          {message}
+        </p>
       </AccessScene>
     )
   }
@@ -152,10 +159,13 @@ export function LoginPage() {
       </p>
       <div className="access-providers">
         {PROVIDERS.map((provider) => (
+          // Inert until the invite is redeemed: leaving mid-request could cancel it, and the callback would then find
+          // no invite and refuse the new account.
           <a
             key={provider.id}
             className={provider.id === 'github' ? 'access-submit' : 'access-secondary'}
-            href={startUrl(provider.id, next)}
+            href={invite === 'checking' ? undefined : startUrl(provider.id, next)}
+            aria-disabled={invite === 'checking' || undefined}
           >
             <span className="access-provider-label">
               {provider.icon}
