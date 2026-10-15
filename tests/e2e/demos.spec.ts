@@ -87,12 +87,24 @@ test('overload: blocking the caller piles the backlog up upstream', async ({ pag
   await expect(page.getByTestId('readout-queueDepth')).toContainText('50')
 })
 
-test('sandbox: nothing is held constant, and both disturbances are buttons', async ({ page }) => {
+test('sandbox: only the autoscaler is held constant, and both disturbances are buttons', async ({ page }) => {
   await page.goto(demoPath('sandbox'))
-  await expect(page.getByTestId('held-constant')).toContainText('every engine parameter is a control')
+  await expect(page.getByTestId('held-constant')).toHaveText('HELD CONSTANT a fixed pool: no autoscaler')
   await expect(page.getByRole('button', { name: 'INJECT SPIKE' })).toBeVisible()
   await page.getByRole('button', { name: 'SLOW DEPENDENCY' }).click()
   await expect(page.locator('.sim-presets button[aria-pressed="true"]')).toHaveText('STEADY')
+})
+
+test('autoscaler: the stale preset swings the pool, and a cooldown slows the scaling down', async ({ page }) => {
+  await page.goto(demoPath('autoscaler'))
+  await page.getByRole('button', { name: '10×' }).click()
+  await expect(page.getByTestId('readout-pool')).toContainText('NEEDS 10', { timeout: 10_000 })
+  await expect(page.getByTestId('readout-pool')).toHaveText(/WORKERS\s*(3[0-2]|2)\b/, { timeout: 20_000 })
+
+  await page.getByRole('button', { name: '12 S COOLDOWN' }).click()
+  await expect(page.getByLabel('COOLDOWN')).toHaveValue('12')
+  await expect(page.getByTestId('readout-scaling')).toContainText('LAST', { timeout: 10_000 })
+  await expect(page.getByTestId('held-constant')).toContainText('2 to 32 workers')
 })
 
 test('the index groups related demos, numbered across the whole index', async ({ page }) => {

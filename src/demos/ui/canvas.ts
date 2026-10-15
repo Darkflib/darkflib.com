@@ -136,8 +136,9 @@ export function drawPipeline(cv: HTMLCanvasElement, sim: Simulation, c: Palette,
   ctx.font = font(10)
   ctx.fillText(p.discipline.toUpperCase(), qx1, qTop + tubeH + 14)
 
-  // Workers
-  const count = p.workers
+  // Workers, then any still starting, drawn as empty dashed slots
+  const starting = sim.booting
+  const count = p.workers + starting
   const ww = Math.max(20, wx1 - wx0)
   const wh = h - 70
   let best = { s: 0, cols: 1, rows: 1 }
@@ -159,6 +160,13 @@ export function drawPipeline(cv: HTMLCanvasElement, sim: Simulation, c: Palette,
     const x = gx + col * (bs + 4)
     const y = gy + row * (bs + 4)
     wpos[i] = { x: x + bs, y: y + bs / 2 }
+    if (i >= p.workers) {
+      ctx.setLineDash([3, 3])
+      ctx.strokeStyle = c.muted
+      ctx.strokeRect(x + 0.5, y + 0.5, bs - 1, bs - 1)
+      ctx.setLineDash([])
+      continue
+    }
     const wk = sim.workers[i]
     if (wk.req) {
       busy++
@@ -176,7 +184,7 @@ export function drawPipeline(cv: HTMLCanvasElement, sim: Simulation, c: Palette,
   ctx.textAlign = 'center'
   ctx.fillStyle = c.muted
   ctx.font = font(10, 500)
-  ctx.fillText(`WORKERS ${busy}/${count}`, wx0 + ww / 2, gy - 14)
+  ctx.fillText(`WORKERS ${busy}/${p.workers}${starting ? ` +${starting} STARTING` : ''}`, wx0 + ww / 2, gy - 14)
   if (sim.slowing) {
     ctx.fillStyle = c.warn
     ctx.fillText('DEPENDENCY SLOW ×3', wx0 + ww / 2, gy + gh + 16)
@@ -286,6 +294,15 @@ export const CHARTS: Record<ChartId, ChartSpec> = {
     series: [
       { get: (s) => s.held, tone: 'warn', label: 'blocked upstream', area: true, dot: true },
       { get: (s) => s.depth, tone: 'accent', label: 'queued at the server', area: true, dot: true },
+    ],
+  },
+  workers: {
+    title: 'WORKERS',
+    fmt: (v) => String(Math.round(v)),
+    series: [
+      { get: (s) => s.need, tone: 'muted', label: 'needed at target', dash: [4, 3], width: 1.2 },
+      { get: (s) => s.pool + s.booting, tone: 'warn', label: 'asked for', width: 1.2 },
+      { get: (s) => s.pool, tone: 'accent', label: 'serving', width: 2, area: true, dot: true },
     ],
   },
   latency: {

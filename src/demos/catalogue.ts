@@ -56,10 +56,12 @@ const group = (id: string, title: string, blurb: string, slugs: readonly string[
 
 /** The index's sections, in order. Every demo belongs to exactly one (tests/unit checks). */
 export const DEMO_GROUPS: readonly DemoGroup[] = [
-  group('queueing', 'QUEUEING & CAPACITY', 'How load turns into waiting, and where the excess goes.', [
-    'queueing-knee',
-    'overload',
-  ]),
+  group(
+    'queueing',
+    'QUEUEING & CAPACITY',
+    'How load turns into waiting, where the excess goes, and who adds capacity.',
+    ['queueing-knee', 'overload', 'autoscaler'],
+  ),
   group('retries', 'RETRIES & RECOVERY', 'How retries turn a blip into an outage, and how to stop them.', [
     'retry-storms',
     'breaking-the-loop',

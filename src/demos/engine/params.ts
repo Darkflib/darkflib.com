@@ -32,6 +32,18 @@ export interface Params {
   retryBudget: number | null
   /** Skip queued work whose client has already given up. */
   dropExpired: boolean
+  /** Resize the worker pool from measured utilisation. Off, the pool stays at `workers`. */
+  autoscale: boolean
+  /** Utilisation the autoscaler aims for. */
+  scaleTarget: number
+  /** Age of the utilisation the autoscaler sees: scrape interval plus metrics pipeline. */
+  metricLagS: number
+  /** Time from asking for a worker to it taking work. */
+  bootS: number
+  /** Least time between two scaling actions. */
+  cooldownS: number
+  minWorkers: number
+  maxWorkers: number
 }
 
 export const MAX_WORKERS = 32
@@ -54,6 +66,13 @@ export const DEFAULTS: Readonly<Params> = {
   jitter: true,
   retryBudget: null,
   dropExpired: false,
+  autoscale: false,
+  scaleTarget: 0.6,
+  metricLagS: 0,
+  bootS: 0,
+  cooldownS: 0,
+  minWorkers: 2,
+  maxWorkers: MAX_WORKERS,
 }
 
 /** Squared coefficient of variation of service time, per shape. */

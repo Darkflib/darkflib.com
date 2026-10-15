@@ -2,7 +2,14 @@
 // React, so a demo definition stays data and the page renders whatever it lists.
 import type { ControlId, HeldId, ReadoutId } from './definition.ts'
 import { capacity, MAX_WORKERS, type Params, type QueuePolicy, utilisation, type Variability } from './engine/params.ts'
-import { type Health, health, type Sample, type Simulation } from './engine/simulation.ts'
+import {
+  type Health,
+  health,
+  type Sample,
+  SCALE_INTERVAL,
+  SCALE_TOLERANCE,
+  type Simulation,
+} from './engine/simulation.ts'
 
 // ---------- Formatting ----------
 
@@ -240,6 +247,54 @@ export const CONTROLS: Record<ControlId, Control> = {
     get: (p) => p.jitter,
     patch: (value) => ({ jitter: value }),
   },
+  scaleTarget: {
+    id: 'scaleTarget',
+    kind: 'range',
+    label: 'TARGET UTILISATION',
+    help: 'How busy the autoscaler tries to keep each worker. Lower buys headroom with more workers.',
+    min: 0.3,
+    max: 0.9,
+    step: 0.05,
+    get: (p) => p.scaleTarget,
+    patch: (value) => ({ scaleTarget: value }),
+    format: fmtPercent,
+  },
+  metricLag: {
+    id: 'metricLag',
+    kind: 'range',
+    label: 'METRIC LAG',
+    help: 'How old the utilisation is when the autoscaler reads it: scrape interval plus pipeline.',
+    min: 0,
+    max: 10,
+    step: 1,
+    get: (p) => p.metricLagS,
+    patch: (value) => ({ metricLagS: value }),
+    format: (value) => `${value} S`,
+  },
+  bootTime: {
+    id: 'bootTime',
+    kind: 'range',
+    label: 'START-UP TIME',
+    help: 'From asking for a worker to it taking work: scheduling, image pull, warm-up.',
+    min: 0,
+    max: 15,
+    step: 1,
+    get: (p) => p.bootS,
+    patch: (value) => ({ bootS: value }),
+    format: (value) => `${value} S`,
+  },
+  cooldown: {
+    id: 'cooldown',
+    kind: 'range',
+    label: 'COOLDOWN',
+    help: 'Least time between two scaling actions, so the last one can show up in the metric first.',
+    min: 0,
+    max: 30,
+    step: 1,
+    get: (p) => p.cooldownS,
+    patch: (value) => ({ cooldownS: value }),
+    format: (value) => `${value} S`,
+  },
   retryBudget: {
     id: 'retryBudget',
     kind: 'select',
@@ -274,6 +329,11 @@ export const HELD: Record<HeldId, (p: Params) => string> = {
   timeout: (p) => (p.timeoutMs >= 3_600_000 ? 'no client timeout' : `${p.timeoutMs} ms client timeout`),
   retries: (p) => (p.retries === 0 ? 'no retries' : `${p.retries} retries`),
   backoff: (p) => `${p.backoffMs} ms exponential backoff, ${p.jitter ? 'jittered' : 'no jitter'}`,
+  arrivals: (p) => `${fmtRate(p.lambda)}/s fresh arrivals between surges`,
+  autoscaler: (p) =>
+    p.autoscale
+      ? `${p.minWorkers} to ${p.maxWorkers} workers, scaled every ${SCALE_INTERVAL} s on ${fmtPercent(SCALE_TOLERANCE)} tolerance`
+      : 'a fixed pool: no autoscaler',
 }
 
 // ---------- Readouts ----------
@@ -346,6 +406,25 @@ export const READOUTS: Record<ReadoutId, Readout> = {
     label: 'QUEUE',
     value: fmtCount(m.depth),
     sub: sim.oom ? 'OUT OF MEMORY' : `MEAN WAIT ${fmtSeconds(m.wait)}`,
+  }),
+  pool: (sim, m) => ({
+    label: 'WORKERS',
+    value: m.booting ? `${m.pool} +${m.booting}` : String(m.pool),
+    sub: `${m.booting ? `${m.booting} STARTING · ` : ''}NEEDS ${Math.ceil(m.need)} AT ${fmtPercent(sim.params.scaleTarget)}`,
+  }),
+  scaling: (sim) => {
+    const recent = sim.scaleLog.filter((a) => a.t > sim.t - 60)
+    const last = sim.scaleLog.at(-1)
+    return {
+      label: 'SCALING ACTIONS',
+      value: `${recent.length} / MIN`,
+      sub: last ? `LAST ${last.from} → ${last.to} AT ${Math.round(last.t)} S` : 'NONE YET',
+    }
+  },
+  seenUtil: (sim, m) => ({
+    label: 'UTILISATION SEEN',
+    value: Number.isFinite(sim.seenUtil) ? fmtPercent(sim.seenUtil) : '—',
+    sub: `ACTUAL ${fmtPercent(m.util)} · ${sim.params.metricLagS} S OLD`,
   }),
   littles: (_sim, m) => {
     const lw = m.lamOut * m.W

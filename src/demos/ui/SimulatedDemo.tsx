@@ -10,9 +10,10 @@ import { type Speed, useSimulation } from './useSimulation'
 import './SimulatedDemo.css'
 
 const SPEEDS: Speed[] = [1, 3, 10]
-const ACTION_LABELS = { spike: 'INJECT SPIKE', slow: 'SLOW DEPENDENCY' } as const
+const ACTION_LABELS = { spike: 'INJECT SPIKE', slow: 'SLOW DEPENDENCY', surge: 'DOUBLE THE LOAD' } as const
 const ACTION_HELP = {
   spike: 'Double the arrival rate for 5 simulated seconds.',
+  surge: 'Double the arrival rate for 30 simulated seconds.',
   slow: 'Triple service time for 10 simulated seconds.',
 } as const
 
