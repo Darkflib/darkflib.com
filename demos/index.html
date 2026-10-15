@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#070b18" />
-    <meta name="description" content="SRE and systems demos you can break on purpose: queueing, retry storms, SLO alerting, circuit breakers, and failover, run in your own browser." />
+    <meta name="description" content="SRE and systems demos you can break on purpose: queueing, autoscaling, retry storms, SLO alerting, circuit breakers, and failover, run in your own browser." />
     <title>DEMOS — DARKFLIB</title>
     <link rel="canonical" href="https://darkflib.com/demos/" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -16,7 +16,7 @@
     <meta property="og:site_name" content="Darkflib" />
     <meta property="og:url" content="https://darkflib.com/demos/" />
     <meta property="og:title" content="DEMOS — DARKFLIB" />
-    <meta property="og:description" content="SRE and systems demos you can break on purpose: queueing, retry storms, SLO alerting, circuit breakers, and failover, run in your own browser." />
+    <meta property="og:description" content="SRE and systems demos you can break on purpose: queueing, autoscaling, retry storms, SLO alerting, circuit breakers, and failover, run in your own browser." />
     <meta property="og:image" content="https://darkflib.com/images/og-card.jpg" />
     <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1200" />
@@ -48,6 +48,9 @@
             "@id": "https://darkflib.com/demos/overload/#page"
           },
           {
+            "@id": "https://darkflib.com/demos/autoscaler/#page"
+          },
+          {
             "@id": "https://darkflib.com/demos/retry-storms/#page"
           },
           {
@@ -73,10 +76,11 @@
       <h1>DEMOS</h1>
       <p>Reliability patterns you can break on purpose. The demos need JavaScript.</p>
       <h2>QUEUEING &amp; CAPACITY</h2>
-      <p>How load turns into waiting, and where the excess goes.</p>
+      <p>How load turns into waiting, where the excess goes, and who adds capacity.</p>
       <ul>
         <li><a href="/demos/queueing-knee/">The queueing knee</a>: Why does latency explode when the service is only 85% busy?</li>
         <li><a href="/demos/overload/">Where does overload go?</a>: When requests arrive faster than they can be served, where does the excess end up?</li>
+        <li><a href="/demos/autoscaler/">Autoscaler oscillation</a>: Why does the autoscaler keep swinging between too many workers and too few?</li>
       </ul>
       <h2>RETRIES &amp; RECOVERY</h2>
       <p>How retries turn a blip into an outage, and how to stop them.</p>

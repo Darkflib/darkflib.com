@@ -41,7 +41,21 @@ export interface Worker {
 }
 
 /** Something a script or a button can make happen. */
-export type Disturbance = 'spike' | 'slow'
+export type Disturbance = 'spike' | 'slow' | 'surge'
+
+/** How long each load disturbance doubles the arrival rate for, in seconds. */
+const SURGE_SECONDS: Record<Exclude<Disturbance, 'slow'>, number> = { spike: 5, surge: 30 }
+/** How often the autoscaler looks at its metric, in simulated seconds. */
+export const SCALE_INTERVAL = 2
+/** The autoscaler leaves the pool alone while utilisation is within this share of its target, as Kubernetes does. */
+export const SCALE_TOLERANCE = 0.1
+
+/** One autoscaler decision: the pool size it had (serving plus starting) and the size it asked for. */
+export interface ScaleAction {
+  t: number
+  from: number
+  to: number
+}
 
 /** A disturbance at a fixed simulated time, so a preset can stage its trigger. */
 export interface ScriptEvent {
@@ -59,6 +73,8 @@ type SimEvent =
   | { t: number; type: 'done'; worker: Worker }
   | { t: number; type: 'spikeEnd' }
   | { t: number; type: 'disturb'; action: Disturbance }
+  | { t: number; type: 'scale' }
+  | { t: number; type: 'boot'; dead?: boolean }
 
 interface Bucket {
   arr: number
@@ -82,6 +98,9 @@ interface Bucket {
   soj: number
   waitSum: number
   waitN: number
+  /** Integrals of busy workers and of pool size over time, for utilisation. */
+  busyArea: number
+  poolArea: number
 }
 
 const newBucket = (): Bucket => ({
@@ -103,6 +122,8 @@ const newBucket = (): Bucket => ({
   soj: 0,
   waitSum: 0,
   waitN: 0,
+  busyArea: 0,
+  poolArea: 0,
 })
 
 /** One metrics sample: the rolling window ending at `t`. Rates are per second; times are seconds. */
@@ -133,6 +154,14 @@ export interface Sample {
   depth: number
   held: number
   busy: number
+  /** Share of the pool's time spent serving, over the window: what an autoscaler would scrape. */
+  util: number
+  /** Workers taking work. */
+  pool: number
+  /** Workers asked for but still starting. */
+  booting: number
+  /** Workers the fresh load needs to run at the autoscaler's target. */
+  need: number
   /** Capacity right now, including any slow-dependency multiplier. */
   cap: number
   /** Time-averaged number in system. */
@@ -165,6 +194,8 @@ export class Simulation {
   oom = false
   spikeUntil = -1
   slowUntil = -1
+  /** Every autoscaler decision, oldest first. */
+  readonly scaleLog: ScaleAction[] = []
   onFlow: (event: FlowEvent, worker?: number) => void = () => {}
 
   #random: Random
@@ -179,6 +210,11 @@ export class Simulation {
   #retryTokens = RETRY_BUDGET_CAP
   #epochWaitSum = 0
   #epochWaitN = 0
+  #busy = 0
+  /** Workers on their way, newest last, so a scale-down cancels the latest ask first. */
+  #booting: Extract<SimEvent, { type: 'boot' }>[] = []
+  #lastScale = Number.NEGATIVE_INFINITY
+  #scaling = false
   /** When the current epoch began: the last parameter change or disturbance. */
   epochStart = 0
 
@@ -187,6 +223,7 @@ export class Simulation {
     this.#random = new Random(seed)
     for (const event of script) this.#heap.push({ t: event.at, type: 'disturb', action: event.action })
     this.#scheduleGen()
+    this.#scheduleScale()
   }
 
   get spiking(): boolean {
@@ -195,6 +232,20 @@ export class Simulation {
 
   get slowing(): boolean {
     return this.t < this.slowUntil
+  }
+
+  /**
+   * The utilisation the autoscaler sees: the 2 s average that ended `metricLagS` ago, as a scraped metric would be.
+   * NaN until there is that much history.
+   */
+  get seenUtil(): number {
+    const seen = this.samples[this.samples.length - 1 - Math.round(this.params.metricLagS / SAMPLE_SECONDS)]
+    return seen ? seen.util : Number.NaN
+  }
+
+  /** Workers asked for but not yet taking work. */
+  get booting(): number {
+    return this.#booting.length
   }
 
   /**
@@ -216,14 +267,15 @@ export class Simulation {
     Object.assign(this.params, patch)
     this.#newEpoch()
     if ('lambda' in patch) this.#rescheduleGen()
+    this.#scheduleScale()
     this.#dispatch()
   }
 
-  /** Double the arrival rate for 5 s, or triple service time for 10 s. */
+  /** Double the arrival rate for 5 s (spike) or 30 s (surge), or triple service time for 10 s. */
   disturb(action: Disturbance): void {
     this.#newEpoch()
-    if (action === 'spike') {
-      this.spikeUntil = this.t + 5
+    if (action !== 'slow') {
+      this.spikeUntil = this.t + SURGE_SECONDS[action]
       this.#rescheduleGen()
       this.#heap.push({ t: this.spikeUntil, type: 'spikeEnd' })
     } else {
@@ -236,7 +288,7 @@ export class Simulation {
     const heap = this.#heap
     for (let e = heap.peek(); e && e.t <= to; e = heap.peek()) {
       heap.pop()
-      if (e.type === 'gen' && e.dead) continue
+      if ((e.type === 'gen' || e.type === 'boot') && e.dead) continue
       this.#integrate(e.t)
       this.t = e.t
       this.#handle(e)
@@ -364,6 +416,7 @@ export class Simulation {
 
   #start(w: Worker, r: Request): void {
     r.state = 'service'
+    this.#busy++
     w.req = r
     w.start = this.t
     w.dur = this.#serviceTime()
@@ -486,6 +539,7 @@ export class Simulation {
         const w = e.worker
         const r = w.req as Request
         w.req = null
+        this.#busy--
         this.#finish(r, this.workers.indexOf(w))
         this.#dispatch()
         break
@@ -496,19 +550,85 @@ export class Simulation {
       case 'disturb':
         this.disturb(e.action)
         break
+      case 'scale':
+        this.#scaling = false
+        this.#scheduleScale()
+        this.#autoscale()
+        break
+      case 'boot':
+        this.#booting.splice(this.#booting.indexOf(e), 1)
+        this.params.workers++
+        this.#dispatch()
+        break
     }
+  }
+
+  // ---------- Autoscaler ----------
+
+  /** Keep one look-ahead scale event queued while autoscaling is on; none at all otherwise, so other runs are untouched. */
+  #scheduleScale(): void {
+    if (!this.params.autoscale || this.#scaling) return
+    this.#scaling = true
+    this.#heap.push({ t: (Math.floor(this.t / SCALE_INTERVAL + 1e-9) + 1) * SCALE_INTERVAL, type: 'scale' })
+  }
+
+  /**
+   * The textbook proportional rule, as Kubernetes' HPA uses it: desired = ceil(pool * utilisation / target), where the
+   * pool counts workers still starting and the utilisation is `metricLagS` old. Each delay is reasonable on its own.
+   * Together they mean the controller acts on a pool that no longer exists, which is where the overshoot comes from.
+   */
+  #autoscale(): void {
+    const p = this.params
+    if (this.t - this.#lastScale < p.cooldownS) return
+    const seen = this.seenUtil
+    if (!Number.isFinite(seen)) return
+    const current = p.workers + this.#booting.length
+    const ratio = seen / p.scaleTarget
+    if (Math.abs(ratio - 1) <= SCALE_TOLERANCE) return
+    const desired = Math.min(p.maxWorkers, Math.max(p.minWorkers, Math.ceil(current * ratio)))
+    if (desired === current) return
+    this.scaleLog.push({ t: this.t, from: current, to: desired })
+    if (this.scaleLog.length > 200) this.scaleLog.shift()
+    this.#lastScale = this.t
+    if (desired > current) {
+      for (let k = current; k < desired; k++) {
+        if (p.bootS <= 0) {
+          p.workers++
+          continue
+        }
+        const boot: Extract<SimEvent, { type: 'boot' }> = { t: this.t + p.bootS, type: 'boot' }
+        this.#booting.push(boot)
+        this.#heap.push(boot)
+      }
+      this.#dispatch()
+      return
+    }
+    // Cancel what is still starting before stopping anything that works. A stopped worker finishes what it holds.
+    let cut = current - desired
+    while (cut > 0 && this.#booting.length) {
+      ;(this.#booting.pop() as Extract<SimEvent, { type: 'boot' }>).dead = true
+      cut--
+    }
+    p.workers -= cut
   }
 
   // ---------- Metrics ----------
 
+  #accrue(dt: number): void {
+    const b = this.#bucket
+    b.area += this.#n * dt
+    b.busyArea += Math.min(this.#busy, this.params.workers) * dt
+    b.poolArea += this.params.workers * dt
+  }
+
   #integrate(t: number): void {
     while (this.#nextSample <= t) {
-      this.#bucket.area += this.#n * (this.#nextSample - this.#lastT)
+      this.#accrue(this.#nextSample - this.#lastT)
       this.#lastT = this.#nextSample
       this.#takeSample(this.#nextSample)
       this.#nextSample += SAMPLE_SECONDS
     }
-    this.#bucket.area += this.#n * (t - this.#lastT)
+    this.#accrue(t - this.#lastT)
     this.#lastT = t
   }
 
@@ -538,6 +658,8 @@ export class Simulation {
       s.soj += b.soj
       s.waitSum += b.waitSum
       s.waitN += b.waitN
+      s.busyArea += b.busyArea
+      s.poolArea += b.poolArea
       lat.push(...b.lat)
       e2e.push(...b.e2e)
     }
@@ -564,6 +686,10 @@ export class Simulation {
       depth: this.queue.length,
       held: this.held.length,
       busy,
+      util: s.poolArea ? s.busyArea / s.poolArea : 0,
+      pool: p.workers,
+      booting: this.#booting.length,
+      need: (p.lambda * this.#spikeMult() * p.svcMs) / 1000 / p.scaleTarget,
       cap: capacity(p) / this.#slowMult(),
       L: s.area / w,
       lamOut: s.leave / w,

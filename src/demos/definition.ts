@@ -21,6 +21,10 @@ export type ControlId =
   | 'backoff'
   | 'jitter'
   | 'retryBudget'
+  | 'scaleTarget'
+  | 'metricLag'
+  | 'bootTime'
+  | 'cooldown'
 export type ReadoutId =
   | 'health'
   | 'utilisation'
@@ -34,7 +38,10 @@ export type ReadoutId =
   | 'queueDepth'
   | 'blocked'
   | 'littles'
-export type ChartId = 'throughput' | 'depth' | 'backlog' | 'latency'
+  | 'pool'
+  | 'scaling'
+  | 'seenUtil'
+export type ChartId = 'throughput' | 'depth' | 'backlog' | 'latency' | 'workers'
 /** Parameters a demo may list as held constant; each has a describer in the registry. */
 export type HeldId =
   | 'utilisation'
@@ -46,6 +53,8 @@ export type HeldId =
   | 'timeout'
   | 'retries'
   | 'backoff'
+  | 'arrivals'
+  | 'autoscaler'
 
 /** A state the run must be in at a given time, for tests and for the reader's expectations. */
 export interface Expectation {

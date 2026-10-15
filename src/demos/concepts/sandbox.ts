@@ -9,7 +9,7 @@ export const sandbox: DemoDefinition = {
   title: 'FULL SANDBOX',
   question: 'What happens when every knob is yours?',
   summary:
-    'Every parameter the engine has, both disturbances, and six scenarios to start from. Build your own outage, then try to get out of it.',
+    'Every queue and retry parameter the engine has, both disturbances, and six scenarios to start from. Build your own outage, then try to get out of it.',
   tags: ['SANDBOX', 'QUEUEING', 'RETRIES', 'LOAD SHEDDING'],
   base: DEFAULTS,
   controls: [
@@ -98,7 +98,7 @@ export const sandbox: DemoDefinition = {
     'blocked',
   ],
   charts: ['throughput', 'backlog', 'latency'],
-  held: [],
+  held: ['autoscaler'],
   takeaways: [
     {
       title: 'Change one thing at a time',

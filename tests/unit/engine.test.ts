@@ -79,6 +79,30 @@ describe('engine', () => {
     assert.ok(sim.samples.some((s) => s.drops > 0))
   })
 
+  it('runs with the autoscaler off exactly as it did before there was one', () => {
+    const run = (params: object) => {
+      const sim = new Simulation({ lambda: 64, retries: 3, timeoutMs: 600, ...params }, 4, SPIKE)
+      sim.advance(30)
+      return sim.samples.map((s) => [s.good, s.depth])
+    }
+    // Autoscaler settings are inert while it is off: no scale events join the queue.
+    assert.deepEqual(run({}), run({ metricLagS: 9, bootS: 9, cooldownS: 9 }))
+  })
+
+  it('an autoscaler starts workers after the start-up time, and cancels those still starting first', () => {
+    const sim = new Simulation({ lambda: 60, workers: 4, autoscale: true, bootS: 5, retries: 0 }, 1)
+    sim.advance(2.5)
+    assert.equal(sim.params.workers, 4)
+    assert.ok(sim.booting > 0, `booting ${sim.booting}`)
+    const first = sim.scaleLog[0]
+    sim.advance(first.t + 5.01)
+    assert.ok(sim.params.workers > 4, `workers ${sim.params.workers}`)
+    sim.set({ lambda: 1 })
+    sim.advance(40)
+    assert.equal(sim.booting, 0)
+    assert.equal(sim.params.workers, 2)
+  })
+
   it('a retry budget refuses retries once spent', () => {
     const sim = new Simulation({ lambda: 64, retries: 3, timeoutMs: 600, retryBudget: 0.1 }, 1, SPIKE)
     sim.advance(20)
@@ -139,6 +163,32 @@ describe('presets tell their story', () => {
     assert.ok(lifo.depth > 500, `queue ${lifo.depth}`)
     const both = at(run('breaking-the-loop', 'lifo-skip'), 25)
     assert.ok(both.depth < 50, `queue ${both.depth}`)
+  })
+
+  it('autoscaler: delays make it swing end to end on a steady load; none, or a cooldown, keep it near the need', () => {
+    // From 50 s the load is steady at 30/s, which needs 5 workers at 60%.
+    const range = (presetId: string, from: number, to: number) => {
+      const sim = run('autoscaler', presetId)
+      let lo = Number.POSITIVE_INFINITY
+      let hi = 0
+      for (let t = from; t <= to; t += 0.25) {
+        const m = at(sim, t)
+        lo = Math.min(lo, m.pool)
+        hi = Math.max(hi, m.pool)
+      }
+      return { lo, hi, actions: sim.scaleLog.length }
+    }
+    for (const id of ['oscillate', 'stale']) {
+      const r = range(id, 50, 120)
+      assert.ok(r.lo <= 3 && r.hi >= 30, `${id}: pool ${r.lo} to ${r.hi}`)
+    }
+    const instant = range('instant', 50, 120)
+    assert.ok(instant.lo >= 2 && instant.hi <= 10, `instant: pool ${instant.lo} to ${instant.hi}`)
+    const surge = range('instant', 25, 40)
+    assert.ok(surge.lo >= 7 && surge.hi <= 16, `instant in the surge: pool ${surge.lo} to ${surge.hi}`)
+    const cooldown = range('cooldown', 10, 120)
+    assert.ok(cooldown.hi <= 16, `cooldown: peak ${cooldown.hi}`)
+    assert.ok(cooldown.actions <= 12, `cooldown: ${cooldown.actions} actions`)
   })
 
   it('queueing-knee: each preset waits longer than the last, and a heavy tail at 80% beats tight work at 95%', () => {
