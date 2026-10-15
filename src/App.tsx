@@ -1,90 +1,52 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ConnectPanel } from './components/ConnectPanel'
-import { ContactDialog } from './components/ContactDialog'
 import { ControlsPanel } from './components/ControlsPanel'
 import { EventLog } from './components/EventLog'
-import { FaultLab } from './components/FaultLab'
-import { Footer } from './components/Footer'
 import { Hero } from './components/Hero'
 import { KevPanel } from './components/KevPanel'
 import { PostsPanel } from './components/PostsPanel'
 import { ProjectDialog } from './components/ProjectDialog'
 import { ProjectsPanel } from './components/ProjectsPanel'
 import { ServiceWorkerPanel } from './components/ServiceWorkerPanel'
+import { SiteShell } from './components/SiteShell'
 import { StackPanel } from './components/StackPanel'
 import { SystemsStrip } from './components/SystemsStrip'
 import { ToolsPanel } from './components/ToolsPanel'
-import { Topbar } from './components/Topbar'
 import { type Project, projects } from './content'
 import './App.css'
 
-const LAB_HASH = '#fault-lab'
 // The KEV panel's source link opens sre-tab's own card rather than sending a visitor to a dashboard they cannot sign
 // in to.
 const SRE_TAB = projects.find((project) => project.slug === 'sre-tab') ?? null
-const CONTACT_HASH = '#contact'
 
 export function App() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [logOpen, setLogOpen] = useState(false)
-  const [contactOpen, setContactOpen] = useState(false)
-  // Collapsed by default; a link to #fault-lab (the hero's BREAK, or a shared URL) opens it.
-  const [labOpen, setLabOpen] = useState(() => window.location.hash === LAB_HASH)
-
-  useEffect(() => {
-    const openOnHash = () => {
-      if (window.location.hash === LAB_HASH) setLabOpen(true)
-    }
-    // hashchange does not fire when the hash is already #fault-lab, so catch the link clicks too.
-    const openOnLink = (event: MouseEvent) => {
-      if (!(event.target instanceof Element)) return
-      if (event.target.closest(`a[href="${LAB_HASH}"]`)) setLabOpen(true)
-      // Every link to #contact opens the dialog instead of scrolling to the CONNECT panel.
-      if (event.target.closest(`a[href="${CONTACT_HASH}"]`)) {
-        event.preventDefault()
-        setContactOpen(true)
-      }
-    }
-    window.addEventListener('hashchange', openOnHash)
-    document.addEventListener('click', openOnLink)
-    return () => {
-      window.removeEventListener('hashchange', openOnHash)
-      document.removeEventListener('click', openOnLink)
-    }
-  }, [])
-
-  const toggleLab = () => setLabOpen((open) => !open)
-  const toggleLog = () => setLogOpen((open) => !open)
 
   return (
-    <div className="site-shell" id="home">
-      <div className="site-grain" aria-hidden="true" />
-      <Topbar />
-      <main>
-        <Hero />
-        <SystemsStrip />
-        <div className="dashboard-grid">
-          <ProjectsPanel onSelect={setSelectedProject} />
-          <div className="middle-column">
-            <StackPanel />
-            <ConnectPanel onOpenContact={() => setContactOpen(true)} />
-          </div>
-          <div className="side-column">
-            <ServiceWorkerPanel />
-            <ControlsPanel labOpen={labOpen} onToggleLab={toggleLab} logOpen={logOpen} onToggleLog={toggleLog} />
-          </div>
+    <SiteShell
+      page="home"
+      overlays={<ProjectDialog project={selectedProject} onClose={() => setSelectedProject(null)} />}
+    >
+      <Hero />
+      <SystemsStrip />
+      <div className="dashboard-grid">
+        <ProjectsPanel onSelect={setSelectedProject} />
+        <div className="middle-column">
+          <StackPanel />
+          <ConnectPanel />
         </div>
-        <div className="writing-grid">
-          <PostsPanel />
-          <ToolsPanel />
+        <div className="side-column">
+          <ServiceWorkerPanel />
+          <ControlsPanel logOpen={logOpen} onToggleLog={() => setLogOpen((open) => !open)} />
         </div>
-        <KevPanel onOpenSource={() => setSelectedProject(SRE_TAB)} />
-        <FaultLab open={labOpen} onToggle={toggleLab} />
-        {logOpen && <EventLog />}
-      </main>
-      <Footer />
-      <ProjectDialog project={selectedProject} onClose={() => setSelectedProject(null)} />
-      <ContactDialog open={contactOpen} onClose={() => setContactOpen(false)} />
-    </div>
+      </div>
+      <div className="writing-grid">
+        <PostsPanel />
+        <ToolsPanel />
+      </div>
+      <KevPanel onOpenSource={() => setSelectedProject(SRE_TAB)} />
+      {logOpen && <EventLog />}
+    </SiteShell>
   )
 }

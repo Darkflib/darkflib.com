@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- One page: everything else on the site is a hash fragment, which crawlers do not treat as separate URLs. -->
+<!-- One entry per HTML document; the sections within each are hash fragments, which crawlers do not treat as URLs. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://darkflib.com/</loc>
+  </url>
+  <url>
+    <loc>https://darkflib.com/demos/</loc>
   </url>
 </urlset>

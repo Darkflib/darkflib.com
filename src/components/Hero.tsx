@@ -1,4 +1,5 @@
 import { ArrowRight, ChevronRight } from 'lucide-react'
+import { DEMOS_PATH } from '../content'
 import { ResponsiveImage } from './ResponsiveImage'
 import './Hero.css'
 
@@ -39,7 +40,7 @@ export function Hero() {
           <a href="#skills">
             <ChevronRight size={13} /> BUILD
           </a>
-          <a href="#fault-lab">
+          <a href={`${DEMOS_PATH}#fault-lab`}>
             <ChevronRight size={13} /> BREAK
           </a>
           <a href="#contact">

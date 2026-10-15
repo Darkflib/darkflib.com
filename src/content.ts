@@ -1,9 +1,14 @@
+/** The SRE and systems demos page, a separate document from the home page. */
+export const DEMOS_PATH = '/demos/'
+
+// Root-relative, so the same links work from every page: on the home page they are fragment navigations.
 export const nav = [
-  { label: 'HOME', href: '#home' },
-  { label: 'ABOUT', href: '#about' },
-  { label: 'PROJECTS', href: '#projects' },
-  { label: 'POSTS', href: '#posts' },
-  { label: 'CONTACT', href: '#contact' },
+  { label: 'HOME', href: '/#home', page: 'home' },
+  { label: 'ABOUT', href: '/#about' },
+  { label: 'PROJECTS', href: '/#projects' },
+  { label: 'POSTS', href: '/#posts' },
+  { label: 'DEMOS', href: DEMOS_PATH, page: 'demos' },
+  { label: 'CONTACT', href: '/#contact' },
 ] as const
 
 export interface Project {
@@ -144,3 +149,23 @@ export const tools = [
   { slug: 'cidr-calc', blurb: 'IPv4/IPv6 subnet calculator.' },
   { slug: 'codename-gen', blurb: 'Cold War codenames for your next side project.' },
 ] as const
+
+export interface Demo {
+  /** Anchor on the demos page, and the panel's id. */
+  id: string
+  title: string
+  /** What it demonstrates, in a sentence. */
+  summary: string
+  tags: readonly string[]
+}
+
+// The SRE and systems demos on /demos/, in page order. Each runs in the visitor's own browser.
+export const demos: readonly Demo[] = [
+  {
+    id: 'fault-lab',
+    title: 'CIRCUIT BREAKER',
+    summary:
+      "Break this page's own API calls from inside your browser, and watch the client retry with backoff, trip its circuit breaker, and fail over to a secondary.",
+    tags: ['RETRIES', 'CIRCUIT BREAKER', 'FAILOVER', 'SERVICE WORKER'],
+  },
+]

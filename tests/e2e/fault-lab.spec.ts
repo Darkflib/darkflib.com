@@ -36,7 +36,7 @@ const event = (name: string, detail?: string | RegExp) =>
 test.describe('fault lab', () => {
   test.beforeEach(async ({ page, server }) => {
     server.setLabClientEnabled(true)
-    await page.goto('/')
+    await page.goto('/demos/')
     await expectControlled(page)
     await openFaultLab(page)
     await expect(page.getByTestId('lab-state')).toHaveText('HEALTHY', SLOW)
@@ -192,7 +192,7 @@ test.describe('fault lab', () => {
 test('with an older worker the lab explains why, and the status client still runs', async ({ page, server }) => {
   server.setServiceWorkerOverride(LEGACY_WORKER)
   server.setLabClientEnabled(true)
-  await page.goto('/')
+  await page.goto('/demos/')
   await openFaultLab(page)
   await expect(page.getByTestId('lab-unavailable')).toHaveText(/older service worker without fault injection/, SLOW)
   await expect(page.getByLabel('Fault for PRIMARY API')).toBeDisabled()
@@ -203,44 +203,51 @@ test('with polling switched off in the config, the lab is idle and this page mak
   page,
   server,
 }) => {
-  await page.goto('/')
+  await page.goto('/demos/')
   await openFaultLab(page)
   await expect(page.getByTestId('lab-state')).toHaveText('IDLE', SLOW)
   await page.waitForTimeout(1000)
   expect(await pageLabRequests(page, server.labOrigins)).toEqual([])
 })
 
-test('the lab is collapsed by default and polls only while open', async ({ page, server }) => {
+test('the home page makes no lab requests; the demos page polls while the lab is open', async ({ page, server }) => {
   server.setLabClientEnabled(true)
   await page.goto('/')
   await expectControlled(page)
-  await expect(page.getByRole('button', { name: 'EXPAND' })).toHaveAttribute('aria-expanded', 'false')
-  await expect(page.getByTestId('lab-state')).toHaveCount(0)
+  await expect(page.locator('#fault-lab')).toHaveCount(0)
   await page.waitForTimeout(1000)
   expect(await pageLabRequests(page, server.labOrigins)).toEqual([])
 
-  await page.getByRole('button', { name: 'EXPAND' }).click()
+  await page.getByRole('link', { name: 'OPEN FAULT LAB' }).click()
+  await expect(page).toHaveURL(/\/demos\/#fault-lab$/)
+  await expect(page.getByRole('button', { name: 'COLLAPSE' })).toHaveAttribute('aria-expanded', 'true')
   await expect(page.getByTestId('lab-state')).toHaveText('HEALTHY', SLOW)
   await choose(page, 'PRIMARY API', 'offline')
   await expect(page.getByTestId('lab-applied-api-primary')).toHaveText('ACTIVE · OFFLINE')
 
-  await page.getByRole('button', { name: 'CLOSE FAULT LAB' }).click()
+  await page.getByRole('button', { name: 'COLLAPSE' }).click()
   await expect(page.getByTestId('lab-active-count')).toHaveText('1 FAULT ACTIVE')
-  // Let an in-flight cycle finish, then confirm nothing further is sent while closed.
+  // Let an in-flight cycle finish, then confirm nothing further is sent while collapsed.
   await page.waitForTimeout(1000)
   const closedAt = (await pageLabRequests(page, server.labOrigins)).length
   await page.waitForTimeout(1000)
   expect(await pageLabRequests(page, server.labOrigins)).toHaveLength(closedAt)
 })
 
-test('a link to #fault-lab opens the lab, even when the hash is already set', async ({ page }) => {
+test('old links to /#fault-lab land on the demos page, and the index reopens a collapsed lab', async ({ page }) => {
   await page.goto('/#fault-lab')
-  await expect(page.getByRole('button', { name: 'CLOSE FAULT LAB' })).toHaveAttribute('aria-expanded', 'true')
+  await expect(page).toHaveURL(/\/demos\/#fault-lab$/)
+  await expect(page.getByRole('heading', { name: 'DEMOS', level: 1 })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'DEMOS' })).toHaveAttribute('aria-current', 'page')
 
   await page.getByRole('button', { name: 'COLLAPSE' }).click()
-  await expect(page.getByRole('button', { name: 'OPEN FAULT LAB' })).toHaveAttribute('aria-expanded', 'false')
-  await page.getByRole('link', { name: 'BREAK' }).click()
-  await expect(page.getByRole('button', { name: 'CLOSE FAULT LAB' })).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.getByRole('button', { name: 'EXPAND' })).toHaveAttribute('aria-expanded', 'false')
+  // The hash is already #fault-lab, so this is caught as a click rather than a hashchange.
+  await page
+    .getByRole('navigation', { name: 'INDEX' })
+    .getByRole('link', { name: /CIRCUIT BREAKER/ })
+    .click()
+  await expect(page.getByRole('button', { name: 'COLLAPSE' })).toHaveAttribute('aria-expanded', 'true')
 })
 
 /**

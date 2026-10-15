@@ -115,6 +115,17 @@ fetch darkflib.com / --header 'Accept-Encoding: zstd, gzip'
 check "compressed for capable clients" one_of "$(header content-encoding)" zstd gzip
 check "varies on Accept-Encoding" contains "$(header vary)" Accept-Encoding
 
+echo "demos page"
+fetch darkflib.com /demos/
+check "GET /demos/ is 200" is "$status" 200
+check "demos page revalidates (no-cache)" is "$(header cache-control)" no-cache
+check "demos page carries the site's CSP" contains "$(header content-security-policy)" "default-src 'self'"
+check "demos page declares its canonical URL" contains "$(curl --silent --header 'Host: darkflib.com' "$base/demos/")" \
+    '<link rel="canonical" href="https://darkflib.com/demos/"'
+fetch darkflib.com /demos
+check "/demos redirects to /demos/" one_of "$status" 301 302 307 308
+check "/demos redirect keeps the trailing slash" contains "$(header location)" /demos/
+
 echo "service worker"
 fetch darkflib.com /service-worker.js
 check "worker is 200" is "$status" 200

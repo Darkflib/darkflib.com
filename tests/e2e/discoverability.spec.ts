@@ -11,10 +11,18 @@ test('robots.txt allows crawling and points at the sitemap', async ({ request })
   expect(body).toContain(`Sitemap: ${ORIGIN}/sitemap.xml`)
 })
 
-test('the sitemap lists the canonical home page', async ({ request }) => {
+test('the sitemap lists every page, and each page declares itself canonical', async ({ page, request }) => {
   const response = await request.get('/sitemap.xml')
   expect(response.ok()).toBe(true)
-  expect(await response.text()).toContain(`<loc>${ORIGIN}/</loc>`)
+  const locs = [...(await response.text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1])
+  expect(locs).toEqual([`${ORIGIN}/`, `${ORIGIN}/demos/`])
+
+  for (const loc of locs) {
+    await page.goto(new URL(loc).pathname)
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', loc)
+    await expect(page.locator('meta[property="og:url"]')).toHaveAttribute('content', loc)
+    expect(JSON.parse((await page.locator('script[type="application/ld+json"]').textContent()) ?? '')).toBeTruthy()
+  }
 })
 
 test('the document carries canonical, link-preview, and structured metadata', async ({ page, request }) => {

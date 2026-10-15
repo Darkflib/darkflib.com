@@ -33,6 +33,8 @@ docker rm -f darkflib-smoke
 | Path                            | What                                                                        |
 | ------------------------------- | --------------------------------------------------------------------------- |
 | `src/components/`               | One component per panel, each with its own CSS file                         |
+| `index.html`, `demos/index.html` | One document per page: home, and `/demos/` (SRE demos, starting with the Fault Lab). Add a page's HTML to `vite.config.ts` inputs and `public/sitemap.xml` |
+| `src/components/SiteShell.tsx`  | Chrome every page shares: top bar, footer, contact dialog                   |
 | `src/styles/`                   | Reset, self-hosted font faces, and global tokens and primitives             |
 | `src/content.ts`                | Projects, featured posts and tools (linking to mikepreston.org), tech stack  |
 | `src/kev/`                      | Reading and summarising the KEV snapshot the site serves at `/feeds/kev.json` |

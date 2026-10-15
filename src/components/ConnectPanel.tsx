@@ -1,8 +1,10 @@
 import { ArrowUpRight, Mail } from 'lucide-react'
 import { PanelHeader } from './PanelHeader'
+import { useOpenContact } from './SiteShell'
 import './ConnectPanel.css'
 
-export function ConnectPanel({ onOpenContact }: { onOpenContact: () => void }) {
+export function ConnectPanel() {
+  const onOpenContact = useOpenContact()
   return (
     <section className="panel connect-panel" id="contact" aria-labelledby="contact-title">
       <PanelHeader id="contact-title" title="CONNECT">
