@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import { readBuildInfo } from './build/buildInfo.ts'
 import { kevFeedPlugin } from './build/kevFeedPlugin.ts'
 import { serviceWorkerPlugin } from './build/serviceWorkerPlugin.ts'
+import { CATALOGUE } from './src/demos/catalogue.ts'
 
 const buildInfo = readBuildInfo()
 
@@ -15,6 +16,7 @@ export default defineConfig({
       input: {
         index: 'index.html',
         demos: 'demos/index.html',
+        ...Object.fromEntries(CATALOGUE.map(({ slug }) => [`demos-${slug}`, `demos/${slug}/index.html`])),
       },
     },
   },

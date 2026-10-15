@@ -134,7 +134,7 @@ export async function startServer(): Promise<TestServer> {
 
   const server = createServer(async (req, res) => {
     const { pathname } = new URL(req.url ?? '/', 'http://localhost')
-    // Directory URLs serve their index.html, as Caddy's file_server does (/demos/ is the demos page).
+    // Directory URLs serve their index.html, as Caddy's file_server does (/demos/ is the demos index).
     const file = `${normalize(pathname).replace(/^\/+/, '')}${pathname.endsWith('/') ? 'index.html' : ''}`
     // The KEV snapshot, as deploy/Caddyfile serves it off the darkflib-feeds volume.
     if (pathname === '/feeds/kev.json') {

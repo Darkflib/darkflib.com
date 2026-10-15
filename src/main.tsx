@@ -10,7 +10,8 @@ import { DEMOS_PATH } from './content'
 import { startServiceWorker } from './telemetry/serviceWorker'
 
 // The Fault Lab moved to its own page; keep old shared links to /#fault-lab working, query (?sw=off) and all.
-if (window.location.hash === '#fault-lab') window.location.replace(`${DEMOS_PATH}${window.location.search}#fault-lab`)
+if (window.location.hash === '#fault-lab')
+  window.location.replace(`${DEMOS_PATH}circuit-breaker/${window.location.search}`)
 
 // Before React renders: the worker's message listener must exist before the page's client message queue opens, or
 // early messages (observed requests from this page load) are dropped. Registration itself still waits for load.
