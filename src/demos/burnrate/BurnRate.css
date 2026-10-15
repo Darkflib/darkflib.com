@@ -1,0 +1,113 @@
+/* The burn-rate demo, on top of the simulated demos' styles (SimulatedDemo.css). */
+
+.burn-timeline {
+  padding: 10px 12px 8px;
+}
+
+.burn-timeline canvas {
+  display: block;
+  width: 100%;
+  height: 420px;
+  margin-top: 6px;
+  cursor: crosshair;
+  /* Horizontal strokes draw; vertical swipes still scroll the page on a phone. */
+  touch-action: pan-y;
+}
+
+.sim-legend i.burn-band {
+  height: 8px;
+  opacity: 0.35;
+}
+
+.burn-scrub {
+  padding: 12px 13px 0;
+}
+
+.burn-verdicts {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.burn-verdicts .sim-pill {
+  margin: 2px 0;
+}
+
+.burn-rule {
+  margin-top: 3px;
+  color: #a6b8da;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.burn-why {
+  padding: 10px 12px;
+}
+
+.burn-why-note {
+  color: #7fa3bd;
+  font-size: 10px;
+}
+
+.burn-why table {
+  width: 100%;
+  margin-top: 8px;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.burn-why th,
+.burn-why td {
+  padding: 6px 8px 6px 0;
+  border-top: 1px solid #2c4a6b80;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.burn-why th {
+  width: 30%;
+  color: #b8e9ff;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+}
+
+.burn-why td:last-child {
+  width: 1%;
+  padding-right: 0;
+}
+
+.burn-cond {
+  display: inline-block;
+  margin: 2px 6px 2px 0;
+  padding: 3px 6px;
+  border: 1px solid #2c4a6b;
+  color: #7fa3bd;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.burn-cond.met {
+  border-color: #ff6f9a;
+  color: #ff6f9a;
+  background: #ff6f9a14;
+}
+
+@media (max-width: 560px) {
+  .burn-why th {
+    width: auto;
+  }
+
+  .burn-why tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+  }
+
+  .burn-why th {
+    grid-column: 1 / -1;
+    border-top: 1px solid #2c4a6b80;
+    padding-bottom: 0;
+  }
+
+  .burn-why td {
+    border-top: 0;
+  }
+}
