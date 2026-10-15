@@ -69,5 +69,13 @@ test('the access pages run under production headers without CSP violations', asy
   await expect(page.getByRole('row', { name: /STANDARD within 10m/ })).toContainText('STEP-UP: missing')
   await expect(page.getByRole('row', { name: /FEDERATED within/ })).toContainText('PASS')
 
+  // Linked accounts: the stand-in's GitHub identity is listed, and neither Unlink nor Link Google works until there is
+  // a passkey (the stand-in's session has none), which the panel says.
+  const accounts = page.getByRole('region', { name: '// LINKED ACCOUNTS' })
+  await expect(accounts.getByRole('row', { name: /GitHub/ })).toContainText('smoke')
+  await expect(accounts.getByRole('button', { name: 'Unlink' })).toBeDisabled()
+  await expect(accounts.getByRole('button', { name: 'Link Google' })).toBeDisabled()
+  await expect(accounts.getByText('Linking and unlinking need a passkey.')).toBeVisible()
+
   expect(violations).toEqual([])
 })
