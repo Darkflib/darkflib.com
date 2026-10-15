@@ -5,8 +5,8 @@ const SLOW = [{ at: 6, action: 'slow' }] as const
 
 export const sandbox: DemoDefinition = {
   slug: 'sandbox',
-  name: 'Sandbox',
-  title: 'SANDBOX',
+  name: 'Full sandbox',
+  title: 'FULL SANDBOX',
   question: 'What happens when every knob is yours?',
   summary:
     'Every parameter the engine has, both disturbances, and six scenarios to start from. Build your own outage, then try to get out of it.',

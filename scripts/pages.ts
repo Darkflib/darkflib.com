@@ -6,7 +6,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PROJECTS_PATH, projects } from '../src/content.ts'
-import { CATALOGUE, type CatalogueEntry, demoPath } from '../src/demos/catalogue.ts'
+import { CATALOGUE, type CatalogueEntry, DEMO_GROUPS, demoPath } from '../src/demos/catalogue.ts'
 
 const ORIGIN = 'https://darkflib.com'
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -147,12 +147,16 @@ function indexPage(): Page {
     noscript: indent([
       '<h1>DEMOS</h1>',
       '<p>Reliability patterns you can break on purpose. The demos need JavaScript.</p>',
-      '<ul>',
-      ...CATALOGUE.map(
-        (entry) =>
-          `  <li><a href="${demoPath(entry.slug)}">${escapeHtml(entry.name)}</a>: ${escapeHtml(entry.question)}</li>`,
-      ),
-      '</ul>',
+      ...DEMO_GROUPS.flatMap((group) => [
+        `<h2>${escapeHtml(group.title)}</h2>`,
+        `<p>${escapeHtml(group.blurb)}</p>`,
+        '<ul>',
+        ...group.demos.map(
+          (entry) =>
+            `  <li><a href="${demoPath(entry.slug)}">${escapeHtml(entry.name)}</a>: ${escapeHtml(entry.question)}</li>`,
+        ),
+        '</ul>',
+      ]),
       '<p><a href="/">Darkflib home</a></p>',
     ]),
   }

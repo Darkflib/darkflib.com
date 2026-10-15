@@ -32,12 +32,45 @@ export const CIRCUIT_BREAKER: CatalogueEntry = {
 }
 
 const SIMULATED: readonly CatalogueEntry[] = CONCEPTS.map((demo) => ({ ...demo, kind: 'simulated' as const }))
+const BY_SLUG = new Map([...SIMULATED, CIRCUIT_BREAKER].map((entry) => [entry.slug, entry]))
 
-/** The sandbox goes last, after the live demo: it assumes the concepts the others teach. */
-export const CATALOGUE: readonly CatalogueEntry[] = [
-  ...SIMULATED.filter((entry) => entry.slug !== 'sandbox'),
-  CIRCUIT_BREAKER,
-  ...SIMULATED.filter((entry) => entry.slug === 'sandbox'),
+export interface DemoGroup {
+  id: string
+  title: string
+  /** What the demos in the group have in common, in a sentence. */
+  blurb: string
+  demos: readonly CatalogueEntry[]
+}
+
+const group = (id: string, title: string, blurb: string, slugs: readonly string[]): DemoGroup => ({
+  id,
+  title,
+  blurb,
+  demos: slugs.map((slug) => {
+    const entry = BY_SLUG.get(slug)
+    if (!entry) throw new Error(`No demo with slug "${slug}"`)
+    return entry
+  }),
+})
+
+/** The index's sections, in order. Every demo belongs to exactly one (tests/unit checks). */
+export const DEMO_GROUPS: readonly DemoGroup[] = [
+  group('queueing', 'QUEUEING & CAPACITY', 'How load turns into waiting, and where the excess goes.', [
+    'queueing-knee',
+    'overload',
+  ]),
+  group('retries', 'RETRIES & RECOVERY', 'How retries turn a blip into an outage, and how to stop them.', [
+    'retry-storms',
+    'breaking-the-loop',
+  ]),
+  group('failover', 'FAILOVER', 'What a client does when the service it depends on fails. Live, on real requests.', [
+    'circuit-breaker',
+  ]),
+  // Last: it assumes the concepts the others teach.
+  group('sandbox', 'BUILD YOUR OWN', 'Every control at once, for when you know what you are looking for.', ['sandbox']),
 ]
+
+/** Every demo, in index order. */
+export const CATALOGUE: readonly CatalogueEntry[] = DEMO_GROUPS.flatMap((g) => g.demos)
 
 export const demoPath = (slug: string) => `/demos/${slug}/`
