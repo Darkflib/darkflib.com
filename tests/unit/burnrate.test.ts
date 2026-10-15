@@ -9,11 +9,14 @@ import {
   DEFAULT_SETTINGS,
   fill,
   flatCurve,
+  HISTORY,
   noise,
   REQUESTS_PER_MINUTE,
   RULE_IDS,
+  SLO_TARGETS,
   simulate,
   summarise,
+  WORTH_A_PAGE,
 } from '../../src/demos/burnrate/model.ts'
 import { DEMO_SEED } from '../../src/demos/definition.ts'
 
@@ -48,6 +51,27 @@ describe('burn-rate model', () => {
     assert.ok(Math.abs(burn - 1) < 0.1, `6 h burn rate ${burn}`)
     // A day at burn rate 1 spends a thirtieth of the month.
     assert.ok(Math.abs(d.spent[DAY - 1] * 30 - 1) < 0.05, `spent ${d.spent[DAY - 1]}`)
+  })
+
+  it('a healthy day stays within every selectable SLO', () => {
+    for (const slo of SLO_TARGETS) {
+      assert.ok(1 - slo > BASELINE * 2, `${slo} leaves too little budget`)
+      const d = day(flatCurve(), { ...DEFAULT_SETTINGS, slo })
+      assert.ok(d.spent[DAY - 1] < WORTH_A_PAGE, `${slo}: a healthy day spends ${d.spent[DAY - 1]}`)
+    }
+  })
+
+  it('a higher drawn rate never gives fewer errors, across the sampler cutoff too', () => {
+    for (const [lo, hi] of [
+      [0.006, 0.00600001],
+      [0.0059, 0.0061],
+      [0.001, 0.002],
+      [0.05, 0.06],
+    ]) {
+      const a = day(flatCurve(lo))
+      const b = day(flatCurve(hi))
+      for (let i = HISTORY; i < a.errors.length; i++) assert.ok(b.errors[i] >= a.errors[i], `${lo} → ${hi} at ${i}`)
+    }
   })
 
   it('a healthy day pages nobody', () => {
@@ -110,6 +134,18 @@ describe('incidents tell their story', () => {
     const blips = SCENARIOS.find((s) => s.id === 'blips')
     assert.ok(blips)
     assert.equal(summarise(day(blips.curve(), { ...DEFAULT_SETTINGS, threshold: 0.001 }), 'threshold').verdict, 'noise')
+  })
+
+  it('a page for one incident does not count for another', () => {
+    // A tall blip the threshold pages for, then a long leak under the threshold that is worth a page.
+    const curve = fill(fill(flatCurve(), 120, 122, 0.5), 300, DAY, 0.004)
+    const d = day(curve)
+    assert.equal(d.incidents.length, 2)
+    assert.ok(d.incidents[1].spend >= WORTH_A_PAGE, `leak spent ${d.incidents[1].spend}`)
+    assert.equal(summarise(d, 'threshold').verdict, 'missed')
+    // Pulses a few minutes apart are one incident.
+    const flapping = scenario('flapping')
+    assert.equal(flapping.incidents.length, 1)
   })
 
   it('draw-your-own starts healthy', () => {

@@ -18,7 +18,8 @@ export const SLO_DAYS = 30
 /** Share of the month's budget an incident must spend for a page to be worth it. */
 export const WORTH_A_PAGE = 0.05
 
-export const SLO_TARGETS = [0.99, 0.995, 0.999, 0.9995, 0.9999] as const
+/** Every target leaves a budget above BASELINE, so a healthy day stays within its SLO. */
+export const SLO_TARGETS = [0.99, 0.995, 0.999, 0.9995] as const
 export const THRESHOLDS = [0.001, 0.005, 0.01, 0.02, 0.05, 0.1] as const
 /** The fixed-threshold rule's window. */
 export const THRESHOLD_WINDOW = 5
@@ -60,46 +61,73 @@ export function fill(curve: Curve, from: number, to: number, rate: number): Curv
 }
 
 /**
- * Fixed noise for each minute, drawn once from the seed: a uniform for small counts and a normal for large ones.
- * Errors are then a deterministic, monotone function of the drawn rate, so redrawing one minute moves only that minute,
- * and a curve always gives the same day.
+ * Fixed noise for each minute: one uniform, drawn once from the seed. Errors are then a deterministic function of the
+ * drawn rate that never falls as the rate rises, so redrawing one minute moves only that minute, and a curve always
+ * gives the same day.
  */
-export interface Noise {
-  u: Float64Array
-  z: Float64Array
-}
-
-export function noise(seed: number): Noise {
+export function noise(seed: number): Float64Array {
   const random = new Random(seed)
-  const n = HISTORY + DAY
-  const u = new Float64Array(n)
-  const z = new Float64Array(n)
-  for (let i = 0; i < n; i++) {
-    u[i] = random.next()
-    z[i] = random.gaussian()
-  }
-  return { u, z }
+  const u = new Float64Array(HISTORY + DAY)
+  for (let i = 0; i < u.length; i++) u[i] = random.next()
+  return u
 }
 
 /** Past this many expected errors a minute, the normal approximation is close enough. */
 const POISSON_MAX = 30
 
-/**
- * Errors in a minute of n requests failing at rate p. Few expected: Poisson, by inverting its distribution at the
- * minute's uniform. Many: the binomial's normal approximation, at the minute's normal.
- */
-function errorsFor(p: number, u: number, z: number, n = REQUESTS_PER_MINUTE): number {
-  const mean = n * p
-  if (mean > POISSON_MAX) return Math.min(n, Math.max(0, Math.round(mean + z * Math.sqrt(mean * (1 - p)))))
+/** The standard normal's quantile function (Acklam's rational approximation; relative error under 1.2e-9). */
+function normalQuantile(u: number): number {
+  const a = [
+    -39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716, 2.506628277459239,
+  ]
+  const b = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572]
+  const c = [
+    -0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968,
+    2.938163982698783,
+  ]
+  const d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416]
+  const lo = 0.02425
+  const p = Math.min(1 - 1e-12, Math.max(1e-12, u))
+  if (p < lo || p > 1 - lo) {
+    const q = Math.sqrt(-2 * Math.log(p < lo ? p : 1 - p))
+    const x =
+      (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1)
+    return p < lo ? x : -x
+  }
+  const q = p - 0.5
+  const r = q * q
+  return (
+    ((((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q) /
+    (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1)
+  )
+}
+
+/** Poisson's quantile at u, by summing its distribution: exact, and cheap while the mean is small. */
+function poissonQuantile(mean: number, u: number): number {
   let k = 0
   let pmf = Math.exp(-mean)
   let cdf = pmf
-  while (cdf < u && k < n) {
+  while (cdf < u) {
     k++
     pmf *= mean / k
     cdf += pmf
   }
   return k
+}
+
+/**
+ * Errors in a minute of n requests failing at rate p, as Poisson's quantile at the minute's uniform u: exact for a
+ * small mean, and past POISSON_MAX its Cornish-Fisher approximation from the normal quantile at the same u. Both rise
+ * with the mean, and the approximation is held at or above the exact value at the cutoff, so the count never falls
+ * as the rate rises.
+ */
+function errorsFor(p: number, u: number, n = REQUESTS_PER_MINUTE): number {
+  const mean = n * p
+  if (mean <= POISSON_MAX) return Math.min(n, poissonQuantile(mean, u))
+  const z = normalQuantile(u)
+  const approx = Math.round(mean + z * Math.sqrt(mean) + (z * z - 1) / 6)
+  return Math.min(n, Math.max(poissonQuantile(POISSON_MAX, u), approx))
 }
 
 export interface Day {
@@ -117,9 +145,25 @@ export interface Day {
   firing: Record<RuleId, Uint8Array>
   /** Each paging tier on its own, for the multi-window rule's breakdown. */
   tiers: Record<TierId, Uint8Array>
-  /** The incident's first and last minutes (end exclusive), or null when the curve never leaves baseline. */
+  /** From the first incident's start to the last one's end (exclusive), or null when the curve never leaves baseline. */
   incident: { start: number; end: number } | null
+  /** Each stretch above a healthy error rate, with what it spent. */
+  incidents: readonly Incident[]
 }
+
+export interface Incident {
+  start: number
+  /** Exclusive. */
+  end: number
+  /** Share of the month's budget it spent, net of what a healthy service would have spent in the same minutes. */
+  spend: number
+}
+
+/**
+ * Stretches above a healthy rate closer together than this are one incident: a fault that comes and goes is one
+ * problem. A page that starts within this long after an incident ends is still about that incident.
+ */
+export const INCIDENT_GAP = 60
 
 /** Error ratio over the `minutes` minutes ending with minute m of the day. */
 export function ratio(day: Day, m: number, minutes: number): number {
@@ -134,9 +178,9 @@ export function tierFiring(day: Day, m: number, tier: (typeof TIERS)[number]): b
   return burnRate(day, m, tier.long) >= tier.burn && burnRate(day, m, tier.short) >= tier.burn
 }
 
-export function simulate(curve: Curve, settings: Settings, { u, z }: Noise): Day {
+export function simulate(curve: Curve, settings: Settings, u: Float64Array): Day {
   const errors = new Float64Array(HISTORY + DAY)
-  for (let i = 0; i < errors.length; i++) errors[i] = errorsFor(i < HISTORY ? BASELINE : curve[i - HISTORY], u[i], z[i])
+  for (let i = 0; i < errors.length; i++) errors[i] = errorsFor(i < HISTORY ? BASELINE : curve[i - HISTORY], u[i])
   const prefix = new Float64Array(errors.length + 1)
   for (let i = 0; i < errors.length; i++) prefix[i + 1] = prefix[i] + errors[i]
 
@@ -146,13 +190,17 @@ export function simulate(curve: Curve, settings: Settings, { u, z }: Noise): Day
   const firing = { threshold: new Uint8Array(DAY), single: new Uint8Array(DAY), multi: new Uint8Array(DAY) }
   const tiers = { fast: new Uint8Array(DAY), slow: new Uint8Array(DAY) }
 
-  let start = -1
-  let end = -1
+  const incidents: Incident[] = []
   for (let m = 0; m < DAY; m++) {
-    if (curve[m] > BASELINE * 1.5) {
-      if (start < 0) start = m
-      end = m + 1
-    }
+    if (curve[m] <= BASELINE * 1.5) continue
+    const last = incidents[incidents.length - 1]
+    if (last && m - last.end < INCIDENT_GAP) last.end = m + 1
+    else incidents.push({ start: m, end: m + 1, spend: 0 })
+  }
+  for (const incident of incidents) {
+    const errorsIn = prefix[HISTORY + incident.end] - prefix[HISTORY + incident.start]
+    const healthy = BASELINE * REQUESTS_PER_MINUTE * (incident.end - incident.start)
+    incident.spend = Math.max(0, errorsIn - healthy) / monthBudget
   }
 
   const day: Day = {
@@ -164,7 +212,8 @@ export function simulate(curve: Curve, settings: Settings, { u, z }: Noise): Day
     spent,
     firing,
     tiers,
-    incident: start < 0 ? null : { start, end },
+    incident: incidents.length ? { start: incidents[0].start, end: incidents[incidents.length - 1].end } : null,
+    incidents,
   }
   for (let m = 0; m < DAY; m++) {
     spent[m] = (prefix[HISTORY + m + 1] - prefix[HISTORY]) / monthBudget
@@ -198,27 +247,31 @@ export const FLAP_PAGES = 3
 
 export function summarise(day: Day, rule: RuleId): RuleSummary {
   const f = day.firing[rule]
-  let pages = 0
+  const starts: number[] = []
   let first: number | null = null
   let minutes = 0
   let last = -1
   for (let m = 0; m < DAY; m++) {
     if (!f[m]) continue
     minutes++
-    if (m === 0 || !f[m - 1]) pages++
+    if (m === 0 || !f[m - 1]) starts.push(m)
     if (first === null) first = m
     last = m
   }
   const stillFiring = f[DAY - 1] === 1
   const clearsAfter = first === null || stillFiring || !day.incident ? null : Math.max(0, last + 1 - day.incident.end)
-  const worthIt = incidentSpend(day) >= WORTH_A_PAGE
+  // Each page is about the incident it started during (or soon after); only an incident worth a page wants one.
+  const worthy = day.incidents.filter((incident) => incident.spend >= WORTH_A_PAGE)
+  const about = (page: number) =>
+    day.incidents.find((incident) => page >= incident.start && page < incident.end + INCIDENT_GAP)
+  const answered = new Set(starts.map(about))
+  const missed = worthy.some((incident) => !answered.has(incident))
+  const noise = starts.some((page) => (about(page)?.spend ?? 0) < WORTH_A_PAGE)
+  const pages = starts.length
   const verdict: Verdict =
-    pages > FLAP_PAGES ? 'flapping' : pages > 0 ? (worthIt ? 'caught' : 'noise') : worthIt ? 'missed' : 'quiet'
+    pages > FLAP_PAGES ? 'flapping' : missed ? 'missed' : noise ? 'noise' : pages > 0 ? 'caught' : 'quiet'
   return { pages, first, minutes, clearsAfter, stillFiring, verdict }
 }
 
-/** Share of the month's budget the incident itself spent, net of what a healthy day's errors spend. */
-export function incidentSpend(day: Day): number {
-  const healthy = BASELINE / (day.budgetRatio * SLO_DAYS)
-  return Math.max(0, day.spent[DAY - 1] - healthy)
-}
+/** Share of the month's budget the costliest incident spent, net of what a healthy service would have. */
+export const incidentSpend = (day: Day) => Math.max(0, ...day.incidents.map((incident) => incident.spend))

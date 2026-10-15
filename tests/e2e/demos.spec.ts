@@ -144,8 +144,11 @@ test('slo-burn-rate: incidents set the verdicts, and drawing one makes it your o
   await page.getByRole('button', { name: 'DRAW YOUR OWN' }).click()
   await expect(page.getByTestId('verdict-multi')).toContainText('RIGHTLY QUIET')
   const canvas = page.getByRole('img', { name: /error rate/ })
+  // Mouse coordinates are the viewport's: bring the plot, at the top of the canvas, fully into view first.
+  await canvas.evaluate((el) => el.scrollIntoView({ block: 'center' }))
   const box = await canvas.boundingBox()
   if (!box) throw new Error('no canvas')
+  expect(box.y).toBeGreaterThanOrEqual(0)
   await page.mouse.move(box.x + box.width * 0.3, box.y + 30)
   await page.mouse.down()
   await page.mouse.move(box.x + box.width * 0.4, box.y + 30, { steps: 10 })

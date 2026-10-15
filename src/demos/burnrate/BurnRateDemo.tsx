@@ -381,7 +381,9 @@ export function BurnRateDemo() {
 
           <div className="sim-readouts burn-verdicts" data-testid="readouts">
             <div className="sim-reading" data-testid="readout-spend">
-              <span className="sim-reading-label">INCIDENT COST</span>
+              <span className="sim-reading-label">
+                {day.incidents.length > 1 ? `COSTLIEST OF ${day.incidents.length} INCIDENTS` : 'INCIDENT COST'}
+              </span>
               <span className="sim-reading-value">{(spend * 100).toFixed(1)}%</span>
               <span className="sim-reading-sub">
                 OF THE MONTH'S BUDGET · WORTH A PAGE AT {Math.round(WORTH_A_PAGE * 100)}%
