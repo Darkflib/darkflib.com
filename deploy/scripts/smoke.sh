@@ -137,6 +137,23 @@ check "image cached for a day" is "$(header cache-control)" "public, max-age=864
 fetch darkflib.com /no-such-page
 check "unknown path is 404" is "$status" 404
 
+echo "crawlers"
+fetch darkflib.com /robots.txt
+check "robots.txt is 200" is "$status" 200
+check "robots.txt is text" contains "$(header content-type)" text/plain
+check "robots.txt names the sitemap" contains "$(curl --silent --header 'Host: darkflib.com' "$base/robots.txt")" \
+    "Sitemap: https://darkflib.com/sitemap.xml"
+fetch darkflib.com /sitemap.xml
+check "sitemap is 200" is "$status" 200
+check "sitemap is XML" contains "$(header content-type)" xml
+fetch darkflib.com /favicon.svg
+check "favicon is SVG" contains "$(header content-type)" image/svg+xml
+fetch darkflib.com /images/og-card.jpg
+check "link-preview card is JPEG" is "$(header content-type)" image/jpeg
+document=$(curl --silent --header 'Host: darkflib.com' "$base/")
+check "document declares its canonical URL" contains "$document" '<link rel="canonical" href="https://darkflib.com/"'
+check "document carries structured data" contains "$document" 'application/ld+json'
+
 echo "names"
 fetch www.darkflib.com '/deep/path?q=1'
 check "www is a permanent redirect" is "$status" 301
@@ -164,6 +181,7 @@ for origin in api.darkflib.com:/v1/status.json:api-primary api.darkflib.dev:/v1/
     check "$host exposes timing to the site" is "$(header timing-allow-origin)" https://darkflib.com
     check "$host is usable cross-origin (CORP)" is "$(header cross-origin-resource-policy)" cross-origin
     check "$host is never cached" is "$(header cache-control)" no-store
+    check "$host is kept out of search indexes" is "$(header x-robots-tag)" noindex
     body=$(curl --silent --header "Host: $host" "$base$path")
     check "$host serves the $document document" contains "$body" "\"origin\": \"$document\""
 done

@@ -30,6 +30,13 @@ await mkdir(new URL('projects/', OUT), { recursive: true })
 
 await emit(sharp(new URL('hero-city.png', SOURCE).pathname), 'hero-city', [800, 1280, 1672])
 
+// Link-preview card (og:image): 1200x630, JPEG because not every unfurler reads AVIF or WebP.
+const og = await sharp(new URL('hero-city.png', SOURCE).pathname)
+  .resize({ width: 1200, height: 630, fit: 'cover' })
+  .jpeg({ quality: 82, mozjpeg: true })
+  .toFile(new URL('og-card.jpg', OUT).pathname)
+console.log(`og-card: ${og.width}x${og.height} jpeg ${kb(og.size)}`)
+
 // Project cards: square masters cropped from screenshots of each project.
 for (const file of (await readdir(new URL('projects/', SOURCE))).filter((name) => name.endsWith('.png'))) {
   await emit(sharp(new URL(`projects/${file}`, SOURCE).pathname), `projects/${file.replace(/\.png$/, '')}`, [400, 800])

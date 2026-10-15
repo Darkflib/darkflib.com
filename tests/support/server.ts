@@ -35,6 +35,10 @@ const CONTENT_TYPES: Record<string, string> = {
   '.woff2': 'font/woff2',
   '.avif': 'image/avif',
   '.webp': 'image/webp',
+  '.jpg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml',
 }
 
 // The version the plugin bakes into the worker: "sw-<8 hex>". Coupled to build/serviceWorkerPlugin.ts.

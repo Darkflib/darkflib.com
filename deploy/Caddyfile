@@ -28,6 +28,8 @@
 		Timing-Allow-Origin "https://darkflib.com"
 		Cross-Origin-Resource-Policy "cross-origin"
 		Cache-Control "no-store"
+		# Machine-readable status documents, not pages: keep them out of search results.
+		X-Robots-Tag "noindex"
 		Strict-Transport-Security "max-age=31536000"
 		X-Content-Type-Options "nosniff"
 		-Server
