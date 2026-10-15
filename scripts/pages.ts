@@ -1,5 +1,5 @@
 // Writes the HTML for every page but the home page: projects/index.html from src/content.ts, demos/index.html
-// and demos/<slug>/index.html from src/demos/catalogue.ts, and the access pages under login/. Each page's title, description, preview tags, structured
+// and demos/<slug>/index.html from src/demos/catalogue.ts, and the access pages under login/ and tools/. Each page's title, description, preview tags, structured
 // data, and no-JavaScript summary come from that source. Run with `npm run pages`; tests/unit checks the committed
 // files match.
 import { mkdir, writeFile } from 'node:fs/promises'
@@ -204,7 +204,7 @@ function demoPage(entry: CatalogueEntry): Page {
   }
 }
 
-// The access pages in front of the private tools. Nothing to find here, so they are kept out of search.
+// The access pages, and the tools index behind them. Nothing to find here, so they are kept out of search.
 function accessPages(): Page[] {
   const access = {
     entry: '/src/login-main.tsx',
@@ -226,6 +226,15 @@ function accessPages(): Page[] {
       key: 'enrol',
       title: 'ADD A PASSKEY — DARKFLIB',
       description: 'Add a passkey to your account.',
+    },
+    // Served only behind wwff-auth's forward_auth (deploy/Caddyfile).
+    {
+      ...access,
+      path: '/tools/',
+      key: 'tools',
+      title: 'TOOLS — DARKFLIB',
+      description: 'The private tools.',
+      noscript: indent(['<p>The tools need JavaScript.</p>', '<p><a href="/">Darkflib home</a></p>']),
     },
   ]
 }

@@ -22,6 +22,7 @@ export default defineConfig({
         ...Object.fromEntries(CATALOGUE.map(({ slug }) => [`demos-${slug}`, `demos/${slug}/index.html`])),
         login: 'login/index.html',
         'login-enrol': 'login/enrol/index.html',
+        tools: 'tools/index.html',
       },
     },
   },

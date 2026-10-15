@@ -103,6 +103,48 @@
 			file_server
 		}
 
+		# wwff-auth (Darkflib/wwff-auth): sign-in, sessions, and passkeys under /auth/*, from its own container on
+		# darkflib.network (gitops quadlet/apps/wwff-auth/). WWFF_AUTH_UPSTREAM exists for the smoke test's stand-in.
+		# /auth/verify answers forward_auth below and nothing else: from outside it is a 404.
+		handle /auth/verify {
+			respond 404
+		}
+
+		handle /auth/* {
+			# Sessions and ceremonies are never stored, by nginx or the browser, whatever the service sends. Deferred,
+			# so it replaces the upstream's header rather than being replaced by it.
+			header >Cache-Control "no-store"
+			reverse_proxy {$WWFF_AUTH_UPSTREAM:wwff-auth:8000}
+		}
+
+		# The private tools. Every request asks wwff-auth first and carries its answer as X-Auth-* headers. Without a
+		# session, a page load goes to /login/ and anything else gets the service's 401 as it is.
+		handle /tools/* {
+			# route keeps this order. Caddy's default order runs forward_auth before request_header, which would strip
+			# the headers forward_auth just set, or else let a client's own X-Auth-* through wherever /auth/verify
+			# leaves one out.
+			route {
+				request_header -X-Auth-*
+				forward_auth {$WWFF_AUTH_UPSTREAM:wwff-auth:8000} {
+					uri /auth/verify
+					copy_headers X-Auth-User X-Auth-Level X-Auth-Federated-At X-Auth-Standard-At X-Auth-High-At
+
+					@denied status 401
+					handle_response @denied {
+						# A request matcher: handle_response's own matchers only see the service's response.
+						@navigate header Sec-Fetch-Mode navigate
+						# The path alone: Caddy has no query-escaping placeholder, and the login page resolves next as a
+						# same-origin URL either way.
+						redir @navigate /login/?next={http.request.uri.path} 303
+						copy_response
+					}
+				}
+				# Only for whoever passed the gate: nginx must never hand a stored copy to the next visitor.
+				header Cache-Control "private, no-store"
+				file_server
+			}
+		}
+
 		# The KEV snapshot, written hourly by darkflib-kev.service into the darkflib-feeds volume, mounted read-only
 		# here. Five minutes of freshness lets nginx absorb visitors for a file that changes at most hourly. Only
 		# kev.json is served, never the fetcher's dotfile temporaries. Before the first fetch (or with no PAT

@@ -43,7 +43,7 @@ docker rm -f darkflib-smoke
 | `src/components/SiteShell.tsx`  | Chrome every page shares: top bar, footer, contact dialog                   |
 | `src/styles/`                   | Reset, self-hosted font faces, and global tokens and primitives             |
 | `src/content.ts`                | Projects, featured posts and tools (linking to mikepreston.org), tech stack  |
-| `src/login/`                    | `/login/` and `/login/enrol/`, in front of the private tools: GitHub or Google by invite, then a passkey. The API is [wwff-auth](https://github.com/Darkflib/wwff-auth)'s `docs/contract.md`; `AUTH_ORIGIN=http://localhost:8000 npm run dev` proxies `/auth` to a local copy. Kept out of search and the sitemap |
+| `src/login/`                    | `/login/`, `/login/enrol/`, and `/tools/`, in front of the private tools: GitHub or Google by invite, then a passkey. The API is [wwff-auth](https://github.com/Darkflib/wwff-auth)'s `docs/contract.md`; `AUTH_ORIGIN=http://localhost:8000 npm run dev` proxies `/auth` to a local copy. `/tools/` is the landing page behind `forward_auth` (deploy/Caddyfile). Kept out of search and the sitemap |
 | `src/kev/`                      | Reading and summarising the KEV snapshot the site serves at `/feeds/kev.json` |
 | `kev-snapshot/`                 | The Go program that writes that snapshot on the server, hourly              |
 | `src/sw/`                       | Service worker entry and the page↔worker message protocol                   |

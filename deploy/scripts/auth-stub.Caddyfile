@@ -1,0 +1,40 @@
+# A stand-in for wwff-auth, run by smoke.sh from the site's own image: just enough of /auth/verify and /auth/session
+# to exercise deploy/Caddyfile's routing. A request carrying the cookie smoke=1 is signed in.
+{
+	admin off
+	auto_https off
+}
+
+:8000 {
+	# deploy/Caddyfile strips client X-Auth-* headers before asking; one arriving here means it did not.
+	@forged header X-Auth-High-At *
+	handle @forged {
+		respond "forged X-Auth-* header reached the auth service" 400
+	}
+
+	@signed_in header Cookie *smoke=1*
+	handle /auth/verify {
+		handle @signed_in {
+			header X-Auth-User smoke-user
+			header X-Auth-Level FEDERATED
+			header X-Auth-Federated-At 1792000000
+			respond 204
+		}
+		respond `{"reason": "no_session"}` 401
+	}
+
+	# Shaped as the contract's session, so the pages render it. Cacheable, so the smoke test can see the site's
+	# Caddyfile override that.
+	handle /auth/session {
+		header Cache-Control "public, max-age=600"
+		handle @signed_in {
+			header Content-Type application/json
+			respond `{"user": {"id": "smoke-user", "display_name": "Smoke", "email": null}, "expires_at": "2099-01-01T00:00:00Z", "login_method": "github", "has_passkey": false, "identities": [{"id": "i1", "provider": "github", "label": "smoke"}], "assurance": {"FEDERATED": {"auth_at": "2026-01-01T00:00:00Z", "age": 1}, "STANDARD": null, "HIGH": null}}` 200
+		}
+		respond 204
+	}
+
+	handle {
+		respond 404
+	}
+}
