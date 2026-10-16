@@ -446,7 +446,11 @@ function Nameservers({ data }: { data: Record<string, unknown> }) {
             <tr>
               <th scope="col">Record</th>
               {columns.map((column) => (
-                <th key={column.ip} scope="col" className={column.tone === 'bad' ? 'domain-ns-uncounted' : undefined}>
+                <th
+                  key={`${column.nameserver} ${column.ip}`}
+                  scope="col"
+                  className={column.tone === 'bad' ? 'domain-ns-uncounted' : undefined}
+                >
                   <span className="domain-ns-name">{column.nameserver}</span>
                   <span className="domain-ns-ip">{column.ip}</span>
                   <span className={`domain-ns-status domain-tone-${column.tone}`}>{column.status}</span>
@@ -463,7 +467,7 @@ function Nameservers({ data }: { data: Record<string, unknown> }) {
                 </th>
                 {row.cells.map((cell, index) => (
                   <td
-                    key={columns[index].ip}
+                    key={`${columns[index].nameserver} ${columns[index].ip}`}
                     className={cell?.differs ? 'domain-tone-warn domain-ns-odd' : undefined}
                     title={cell?.differs ? 'Differs from what most nameservers say' : undefined}
                   >

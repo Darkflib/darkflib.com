@@ -352,7 +352,7 @@ describe('nameserver comparison', () => {
     const byLabel = Object.fromEntries(matrix.rows.map((entry) => [entry.label, entry]))
     assert.deepEqual(
       matrix.rows.map((entry) => entry.label),
-      ['Serial', 'Primary', 'Timers', 'NS', 'A', 'AAAA', 'MX', 'TXT', 'CAA'],
+      ['Serial', 'Primary', 'Contact', 'Timers', 'NS', 'A', 'AAAA', 'MX', 'TXT', 'CAA'],
     )
     // Two counted answers, one each: the first seen is the consensus, so ns2 is the odd one out.
     assert.deepEqual(
@@ -371,6 +371,16 @@ describe('nameserver comparison', () => {
     assert.deepEqual(byLabel.A.cells[3], { values: ['192.0.2.1'], differs: false, extra: [], missing: [] })
     assert.deepEqual(byLabel.AAAA.cells[0], { values: [], differs: false, extra: [], missing: [] })
     assert.equal(byLabel.NS.differs, false)
+  })
+
+  it('marks a nameserver whose SOA differs only in its contact', () => {
+    const other = probe('ns2.vultr.com', '173.199.96.97', {
+      soa: { ...soa(2026101601), rname: 'hostmaster.vultr.com' },
+    })
+    const data = { ...compared, nameserver_comparison: { ...comparison, servers: [comparison.servers[0], other] } }
+    const contact = nameserverMatrix(data)?.rows.find((entry) => entry.label === 'Contact')
+    assert.equal(contact?.differs, true)
+    assert.deepEqual(contact?.cells[1]?.extra, ['hostmaster.vultr.com'])
   })
 
   it('is absent for runs from before the comparison', () => {

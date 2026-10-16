@@ -104,7 +104,15 @@ interface Probe {
   error: string | null
   rcode: string | null
   authoritative: boolean
-  soa: { serial: number; mname: string; refresh: number; retry: number; expire: number; minimum: number } | null
+  soa: {
+    serial: number
+    mname: string
+    rname: string
+    refresh: number
+    retry: number
+    expire: number
+    minimum: number
+  } | null
   answers: Record<string, { values?: string[]; rcode?: string | null; error?: string | null }>
 }
 
@@ -234,6 +242,7 @@ export interface MatrixRow {
 const MATRIX_ROWS: [string, (probe: Probe) => string[] | null][] = [
   ['Serial', (probe) => (probe.soa ? [String(probe.soa.serial)] : null)],
   ['Primary', (probe) => (probe.soa ? [probe.soa.mname] : null)],
+  ['Contact', (probe) => (probe.soa ? [probe.soa.rname] : null)],
   [
     'Timers',
     (probe) =>
