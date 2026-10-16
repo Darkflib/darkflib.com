@@ -88,6 +88,11 @@ export function UsersPage() {
     (id: string) =>
       run(async () => {
         const details = await getAdminUser(id)
+        // Keep the user's entry in the results in step with the details, so a role change shows there too.
+        setResults(
+          (current) =>
+            current?.map((result) => (result.id === id ? { ...result, roles: details.roles.held } : result)) ?? null,
+        )
         // Another user may have been chosen while this was in flight: never show (or act on) a stale one.
         if (selectedRef.current === id) setUser(details)
       }),
