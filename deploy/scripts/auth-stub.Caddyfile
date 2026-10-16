@@ -1,4 +1,4 @@
-# A stand-in for wwff-auth, run by smoke.sh from the site's own image: just enough of /auth/verify and /auth/session
+# A stand-in for wwff-auth (and for wwff-recon's /tools/domain/api/*), run by smoke.sh from the site's own image: just enough of /auth/verify and /auth/session
 # to exercise deploy/Caddyfile's routing. A request carrying the cookie smoke=1 is signed in.
 {
 	admin off
@@ -103,6 +103,21 @@
 	handle /auth/admin/users/u2 {
 		header Content-Type application/json
 		respond `{"id": "u2", "display_name": "Alice Example", "email": "alice@example.com", "created_at": "2026-01-01T00:00:00Z", "last_seen_at": null, "identities": [{"provider": "github", "label": "alice", "linked_at": "2026-01-01T00:00:00Z"}], "roles": {"held": ["admin", "user"], "web_grantable": ["user"]}, "passkeys": [], "credits": {"balances": {"domain": 3}, "recent": [{"id": "l1", "type": "domain", "delta": 3, "balance_after": 3, "kind": "grant", "note": "welcome", "actor": "admin:smoke-user", "ref": null, "created_at": "2026-01-01T00:00:00Z"}]}}` 200
+	}
+
+	# wwff-recon (Darkflib/wwff-recon docs/contract.md), stateless: every run is the same finished run, one check
+	# succeeding and one failing, so the page renders both.
+	@recon_start {
+		path /tools/domain/api/runs
+		method POST
+	}
+	handle @recon_start {
+		header Content-Type application/json
+		respond `{"id": "r1", "domain": "example.com", "domain_unicode": "example.com", "domain_a_label": "example.com", "checks": ["rdap", "tls"], "status": "complete", "created_at": "2026-01-01T00:00:00Z", "completed_at": "2026-01-01T00:00:02Z", "cost": 1, "refunded": false, "balance_after": 2, "results": {"rdap": {"collector": "rdap", "ok": true, "duration_ms": 412.5, "data": {"data_source": "rdap", "registered_at": "1995-08-14T04:00:00Z", "expires_at": "2027-08-13T04:00:00Z", "age_days": 11386, "status": ["client delete prohibited"], "nameservers": [{"ldh_name": "a.iana-servers.net"}], "entities": [{"roles": ["registrar"], "vcard": {"fn": "RESERVED-Internet Assigned Numbers Authority"}}]}, "error": null}, "tls": {"collector": "tls", "ok": false, "duration_ms": 10000, "data": null, "error": {"kind": "timeout", "retryable": true, "upstream": "example.com:443", "message": "TLS handshake timed out"}}}}` 200
+	}
+	handle /tools/domain/api/runs {
+		header Content-Type application/json
+		respond `{"runs": [{"id": "r1", "domain": "example.com", "domain_unicode": "example.com", "domain_a_label": "example.com", "checks": ["rdap", "tls"], "status": "complete", "created_at": "2026-01-01T00:00:00Z", "completed_at": "2026-01-01T00:00:02Z", "cost": 1, "refunded": false, "balance_after": 2}]}` 200
 	}
 
 	handle {

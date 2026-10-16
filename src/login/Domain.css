@@ -1,0 +1,86 @@
+/* /tools/domain/: domain recon. Builds on the session debugger's panels (Debug.css) and user admin's inputs
+ * (Users.css). */
+
+.domain-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  max-width: 820px;
+  margin-bottom: 8px;
+}
+
+.domain-input {
+  flex: 1;
+  min-width: 220px;
+  height: 40px;
+  font-size: 14px;
+}
+
+.domain-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: #c6d6ec;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.domain-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.domain-run {
+  position: relative;
+  z-index: 2;
+}
+
+.domain-run-title {
+  margin: 0 1.25% 10px;
+  font-family: var(--font-display);
+  font-size: 28px;
+  color: #eaf3ff;
+}
+
+.domain-h3 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.11em;
+  color: #b8e9ff;
+}
+
+.domain-raw summary {
+  cursor: pointer;
+  color: #8faecb;
+  font-size: 11px;
+}
+
+.domain-raw pre {
+  max-height: 420px;
+  margin-top: 8px;
+}
+
+.domain-history {
+  margin: 0 1.25% 20px;
+  position: relative;
+  z-index: 2;
+}
+
+.domain-history ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
