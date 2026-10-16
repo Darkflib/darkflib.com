@@ -327,6 +327,19 @@ describe('TLS scan and certificate checks', () => {
     assert.equal(row(rows, 'Weaknesses').tone, 'good')
   })
 
+  it('never reads an incomplete scan as clean', () => {
+    const partial = {
+      ...scannedTls,
+      scan: { complete: false, protocols: [scannedTls.scan.protocols[0]] },
+      assessment: { findings: [], vulnerabilities: [{ id: 'poodle', name: 'POODLE', status: 'unknown' }] },
+    }
+    const rows = summary('tls', partial, NOW)
+    assert.equal(row(rows, 'Cipher suites').value, 'TLSv1.3: 1 (scan incomplete)')
+    assert.equal(row(rows, 'Cipher suites').tone, 'info')
+    assert.equal(row(rows, 'Weaknesses').value, 'none found so far')
+    assert.equal(row(rows, 'Weaknesses').tone, 'info')
+  })
+
   it('leaves the scan rows out for a result without a scan', () => {
     const shown = visibleRows(summary('tls', tls, NOW)).map((entry) => entry.label)
     assert.ok(!shown.includes('Cipher suites'))

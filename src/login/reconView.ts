@@ -242,6 +242,9 @@ export function summary(check: Check, data: Record<string, unknown>, now = Date.
       const flagged = suites.filter((suite) => suite.rating === 'insecure' || suite.rating === 'weak')
       const weaknesses = vulnerabilities(data).filter((entry) => entry.status === 'vulnerable')
       const scanned = at(data, 'scan') != null
+      // A scan cut short by its budget never tried some suites or versions: it can't read as clean.
+      const complete = at(data, 'scan.complete') === true
+      const partial = scanned && !complete ? ' (scan incomplete)' : ''
       const chainIssue =
         checks?.chain_complete === false
           ? 'incomplete (missing intermediate)'
@@ -259,7 +262,7 @@ export function summary(check: Check, data: Record<string, unknown>, now = Date.
         },
         {
           label: 'Cipher suites',
-          value: scanned ? suiteCounts(data) : undefined,
+          value: scanned ? `${suiteCounts(data)}${partial}` : undefined,
           optional: true,
           assessed: true,
           ...(worst === 'insecure'
@@ -269,7 +272,7 @@ export function summary(check: Check, data: Record<string, unknown>, now = Date.
               }
             : worst === 'weak'
               ? { tone: 'warn', note: `Weak suites accepted: ${uniq(flagged.map((s) => s.name)).join(', ')}` }
-              : scanned && { tone: 'good' }),
+              : scanned && (complete ? { tone: 'good' } : { tone: 'info', note: 'The cipher scan ran out of time' })),
         },
         {
           label: 'Server order',
@@ -278,14 +281,19 @@ export function summary(check: Check, data: Record<string, unknown>, now = Date.
         },
         {
           label: 'Weaknesses',
-          value: scanned ? weaknesses.map((entry) => entry.name).join(', ') || 'none found' : undefined,
+          value: scanned
+            ? weaknesses.map((entry) => entry.name).join(', ') || (complete ? 'none found' : 'none found so far')
+            : undefined,
           optional: true,
           assessed: true,
           ...(weaknesses.some((entry) => entry.severity === 'high' || entry.severity === 'critical')
             ? { tone: 'bad', note: `Known weaknesses: ${weaknesses.map((entry) => entry.name).join(', ')}` }
             : weaknesses.length
               ? { tone: 'warn', note: `Known weaknesses: ${weaknesses.map((entry) => entry.name).join(', ')}` }
-              : scanned && at(data, 'scan.complete') === true && { tone: 'good' }),
+              : scanned &&
+                (complete
+                  ? { tone: 'good' }
+                  : { tone: 'info', note: 'The cipher scan ran out of time; some checks were not settled' })),
         },
         { label: 'Subject', value: str(at(data, 'leaf_certificate.subject.common_name')) },
         {
