@@ -67,14 +67,27 @@ export const getRun = (id: string) => call<Run>(`/runs/${encodeURIComponent(id)}
 
 export const listRuns = () => call<{ runs: Run[] }>('/runs')
 
-/** Polls a queued or running run until it finishes. This implementation answers finished runs straight away. */
-export async function waitForRun(run: Run, signal: { cancelled: boolean }): Promise<Run> {
+/** Thrown by waitForRun when a run is still unfinished at the client's deadline: it may yet finish server-side. */
+export class RunStillGoing extends Error {
+  override name = 'RunStillGoing'
+}
+
+/**
+ * Polls a queued or running run until it finishes, the caller cancels (checked after every wait and every request,
+ * so nothing is fetched or applied after an unmount), or `deadlineMs` passes. This implementation answers finished
+ * runs straight away; a queued or multi-PoP one would make this matter.
+ */
+export async function waitForRun(run: Run, signal: { cancelled: boolean }, deadlineMs = 120_000): Promise<Run> {
+  const deadline = Date.now() + deadlineMs
   let current = run
   let delay = 1000
-  while ((current.status === 'queued' || current.status === 'running') && !signal.cancelled) {
+  while (current.status === 'queued' || current.status === 'running') {
+    if (Date.now() + delay > deadline) throw new RunStillGoing(current.id)
     await new Promise((resolve) => setTimeout(resolve, delay))
+    if (signal.cancelled) return current
     delay = Math.min(delay * 1.5, 5000)
     current = await getRun(current.id)
+    if (signal.cancelled) return current
   }
   return current
 }

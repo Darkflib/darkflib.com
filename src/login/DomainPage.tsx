@@ -1,7 +1,17 @@
-import { type FormEvent, useCallback, useEffect, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { SiteShell } from '../components/SiteShell'
 import { AuthError, getSession } from './auth'
-import { CHECKS, type Check, type CollectionResult, getRun, listRuns, type Run, startRun, waitForRun } from './recon'
+import {
+  CHECKS,
+  type Check,
+  type CollectionResult,
+  getRun,
+  listRuns,
+  type Run,
+  RunStillGoing,
+  startRun,
+  waitForRun,
+} from './recon'
 import './Debug.css'
 import './Users.css'
 import './Domain.css'
@@ -144,45 +154,83 @@ export function DomainPage() {
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
 
+  // Set when the page goes away, so no request outlives it and no state is set after it.
+  const page = useRef({ cancelled: false })
+  // Only the newest history request may replace the list.
+  const historyRequest = useRef(0)
+
   const refreshHistory = useCallback(() => {
+    const request = ++historyRequest.current
     listRuns().then(
-      (result) => setHistory(result.runs),
-      () => setHistory([]),
+      (result) => request === historyRequest.current && !page.current.cancelled && setHistory(result.runs),
+      () => request === historyRequest.current && !page.current.cancelled && setHistory([]),
     )
   }, [])
 
   useEffect(() => {
-    getSession().then((session) => setBalance(session?.credits?.balances.domain ?? null))
+    const signal = { cancelled: false }
+    page.current = signal
+    getSession().then((session) => !signal.cancelled && setBalance(session?.credits?.balances.domain ?? null))
     refreshHistory()
+    return () => {
+      signal.cancelled = true
+    }
   }, [refreshHistory])
+
+  /** Shows a run, polling it while it's unfinished; the balance it reports applies at once (a credit is spent). */
+  async function follow(started: Run) {
+    const signal = page.current
+    setRun(started)
+    if (started.balance_after !== null) setBalance(started.balance_after)
+    const finished = await waitForRun(started, signal)
+    if (signal.cancelled) return
+    setRun(finished)
+    if (finished.balance_after !== null) setBalance(finished.balance_after)
+    if (finished.refunded) setMessage('Every check failed upstream, so the credit was refunded.')
+    refreshHistory()
+  }
+
+  /** The tool's role has lapsed: the step-up page asks for the proof it needs (a passkey, or a fresh sign-in). */
+  function stepUpAndReturn() {
+    window.location.assign(`/login/step-up/?${new URLSearchParams({ next: '/tools/domain/' })}`)
+  }
+
+  function failed(error: unknown) {
+    if (page.current.cancelled) return
+    if (error instanceof AuthError && error.stepUp) return stepUpAndReturn()
+    if (error instanceof AuthError && error.reason === 'insufficient_credits') setBalance(0)
+    if (error instanceof RunStillGoing) {
+      setMessage('Still running. It will appear in your recent runs when it finishes.')
+      refreshHistory()
+    } else {
+      setMessage(error instanceof AuthError ? describe(error) : 'The run failed. Try again.')
+    }
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault()
     setBusy(true)
     setMessage('')
-    const signal = { cancelled: false }
     try {
       const started = await startRun(domain.trim(), checks)
-      setRun(started)
-      const finished = await waitForRun(started, signal)
-      setRun(finished)
-      if (finished.balance_after !== null) setBalance(finished.balance_after)
-      if (finished.refunded) setMessage('Every check failed upstream, so the credit was refunded.')
-      refreshHistory()
+      if (page.current.cancelled) return
+      await follow(started)
     } catch (error) {
-      if (error instanceof AuthError && error.reason === 'insufficient_credits') setBalance(0)
-      setMessage(error instanceof AuthError ? describe(error) : 'The run failed. Try again.')
+      failed(error)
     } finally {
-      setBusy(false)
+      if (!page.current.cancelled) setBusy(false)
     }
   }
 
   async function open(id: string) {
     setMessage('')
     try {
-      setRun(await getRun(id))
+      const found = await getRun(id)
+      if (page.current.cancelled) return
+      // A run still queued or running keeps being polled, like a new one.
+      await follow(found)
     } catch (error) {
-      setMessage(error instanceof AuthError ? describe(error) : "Couldn't load that run.")
+      failed(error)
     }
   }
 

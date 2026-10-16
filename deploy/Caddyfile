@@ -171,7 +171,12 @@
 				# Behind the gate like the page, so it gets the X-Auth-* headers; it checks the `user` role itself too,
 				# and spends the caller's credits through wwff-auth. WWFF_RECON_UPSTREAM exists for the smoke test.
 				@recon_api path /tools/domain/api/*
-				reverse_proxy @recon_api {$WWFF_RECON_UPSTREAM:wwff-recon:8000}
+				# A run may take up to 45 s (its contract); past 60 s with no response the upstream has stalled.
+				reverse_proxy @recon_api {$WWFF_RECON_UPSTREAM:wwff-recon:8000} {
+					transport http {
+						response_header_timeout 60s
+					}
+				}
 
 				@auth_headers path /tools/debug/headers.json
 				header @auth_headers Content-Type application/json
