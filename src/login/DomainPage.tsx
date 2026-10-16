@@ -80,6 +80,9 @@ export function DomainPage() {
   const page = useRef({ cancelled: false })
   // Only the newest history request may replace the list.
   const historyRequest = useRef(0)
+  // Only the newest run started or opened may be shown: each start or open takes the next number, and an older one's
+  // responses (and polling) stop counting.
+  const runRequest = useRef(0)
   const input = useRef<HTMLInputElement>(null)
   const results = useRef<HTMLElement>(null)
 
@@ -111,8 +114,18 @@ export function DomainPage() {
   }, [starting])
 
   /** Shows a run, polling it while it's unfinished; the balance it reports applies at once (a credit is spent). */
-  async function follow(started: Run) {
-    const signal = page.current
+  /** A signal for a new start or open: cancelled when the page goes away or a newer start or open supersedes it. */
+  function claim(): { readonly cancelled: boolean } {
+    const request = ++runRequest.current
+    const gone = page.current
+    return {
+      get cancelled() {
+        return gone.cancelled || request !== runRequest.current
+      },
+    }
+  }
+
+  async function follow(started: Run, signal: { readonly cancelled: boolean }) {
     setRun(started)
     remember(started.id)
     if (started.balance_after !== null) setBalance(started.balance_after)
@@ -124,9 +137,13 @@ export function DomainPage() {
     refreshHistory()
   }
 
-  /** The tool's role has lapsed: the step-up page asks for the proof it needs (a passkey, or a fresh sign-in). */
+  /**
+   * The tool's role has lapsed: the step-up page asks for the proof it needs (a passkey, or a fresh sign-in), then
+   * comes back here with the address bar's `?run=`, so the run being shown or opened reopens.
+   */
   function stepUpAndReturn() {
-    window.location.assign(`/login/step-up/?${new URLSearchParams({ next: '/tools/domain/' })}`)
+    const next = window.location.pathname + window.location.search
+    window.location.assign(`/login/step-up/?${new URLSearchParams({ next })}`)
   }
 
   function failed(error: unknown, otherwise = 'The run failed. Try again.') {
@@ -145,14 +162,23 @@ export function DomainPage() {
   async function execute(target: string, selected: Check[]) {
     setBusy(true)
     setMessage('')
+    // "Run again" replaces the run on show; if the new one never starts, that one comes back.
+    const previous = run
+    const signal = claim()
     setRun(pending(target, selected))
     try {
       const started = await startRun(target, selected)
-      if (page.current.cancelled) return
-      await follow(started)
+      if (signal.cancelled) {
+        // Another run was opened meanwhile; this one still spent a credit and joins the recent runs.
+        if (!page.current.cancelled && started.balance_after !== null) setBalance(started.balance_after)
+        refreshHistory()
+        return
+      }
+      await follow(started, signal)
     } catch (error) {
-      // Nothing to show for a run that never started.
-      if (!page.current.cancelled) setRun((current) => (current?.id === '' ? null : current))
+      if (signal.cancelled) return
+      // Nothing to show for a run that never started: back to what was shown before it.
+      setRun((current) => (current?.id === '' ? previous : current))
       failed(error)
     } finally {
       if (!page.current.cancelled) setBusy(false)
@@ -169,14 +195,22 @@ export function DomainPage() {
 
   async function open(id: string) {
     setMessage('')
+    // In the address bar before the request, so a step-up on the way comes back to this run (a 404 clears it).
+    remember(id)
+    const signal = claim()
+    let found: Run | undefined
     try {
-      const found = await getRun(id)
-      if (page.current.cancelled) return
+      found = await getRun(id)
+      if (signal.cancelled) return
       setDomain(found.domain_unicode)
       // A run still queued or running keeps being polled, like a new one.
-      await follow(found)
+      await follow(found, signal)
     } catch (error) {
+      if (signal.cancelled) return
       failed(error, "Couldn't open that run. Pick it again from your recent runs.")
+      // It never loaded, so the run from before is still shown: the address bar goes back to it (unless step-up is
+      // taking us away).
+      if (!found && !(error instanceof AuthError && error.stepUp)) remember(run?.id || null)
     }
   }
 
