@@ -12,7 +12,17 @@ import {
   startRun,
   waitForRun,
 } from './recon'
-import { findings, normaliseDomain, show, summary, visibleRows } from './reconView'
+import {
+  cipherRows,
+  findings,
+  headerChecks,
+  minorFindings,
+  normaliseDomain,
+  show,
+  summary,
+  visibleRows,
+  vulnerabilities,
+} from './reconView'
 import './Debug.css'
 import './Users.css'
 import './Domain.css'
@@ -441,6 +451,7 @@ function Result({ check, result }: { check: Check; result: CollectionResult | un
           {result.error?.retryable && ' (a temporary failure on the other side)'}
         </p>
       )}
+      {result?.ok && result.data && <Detail check={check} data={result.data} />}
       {result && (
         <div className="domain-raw-row">
           <details className="domain-raw">
@@ -452,4 +463,96 @@ function Result({ check, result }: { check: Check; result: CollectionResult | un
       )}
     </section>
   )
+}
+
+/** The TLS scan's suites and weakness checks, or the HTTP checks, under a check's summary (domaincheck schema 2.2+). */
+function Detail({ check, data }: { check: Check; data: Record<string, unknown> }) {
+  const minor = minorFindings(data)
+  const notes = minor.length > 0 && (
+    <ul className="domain-minor">
+      {minor.map((text) => (
+        <li key={text}>{text}</li>
+      ))}
+    </ul>
+  )
+  if (check === 'tls') {
+    const suites = cipherRows(data)
+    const weaknesses = vulnerabilities(data)
+    if (!suites.length && !weaknesses.length) return notes || null
+    const flagged = suites.some((suite) => suite.tone === 'bad' || suite.tone === 'warn')
+    return (
+      <>
+        {suites.length > 0 && (
+          <details className="domain-detail" open={flagged}>
+            <summary>{`Cipher suites (${suites.length})`}</summary>
+            <table className="debug-table">
+              <thead>
+                <tr>
+                  <th scope="col">Version</th>
+                  <th scope="col">Suite</th>
+                  <th scope="col">Rating</th>
+                  <th scope="col">Group</th>
+                </tr>
+              </thead>
+              <tbody>
+                {suites.map((suite) => (
+                  <tr key={`${suite.version}:${suite.name}`}>
+                    <td>{suite.version}</td>
+                    <th scope="row" title={suite.issues.join(', ') || undefined}>
+                      {suite.name}
+                    </th>
+                    <td className={`domain-tone-${suite.tone}`}>{suite.rating}</td>
+                    <td>{suite.group ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </details>
+        )}
+        {weaknesses.length > 0 && (
+          <details className="domain-detail" open={weaknesses.some((entry) => entry.status === 'vulnerable')}>
+            <summary>Known weaknesses</summary>
+            <table className="debug-table">
+              <tbody>
+                {weaknesses.map((entry) => (
+                  <tr key={entry.id}>
+                    <th scope="row">{entry.name}</th>
+                    <td className={`domain-tone-${entry.tone}`}>{entry.status.replaceAll('_', ' ')}</td>
+                    <td>{entry.detail}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </details>
+        )}
+        {notes}
+      </>
+    )
+  }
+  if (check === 'headers') {
+    const checks = headerChecks(data)
+    if (!checks.length) return notes || null
+    return (
+      <>
+        <details className="domain-detail" open={checks.some((entry) => entry.tone === 'bad')}>
+          <summary>Best-practice checks</summary>
+          <table className="debug-table">
+            <tbody>
+              {checks.map((entry) => (
+                <tr key={entry.name}>
+                  <th scope="row" title={entry.value}>
+                    {entry.name}
+                  </th>
+                  <td className={`domain-tone-${entry.tone}`}>{entry.result}</td>
+                  <td>{entry.detail}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+        {notes}
+      </>
+    )
+  }
+  return null
 }
