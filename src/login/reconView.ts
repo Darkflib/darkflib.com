@@ -113,7 +113,7 @@ interface Probe {
     expire: number
     minimum: number
   } | null
-  answers: Record<string, { values?: string[]; rcode?: string | null; error?: string | null }>
+  answers: Record<string, { values?: string[]; rcode?: string | null; authoritative?: boolean; error?: string | null }>
 }
 
 const probes = (comparison: unknown) => list(at(comparison, 'servers')) as unknown as Probe[]
@@ -152,7 +152,11 @@ function comparisonRows(comparison: Record<string, unknown>): Row[] {
     record_type: string
     differing: { nameserver: string; ip: string; missing: string[]; extra: string[] }[]
   }[]
-  const drift = disagreements.map((entry) => {
+  // Zones served by more than one provider (each its own primary) differ in serial and SOA by design.
+  const primaries = [...new Set(servers.filter(counts).flatMap((probe) => (probe.soa ? [probe.soa.mname] : [])))]
+  const multi = primaries.length > 1
+  const drifting = disagreements.filter((entry) => !(multi && entry.record_type === 'SOA'))
+  const drift = drifting.map((entry) => {
     const first = entry.differing[0]
     const how = first
       ? [
@@ -167,14 +171,21 @@ function comparisonRows(comparison: Record<string, unknown>): Row[] {
     return first ? `${label}: ${first.nameserver} ${first.ip} ${how || 'differs'}${more}` : label
   })
   return [
-    serials.length > 1
+    multi
       ? {
           label: 'Serial',
-          value: serials.join(' ≠ '),
-          tone: 'warn',
-          note: `The nameservers serve different SOA serials (${serials.join(', ')}): one has not caught up`,
+          value: serials.join(', '),
+          tone: 'info',
+          note: `${primaries.length} primaries (${primaries.join(', ')}): more than one provider, so serials and SOA fields aren't comparable`,
         }
-      : { label: 'Serial', value: serials[0] },
+      : serials.length > 1
+        ? {
+            label: 'Serial',
+            value: serials.join(' ≠ '),
+            tone: 'warn',
+            note: `The nameservers serve different SOA serials (${serials.join(', ')}): one has not caught up`,
+          }
+        : { label: 'Serial', value: serials[0] },
     {
       label: 'Nameservers answering',
       value: servers.length
@@ -204,7 +215,7 @@ function comparisonRows(comparison: Record<string, unknown>): Row[] {
     },
     {
       label: 'Record drift',
-      value: disagreements.map((entry) => entry.record_type).join(', '),
+      value: drifting.map((entry) => entry.record_type).join(', '),
       tone: 'warn',
       note: `The nameservers give different answers. ${drift.join('; ')}`,
       optional: true,
@@ -225,6 +236,8 @@ export interface MatrixColumn {
 
 export interface MatrixCell {
   values: string[]
+  /** Whether this answer counts: its address counts, and the answer itself was authoritative and NOERROR/NXDOMAIN. */
+  counted: boolean
   /** Counted, and not what most counted nameservers said. */
   differs: boolean
   /** When it differs: its values the consensus lacks, and the consensus's values it lacks. */
@@ -239,25 +252,34 @@ export interface MatrixRow {
   differs: boolean
 }
 
-const MATRIX_ROWS: [string, (probe: Probe) => string[] | null][] = [
-  ['Serial', (probe) => (probe.soa ? [String(probe.soa.serial)] : null)],
-  ['Primary', (probe) => (probe.soa ? [probe.soa.mname] : null)],
-  ['Contact', (probe) => (probe.soa ? [probe.soa.rname] : null)],
+/** A field as one address answered it, and whether that answer counts (authoritative, NOERROR or NXDOMAIN). */
+type Read = { values: string[]; counts: boolean } | null
+
+const soaField =
+  (pick: (soa: NonNullable<Probe['soa']>) => string) =>
+  (probe: Probe): Read =>
+    probe.soa ? { values: [pick(probe.soa)], counts: true } : null
+
+const MATRIX_ROWS: [string, (probe: Probe) => Read][] = [
+  ['Serial', soaField((soa) => String(soa.serial))],
+  ['Primary', soaField((soa) => soa.mname)],
+  ['Contact', soaField((soa) => soa.rname)],
   [
     'Timers',
-    (probe) =>
-      probe.soa
-        ? [
-            `refresh ${probe.soa.refresh} · retry ${probe.soa.retry} · expire ${probe.soa.expire} · min ${probe.soa.minimum}`,
-          ]
-        : null,
+    soaField((soa) => `refresh ${soa.refresh} · retry ${soa.retry} · expire ${soa.expire} · min ${soa.minimum}`),
   ],
-  ...['NS', 'A', 'AAAA', 'MX', 'TXT', 'CAA'].map((type): [string, (probe: Probe) => string[] | null] => [
+  ...['NS', 'A', 'AAAA', 'MX', 'TXT', 'CAA'].map((type): [string, (probe: Probe) => Read] => [
     type,
     (probe) => {
       const answer = probe.answers?.[type]
       if (!answer || answer.error) return null
-      return answer.rcode === 'NXDOMAIN' ? ['NXDOMAIN'] : (answer.values ?? [])
+      // A refused or failed query is shown as its rcode, and like a non-authoritative answer, doesn't count.
+      if (answer.rcode !== 'NOERROR' && answer.rcode !== 'NXDOMAIN')
+        return { values: [answer.rcode ?? 'no rcode'], counts: false }
+      return {
+        values: answer.rcode === 'NXDOMAIN' ? ['NXDOMAIN'] : (answer.values ?? []),
+        counts: answer.authoritative !== false,
+      }
     },
   ]),
 ]
@@ -287,24 +309,27 @@ export function nameserverMatrix(
     }
   })
   const rows = MATRIX_ROWS.map(([label, read]): MatrixRow => {
-    const values = servers.map((probe) => (probe.status === 'answered' ? read(probe) : null))
+    const reads = servers.map((probe, index): Read => {
+      const found = probe.status === 'answered' ? read(probe) : null
+      return found && { values: found.values, counts: found.counts && columns[index].counted }
+    })
     const key = (cell: string[]) => cell.join('\n')
     const tally = new Map<string, number>()
     let consensus: string[] | undefined
-    values.forEach((cell, index) => {
-      if (!cell || !columns[index].counted) return
-      tally.set(key(cell), (tally.get(key(cell)) ?? 0) + 1)
-      if (!consensus || (tally.get(key(cell)) ?? 0) > (tally.get(key(consensus)) ?? 0)) consensus = cell
-    })
-    const cells = values.map((cell, index): MatrixCell | null => {
+    for (const cell of reads) {
+      if (!cell?.counts) continue
+      tally.set(key(cell.values), (tally.get(key(cell.values)) ?? 0) + 1)
+      if (!consensus || (tally.get(key(cell.values)) ?? 0) > (tally.get(key(consensus)) ?? 0)) consensus = cell.values
+    }
+    const cells = reads.map((cell): MatrixCell | null => {
       if (cell === null) return null
-      const differs =
-        columns[index].counted && tally.size > 1 && consensus !== undefined && key(cell) !== key(consensus)
+      const differs = cell.counts && tally.size > 1 && consensus !== undefined && key(cell.values) !== key(consensus)
       return {
-        values: cell,
+        values: cell.values,
+        counted: cell.counts,
         differs,
-        extra: differs ? cell.filter((value) => !consensus?.includes(value)) : [],
-        missing: differs ? (consensus ?? []).filter((value) => !cell.includes(value)) : [],
+        extra: differs ? cell.values.filter((value) => !consensus?.includes(value)) : [],
+        missing: differs ? (consensus ?? []).filter((value) => !cell.values.includes(value)) : [],
       }
     })
     return { label, cells, differs: cells.some((cell) => cell?.differs) }

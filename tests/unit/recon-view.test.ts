@@ -362,14 +362,21 @@ describe('nameserver comparison', () => {
     assert.equal(byLabel.MX.differs, true)
     assert.deepEqual(byLabel.MX.cells[1], {
       values: ['10 darkflib.com'],
+      counted: true,
       differs: true,
       extra: [],
       missing: ['20 mx2.darkflib.com'],
     })
     // ns4's A differs, but a non-authoritative answer doesn't count, so it isn't marked.
     assert.equal(byLabel.A.differs, false)
-    assert.deepEqual(byLabel.A.cells[3], { values: ['192.0.2.1'], differs: false, extra: [], missing: [] })
-    assert.deepEqual(byLabel.AAAA.cells[0], { values: [], differs: false, extra: [], missing: [] })
+    assert.deepEqual(byLabel.A.cells[3], {
+      values: ['192.0.2.1'],
+      counted: false,
+      differs: false,
+      extra: [],
+      missing: [],
+    })
+    assert.deepEqual(byLabel.AAAA.cells[0], { values: [], counted: true, differs: false, extra: [], missing: [] })
     assert.equal(byLabel.NS.differs, false)
   })
 
@@ -381,6 +388,37 @@ describe('nameserver comparison', () => {
     const contact = nameserverMatrix(data)?.rows.find((entry) => entry.label === 'Contact')
     assert.equal(contact?.differs, true)
     assert.deepEqual(contact?.cells[1]?.extra, ['hostmaster.vultr.com'])
+  })
+
+  it('shows a refused record query as its rcode and leaves it out of the consensus', () => {
+    const refused = probe('ns2.vultr.com', '173.199.96.97', {
+      answers: { ...answers(), MX: { rcode: 'REFUSED', authoritative: false, values: [], error: null } },
+    })
+    const data = { ...compared, nameserver_comparison: { ...comparison, servers: [comparison.servers[0], refused] } }
+    const mx = nameserverMatrix(data)?.rows.find((entry) => entry.label === 'MX')
+    assert.equal(mx?.differs, false)
+    assert.deepEqual(mx?.cells[1], { values: ['REFUSED'], counted: false, differs: false, extra: [], missing: [] })
+  })
+
+  it('treats more than one primary as multi-provider, not drift', () => {
+    const route53 = probe('ns-1.awsdns-01.net', '205.251.194.8', {
+      soa: { ...soa(1), mname: 'ns-1.awsdns-01.net', rname: 'awsdns-hostmaster.amazon.com' },
+    })
+    const data = {
+      ...compared,
+      nameserver_comparison: {
+        ...comparison,
+        parent_only: [],
+        servers: [comparison.servers[0], route53],
+        serials: [1, 2026101601],
+        disagreements: [{ record_type: 'SOA', consensus: [], differing: [] }],
+      },
+    }
+    const rows = summary('dns', data, NOW)
+    assert.equal(row(rows, 'Serial').tone, 'info')
+    assert.equal(row(rows, 'Serial').value, '1, 2026101601')
+    assert.ok(!visibleRows(rows).some((entry) => entry.label === 'Record drift'))
+    assert.deepEqual(findings(['dns'], { dns: ok('dns', data) }, NOW), [])
   })
 
   it('is absent for runs from before the comparison', () => {

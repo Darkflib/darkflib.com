@@ -468,8 +468,20 @@ function Nameservers({ data }: { data: Record<string, unknown> }) {
                 {row.cells.map((cell, index) => (
                   <td
                     key={`${columns[index].nameserver} ${columns[index].ip}`}
-                    className={cell?.differs ? 'domain-tone-warn domain-ns-odd' : undefined}
-                    title={cell?.differs ? 'Differs from what most nameservers say' : undefined}
+                    className={
+                      cell?.differs
+                        ? 'domain-tone-warn domain-ns-odd'
+                        : cell?.counted === false
+                          ? 'domain-ns-uncounted-cell'
+                          : undefined
+                    }
+                    title={
+                      cell?.differs
+                        ? 'Differs from what most nameservers say'
+                        : cell?.counted === false
+                          ? "Not counted: this answer wasn't authoritative, or the query failed"
+                          : undefined
+                    }
                   >
                     {cell === null ? (
                       <span className="domain-ns-none">—</span>
