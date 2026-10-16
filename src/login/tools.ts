@@ -20,6 +20,11 @@ export const TOOLS: Tool[] = [
     name: 'USER ADMIN',
     blurb: 'Find users, set their roles, and add or remove credits.',
   },
+  {
+    slug: 'domain',
+    name: 'DOMAIN RECON',
+    blurb: 'Registration, DNS, TLS, and HTTP headers for a domain. One domain credit a run.',
+  },
 ]
 
 /** The tool's display name, or its slug when this site has no entry for it. */

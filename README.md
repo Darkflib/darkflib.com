@@ -43,7 +43,7 @@ docker rm -f darkflib-smoke
 | `src/components/SiteShell.tsx`  | Chrome every page shares: top bar, footer, contact dialog                   |
 | `src/styles/`                   | Reset, self-hosted font faces, and global tokens and primitives             |
 | `src/content.ts`                | Projects, featured posts and tools (linking to mikepreston.org), tech stack  |
-| `src/login/`                    | The access pages and the tools behind them: `/login/`, `/login/enrol/`, `/login/step-up/`, `/login/denied/`, `/tools/`, the session debugger at `/tools/debug/`, and user admin at `/tools/users/`. See [Private tools](#private-tools). Kept out of search and the sitemap |
+| `src/login/`                    | The access pages and the tools behind them: `/login/`, `/login/enrol/`, `/login/step-up/`, `/login/denied/`, `/tools/`, the session debugger at `/tools/debug/`, user admin at `/tools/users/`, and domain recon at `/tools/domain/`. See [Private tools](#private-tools). Kept out of search and the sitemap |
 | `src/kev/`                      | Reading and summarising the KEV snapshot the site serves at `/feeds/kev.json` |
 | `kev-snapshot/`                 | The Go program that writes that snapshot on the server, hourly              |
 | `src/sw/`                       | Service worker entry and the page↔worker message protocol                   |
@@ -205,7 +205,19 @@ Credit types (e.g. `domain`) are defined in the access file. Each user has a bal
 append-only history; admins adjust them in `/tools/users/`, tools spend them through wwff-auth's internal API, and
 users see their own balances on `/tools/` and in the session debugger.
 
-### The session debugger
+### Domain recon
+
+`/tools/domain/`, for the `user` role: registration (RDAP, or WHOIS where a registry has none), DNS (delegation
+trace, records, DNSSEC, CAA), TLS (chain, versions, CT, OCSP), and HTTP headers for a domain, collected live by
+[wwff-recon](https://github.com/Darkflib/wwff-recon) (private) with
+[domaincheck](https://github.com/wwff-tech/domain-check). Caddy proxies `/tools/domain/api/*` to the `wwff-recon`
+container inside the gate, so it gets the same `X-Auth-*` headers; the service checks `user` itself, spends one
+`domain` credit per run through wwff-auth, and refunds it when every check failed for an upstream reason. The page
+shows a summary per check with the full `domaincheck` result under it, the balance, and the recent runs; its API is
+wwff-recon's `docs/contract.md`. Being its own container, wwff-recon can later queue runs or collect from several
+points of presence behind the same API.
+
+
 
 `/tools/debug/` is the first tool and a placeholder: the session as `/auth/session` reports it (each level's proof
 time, with live ages), the `X-Auth-*` headers a tool behind the gate receives, example requirements checked against

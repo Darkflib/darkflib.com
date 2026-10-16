@@ -167,6 +167,12 @@
 				# them (empty where /auth/verify sent none). Only wwff-auth can have set them, since client copies are
 				# stripped above, and its values are ids, level names, Unix seconds, and role and tool names (which wwff-auth restricts to
 				# [a-z0-9-], so none can break the JSON).
+				# wwff-recon (Darkflib/wwff-recon): the domain recon tool's API, on its own container on darkflib.network.
+				# Behind the gate like the page, so it gets the X-Auth-* headers; it checks the `user` role itself too,
+				# and spends the caller's credits through wwff-auth. WWFF_RECON_UPSTREAM exists for the smoke test.
+				@recon_api path /tools/domain/api/*
+				reverse_proxy @recon_api {$WWFF_RECON_UPSTREAM:wwff-recon:8000}
+
 				@auth_headers path /tools/debug/headers.json
 				header @auth_headers Content-Type application/json
 				respond @auth_headers `{"X-Auth-User": "{http.request.header.X-Auth-User}", "X-Auth-Level": "{http.request.header.X-Auth-Level}", "X-Auth-Federated-At": "{http.request.header.X-Auth-Federated-At}", "X-Auth-Standard-At": "{http.request.header.X-Auth-Standard-At}", "X-Auth-High-At": "{http.request.header.X-Auth-High-At}", "X-Auth-Roles": "{http.request.header.X-Auth-Roles}", "X-Auth-Tool": "{http.request.header.X-Auth-Tool}"}` 200

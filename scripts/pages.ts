@@ -268,6 +268,14 @@ function accessPages(): Page[] {
       description: 'Users, roles, and credits.',
       noscript: indent(['<p>User admin needs JavaScript.</p>', '<p><a href="/tools/">All tools</a></p>']),
     },
+    {
+      ...access,
+      path: '/tools/domain/',
+      key: 'domain',
+      title: 'DOMAIN RECON — TOOLS — DARKFLIB',
+      description: 'Registration, DNS, TLS, and HTTP headers for a domain.',
+      noscript: indent(['<p>Domain recon needs JavaScript.</p>', '<p><a href="/tools/">All tools</a></p>']),
+    },
   ]
 }
 

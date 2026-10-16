@@ -41,6 +41,7 @@ a separate image and gitops app (`quadlet/apps/wwff-auth/`); this Caddy reaches 
 | `darkflib.com/auth/*`               | proxied to wwff-auth, `no-store`; `/auth/verify` is a 404 from outside |
 | `darkflib.com/tools/*`              | `forward_auth` to wwff-auth's `/auth/verify` first: a page load without a session is a 303 to `/login/?next=…`, anything else the service's 401; passed requests carry `X-Auth-*` (client copies stripped) and are `private, no-store` |
 | `darkflib.com/tools/debug/headers.json` | behind the same gate: answered by Caddy itself with the `X-Auth-*` headers it forwarded, for the session debugger at `/tools/debug/` |
+| `darkflib.com/tools/domain/api/*` | behind the same gate: proxied to the `wwff-recon` container (domain recon), which spends the caller's credits through wwff-auth |
 | `darkflib.dev`, `www.darkflib.dev`  | 302 to `https://darkflib.com`                          |
 | any other `*.darkflib.com` / `.dev` | 404                                                    |
 
