@@ -417,9 +417,11 @@ export function summary(id: SectionId, r: PageResult, now = Date.now()): Row[] {
           value: hsts ?? (https ? 'none' : undefined),
           ...(https && !hsts
             ? { tone: 'warn' as const, note: 'No Strict-Transport-Security header' }
-            : Number.isFinite(maxAge) && maxAge < 15_552_000
-              ? { tone: 'info' as const, note: 'HSTS max-age is under 180 days' }
-              : hsts && { tone: 'good' as const }),
+            : https && maxAge === 0
+              ? { tone: 'warn' as const, note: 'HSTS max-age=0 turns HSTS off' }
+              : Number.isFinite(maxAge) && maxAge < 15_552_000
+                ? { tone: 'info' as const, note: 'HSTS max-age is under 180 days' }
+                : hsts && { tone: 'good' as const }),
           optional: !https,
         },
         {

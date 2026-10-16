@@ -314,6 +314,24 @@ describe('a page that did not load', () => {
   })
 })
 
+describe('HSTS', () => {
+  const withHsts = (value: string, url = 'https://www.example.com/') => {
+    const r = clean()
+    r.final_url = url
+    r.document = { ...must(r.document), url, headers: [['strict-transport-security', value]] }
+    return row(rowsOf('security', r), 'HSTS')
+  }
+  it('warns when max-age=0 turns it off on an HTTPS page', () => {
+    assert.equal(withHsts('max-age=0')?.tone, 'warn')
+    assert.equal(withHsts('max-age=0')?.note, 'HSTS max-age=0 turns HSTS off')
+  })
+  it('keeps a short max-age as information, and says nothing extra on HTTP', () => {
+    assert.equal(withHsts('max-age=86400')?.tone, 'info')
+    assert.equal(withHsts('max-age=31536000')?.tone, 'good')
+    assert.notEqual(withHsts('max-age=0', 'http://www.example.com/')?.tone, 'warn')
+  })
+})
+
 describe('CSP', () => {
   it('parses directives, first one wins', () => {
     const csp = parseCsp("default-src 'self'; script-src a b;script-src c; ;")
