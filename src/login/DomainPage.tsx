@@ -16,6 +16,9 @@ import { compareRuns, jsonDiff, runLabel } from './reconCompare'
 import { exportName, reportHtml } from './reconReport'
 import {
   cipherRows,
+  ctCertificates,
+  ctIssuers,
+  ctNames,
   findings,
   headerChecks,
   minorFindings,
@@ -95,7 +98,7 @@ function pending(domain: string, checks: Check[]): Run {
 const when = (iso: string) => new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 
 /**
- * /tools/domain/: domain recon (RDAP, DNS, TLS, HTTP headers) through wwff-recon, for the `user` role. Each run spends
+ * /tools/domain/: domain recon (RDAP, DNS, TLS, HTTP headers, Certificate Transparency) through wwff-recon, for the `user` role. Each run spends
  * one `domain` credit, refunded when every check failed for an upstream reason.
  */
 export function DomainPage() {
@@ -326,8 +329,9 @@ export function DomainPage() {
         <div className="debug-kicker">{'// TOOLS / DOMAIN_RECON'}</div>
         <h1 id="domain-title">DOMAIN</h1>
         <p>
-          Registration, DNS, TLS, and HTTP headers for a domain, collected live. Each run costs one domain credit, and
-          is refunded if every check fails for a reason on the other side.
+          Registration, DNS, TLS, and HTTP headers for a domain, collected live, and the certificates the public
+          Certificate Transparency logs hold for it. Each run costs one domain credit, and is refunded if every check
+          fails for a reason on the other side.
         </p>
         <form className="domain-form" onSubmit={submit}>
           <label className="domain-sr" htmlFor="domain-input">
@@ -438,9 +442,10 @@ export function DomainPage() {
             {!unfinished && run.results && <Findings items={flagged} />}
             <div className="debug-grid">
               {run.checks.map((check) => (
-                <Result key={check} check={check} result={run.results?.[check]} />
+                <Result key={check} check={check} result={run.results?.[check]} others={run.results} />
               ))}
               {run.results?.dns?.ok && run.results.dns.data && <Nameservers data={run.results.dns.data} />}
+              {run.results?.ct?.ok && run.results.ct.data && <CtLog data={run.results.ct.data} />}
             </div>
           </>
         )}
@@ -700,7 +705,15 @@ function CopyButton({ label, text }: { label: string; text: () => string }) {
   )
 }
 
-function Result({ check, result }: { check: Check; result: CollectionResult | undefined }) {
+function Result({
+  check,
+  result,
+  others,
+}: {
+  check: Check
+  result: CollectionResult | undefined
+  others?: Run['results']
+}) {
   const name = CHECKS.find((entry) => entry.id === check)?.name ?? check
   return (
     <section className="panel debug-panel" aria-label={name} aria-busy={!result || undefined}>
@@ -718,7 +731,7 @@ function Result({ check, result }: { check: Check; result: CollectionResult | un
         <p className="debug-note domain-collecting">Collecting…</p>
       ) : result.ok && result.data ? (
         <dl className="debug-facts">
-          {visibleRows(summary(check, result.data)).map((row) => (
+          {visibleRows(summary(check, result.data, Date.now(), others)).map((row) => (
             <div key={row.label} className="users-balance">
               <dt>{row.label}</dt>
               <dd className={row.tone && `domain-tone-${row.tone}`} title={row.note}>
@@ -838,6 +851,120 @@ function Nameservers({ data }: { data: Record<string, unknown> }) {
         <p className="debug-note">
           Not checked, as the checker has no IPv6 route: {unrouted.join(', ')}. That says nothing about those servers.
         </p>
+      )}
+    </section>
+  )
+}
+
+/** How many certificates the CT panel lists; the rest are in the JSON. */
+const CT_SHOWN = 100
+
+/** What the CT logs hold (wwff-recon's `ct` check): issuers, every name the certificates reveal, the certificates. */
+function CtLog({ data }: { data: Record<string, unknown> }) {
+  const issuers = ctIssuers(data)
+  const names = ctNames(data)
+  const certs = ctCertificates(data)
+  const history = data.history === true
+  return (
+    <section className="panel debug-panel debug-wide" aria-labelledby="domain-ct-title">
+      <h3 id="domain-ct-title" className="domain-h3">
+        {'// CERT TRANSPARENCY · LOGS'}
+        <span className="debug-note">{history ? ' crt.sh' : ' Cert Spotter (current only)'}</span>
+      </h3>
+      <p className="debug-note">
+        Every certificate a public CA has logged for this name and its subdomains. The names are found passively, from
+        the logs: nothing here touched the domain.
+      </p>
+      {issuers.length > 0 && (
+        <details className="domain-detail" open>
+          <summary>{`Issuers (${issuers.length})`}</summary>
+          <table className="debug-table">
+            <thead>
+              <tr>
+                <th scope="col">Issuer</th>
+                <th scope="col">Current</th>
+                <th scope="col">Logged</th>
+                <th scope="col">First</th>
+                <th scope="col">Last</th>
+              </tr>
+            </thead>
+            <tbody>
+              {issuers.map((issuer) => (
+                <tr key={issuer.name}>
+                  <th scope="row">{issuer.name}</th>
+                  <td className={issuer.current ? 'domain-tone-good' : undefined}>{issuer.current}</td>
+                  <td>{issuer.total}</td>
+                  <td>{issuer.first ?? '—'}</td>
+                  <td>{issuer.last ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+      )}
+      {names.length > 0 && (
+        <details className="domain-detail" open={names.length <= 25}>
+          <summary>{`Names (${names.length}${data.names_truncated === true ? '+' : ''})`}</summary>
+          <table className="debug-table">
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Current</th>
+                <th scope="col">Logged</th>
+                <th scope="col">Last issued</th>
+              </tr>
+            </thead>
+            <tbody>
+              {names.map((name) => (
+                <tr key={name.name} className={name.current ? undefined : 'domain-ct-past'}>
+                  <th scope="row">{name.name}</th>
+                  <td className={name.current ? 'domain-tone-good' : undefined}>{name.current}</td>
+                  <td>{name.total}</td>
+                  <td>{name.last ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+      )}
+      {certs.length > 0 && (
+        <details className="domain-detail">
+          <summary>
+            {`Certificates (${certs.length > CT_SHOWN ? `newest ${CT_SHOWN} of ${data.total}` : certs.length})`}
+          </summary>
+          <table className="debug-table">
+            <thead>
+              <tr>
+                <th scope="col">Issued</th>
+                <th scope="col">Expires</th>
+                <th scope="col">Issuer</th>
+                <th scope="col">Names</th>
+              </tr>
+            </thead>
+            <tbody>
+              {certs.slice(0, CT_SHOWN).map((cert) => (
+                <tr key={cert.key} className={cert.current ? undefined : 'domain-ct-past'}>
+                  <td>
+                    {cert.url ? (
+                      <a href={cert.url} target="_blank" rel="noopener noreferrer">
+                        {cert.issued ?? '—'}
+                      </a>
+                    ) : (
+                      (cert.issued ?? '—')
+                    )}
+                  </td>
+                  <td className={cert.current ? 'domain-tone-good' : undefined}>{cert.expires ?? '—'}</td>
+                  <td>{cert.issuer}</td>
+                  <th scope="row" title={cert.names.join(', ')}>
+                    {cert.names.length > 3
+                      ? `${cert.names.slice(0, 3).join(', ')} +${cert.names.length - 3}`
+                      : cert.names.join(', ')}
+                  </th>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
       )}
     </section>
   )

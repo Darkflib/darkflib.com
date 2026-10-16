@@ -5,6 +5,8 @@
 import {
   type Check,
   cipherRows,
+  ctIssuers,
+  ctNames,
   headerChecks,
   minorFindings,
   nameserverMatrix,
@@ -90,6 +92,23 @@ export function detailTables(check: Check, data: Record<string, unknown>): Detai
     tables.push({
       title: 'Lesser findings',
       rows: minorFindings(data).map((text) => ({ label: text, value: 'noted', tone: 'info' })),
+    })
+  }
+  if (check === 'ct') {
+    tables.push({
+      title: 'Issuers',
+      rows: ctIssuers(data).map((issuer) => ({
+        label: issuer.name,
+        value: join(`${issuer.current} current`, `${issuer.total} logged`, issuer.last && `last ${issuer.last}`),
+      })),
+    })
+    // Certificates themselves are left out: renewals would make every comparison a wall of changes.
+    tables.push({
+      title: 'Names in the logs',
+      rows: ctNames(data).map((name) => ({
+        label: name.name,
+        value: join(name.current ? `${name.current} current` : 'none current', `${name.total} logged`),
+      })),
     })
   }
   return tables.filter((table): table is DetailTable => table !== null && table.rows.length > 0)

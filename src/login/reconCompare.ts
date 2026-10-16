@@ -64,7 +64,7 @@ const dataOf = (run: Run, check: Check) => {
 
 const rowsOf = (run: Run, check: Check, now: number) => {
   const data = dataOf(run, check)
-  return data ? visibleRows(summary(check, data, now)) : []
+  return data ? visibleRows(summary(check, data, now, run.results)) : []
 }
 
 const tablesOf = (run: Run, check: Check) => {
@@ -98,7 +98,7 @@ const key = (finding: Finding) => `${finding.check}\u0000${finding.text}`
  * the later run has after the earlier run's.
  */
 export function compareRuns(before: Run, after: Run, now = Date.now()): RunDiff {
-  const order: Check[] = ['rdap', 'dns', 'tls', 'headers']
+  const order: Check[] = ['rdap', 'dns', 'tls', 'headers', 'ct']
   const checks: CheckDiff[] = []
   let changedRows = 0
   for (const check of order) {

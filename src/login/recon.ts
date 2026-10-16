@@ -11,6 +11,7 @@ export const CHECKS: { id: Check; name: string; blurb: string }[] = [
   { id: 'dns', name: 'DNS', blurb: 'delegation, every nameserver compared, DNSSEC, CAA' },
   { id: 'tls', name: 'TLS', blurb: 'certificate chain, versions, CT, OCSP' },
   { id: 'headers', name: 'HTTP', blurb: 'response and security headers, redirects' },
+  { id: 'ct', name: 'CERT TRANSPARENCY', blurb: 'every logged certificate, its issuers, the names it reveals' },
 ]
 
 const API = '/tools/domain/api'

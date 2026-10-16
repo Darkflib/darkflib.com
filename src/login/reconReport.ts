@@ -8,7 +8,13 @@ import { detailTables } from './reconDetail.ts'
 import type { Run } from './reconRun.ts'
 import { at, type Check, findings, show, summary, type Tone, visibleRows } from './reconView.ts'
 
-const NAMES: Record<Check, string> = { rdap: 'Registration', dns: 'DNS', tls: 'TLS', headers: 'HTTP' }
+const NAMES: Record<Check, string> = {
+  rdap: 'Registration',
+  dns: 'DNS',
+  tls: 'TLS',
+  headers: 'HTTP',
+  ct: 'Certificate Transparency',
+}
 
 /** Everything that reaches the markup goes through here: every value in a run came from a host someone chose. */
 export const esc = (value: unknown) =>
@@ -236,7 +242,7 @@ function checkSection(run: Run, check: Check, now: number): string {
       result.error?.retryable ? ' (a temporary failure on the other side)' : ''
     }</p></section>`
   }
-  const rows = visibleRows(summary(check, result.data, now))
+  const rows = visibleRows(summary(check, result.data, now, run.results))
     .map(
       (row) =>
         `<tr><th scope="row">${esc(row.label)}</th><td${toneClass(row.tone)}${row.note ? ` title="${esc(row.note)}"` : ''}>${esc(show(row.value))}</td></tr>`,

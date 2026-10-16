@@ -273,7 +273,7 @@ function accessPages(): Page[] {
       path: '/tools/domain/',
       key: 'domain',
       title: 'DOMAIN RECON — TOOLS — DARKFLIB',
-      description: 'Registration, DNS, TLS, and HTTP headers for a domain.',
+      description: 'Registration, DNS, TLS, HTTP headers, and certificate transparency for a domain.',
       noscript: indent(['<p>Domain recon needs JavaScript.</p>', '<p><a href="/tools/">All tools</a></p>']),
     },
     {

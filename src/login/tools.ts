@@ -23,7 +23,8 @@ export const TOOLS: Tool[] = [
   {
     slug: 'domain',
     name: 'DOMAIN RECON',
-    blurb: 'Registration, DNS, TLS, and HTTP headers for a domain. One domain credit a run.',
+    blurb:
+      'Registration, DNS, TLS, HTTP headers, and the certificates CT logs hold for a domain. One domain credit a run.',
   },
   {
     slug: 'page',
