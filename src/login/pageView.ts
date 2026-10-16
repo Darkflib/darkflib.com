@@ -1013,7 +1013,7 @@ function measuredRows(review: ContrastReview | null | undefined): Row[] {
       ...(aa.count
         ? {
             tone: 'warn' as const,
-            note: `Text contrast measured from the rendering fails WCAG AA (1.4.3) on ${aa.shown} element${aa.count === 1 && !aa.atLeast ? '' : 's'}`,
+            note: `Text contrast axe couldn't judge, measured another way, fails WCAG AA (1.4.3) on ${aa.shown} element${aa.count === 1 && !aa.atLeast ? '' : 's'}`,
           }
         : review.error || missed
           ? {

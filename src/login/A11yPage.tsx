@@ -855,9 +855,9 @@ function Measured({
       <h4 className="page-h3">{`// CONTRAST AXE COULDN'T JUDGE (${review.elements})`}</h4>
       <p className="debug-note">
         axe leaves text for review when it can't tell what's behind it. Of these, {review.by_pseudo} were checked again
-        ignoring a decorative ::before/::after layer, and {review.by_pixels} were measured from the rendering: the
-        element's box screenshot with the text hidden, its text colour against those pixels. The ratio is what most of
-        the text gets (10th percentile); the worst spot is shown too.
+        ignoring a decorative ::before/::after layer (axe's own ratio), and {review.by_pixels} were measured from the
+        rendering: a screenshot with the text hidden, each element's text colour against the pixels behind its text. For
+        those, the ratio is what most of the text gets (10th percentile), and the worst spot is shown too.
         {review.error && ` The second pass failed: ${review.error}.`}
       </p>
       {review.failures.length === 0 ? (
