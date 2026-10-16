@@ -60,6 +60,22 @@ test('the access pages run under production headers without CSP violations', asy
   await page.goto('/tools/')
   await expect(page.getByText('Signed in as Smoke, with GitHub.')).toBeVisible()
 
+  // Only the tools the stand-in's /auth/tools lists, with the one that needs a step-up marked.
+  await expect(page.getByRole('link', { name: /SESSION DEBUGGER/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /STEPUP/ })).toHaveAttribute('href', /\/login\/step-up\//)
+  await expect(page.getByText('Needs a passkey first.')).toBeVisible()
+
+  // The gate's refusals as pages: no role for the tool, and a role that needs a step-up.
+  await page.goto('/tools/locked/')
+  await expect(page).toHaveURL(
+    /\/login\/denied\/\?next=%2Ftools%2Flocked%2F$|\/login\/denied\/\?next=\/tools\/locked\/$/,
+  )
+  await expect(page.getByText('Your account has no role that opens LOCKED.')).toBeVisible()
+  await page.goto('/tools/stepup/')
+  await expect(page).toHaveURL(/\/login\/step-up\//)
+  await expect(page.getByText('STEPUP needs a passkey from the last 15 minutes.')).toBeVisible()
+  await page.goto('/tools/')
+
   // The session debugger: the forwarded headers and the stand-in's passkey render, and a FEDERATED-only session
   // would be asked to step up for anything that needs a passkey.
   await page.getByRole('link', { name: /SESSION DEBUGGER/ }).click()

@@ -21,7 +21,13 @@ import './Debug.css'
 
 /** /tools/debug/headers.json: the X-Auth-* headers as Caddy's forward_auth handed them to /tools/* (deploy/Caddyfile). */
 type ForwardedHeaders = Record<
-  'X-Auth-User' | 'X-Auth-Level' | 'X-Auth-Federated-At' | 'X-Auth-Standard-At' | 'X-Auth-High-At',
+  | 'X-Auth-User'
+  | 'X-Auth-Level'
+  | 'X-Auth-Federated-At'
+  | 'X-Auth-Standard-At'
+  | 'X-Auth-High-At'
+  | 'X-Auth-Roles'
+  | 'X-Auth-Tool',
   string
 >
 
@@ -256,6 +262,12 @@ export function DebugPage() {
                 </dd>
                 <dt>Has passkey</dt>
                 <dd>{session.has_passkey ? 'yes' : 'no'}</dd>
+                <dt>Roles held</dt>
+                <dd>{session.roles ? session.roles.held.join(', ') || 'none' : '— (service without roles)'}</dd>
+                <dt>Roles active</dt>
+                <dd>
+                  {session.roles ? session.roles.active.join(', ') || 'none (step up to activate a held role)' : '—'}
+                </dd>
               </dl>
               <table className="debug-table">
                 <caption>Assurance: when each level was last proven</caption>

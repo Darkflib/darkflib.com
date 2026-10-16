@@ -21,6 +21,22 @@ export interface SessionState {
   has_passkey: boolean
   identities: { id: string; provider: Provider; label: string }[]
   assurance: Record<Tier, Assurance | null>
+  /** Granted roles, and those the session has proven the level for. Absent from a service without roles. */
+  roles?: Roles
+}
+
+export interface Roles {
+  held: string[]
+  active: string[]
+}
+
+/** One tool from GET /auth/tools: the user holds a role for it. */
+export interface ToolAccess {
+  slug: string
+  /** The gate would let them in now. */
+  active: boolean
+  /** What would make it active: the easiest role they hold for it. */
+  step_up: { tier: Tier; max_age: number } | null
 }
 
 /** A non-2xx answer, with the problem body's `reason` when it had one. */
@@ -115,6 +131,24 @@ export interface Passkey {
 
 export const listCredentials = () => request<Passkey[]>('/auth/credentials')
 
+/**
+ * The tools the user can see, and what each needs (GET /auth/tools). Null when the service predates roles (a 404),
+ * so callers fall back to showing every tool, as the gate does then.
+ */
+export async function getTools(): Promise<{ roles: Roles; tools: ToolAccess[] } | null> {
+  try {
+    return await request<{ roles: Roles; tools: ToolAccess[] }>('/auth/tools')
+  } catch (error) {
+    if (error instanceof AuthError && error.status === 404) return null
+    throw error
+  }
+}
+
+/** The tool slug in a /tools/<slug>/… path, or null for anything else (including /tools/ itself). */
+export function toolSlug(path: string): string | null {
+  return /^\/tools\/([a-z0-9][a-z0-9-]{0,62})(?:\/|$)/.exec(path)?.[1] ?? null
+}
+
 export const acceptInvite = (token: string) => request<void>('/auth/invite', { json: { token } })
 
 export const logout = () => request<void>('/auth/logout', { json: {} })
@@ -165,17 +199,37 @@ export const loginWithPasskey = () => assert('/auth/login', {}) as Promise<Sessi
 /** Prove a passkey again, for an action that needs a fresh one. */
 export const stepUp = (tier: Tier) => assert('/auth/step-up', { tier })
 
+/** What POST /auth/register/verify reports about the new credential. */
+export interface Registration {
+  credential: Passkey
+  tier: Exclude<Tier, 'FEDERATED'>
+  /** Why a key enrolled as a hardware key was stored as STANDARD, e.g. "backup_eligible". */
+  tier_reason: string | null
+}
+
+/** Why a key asked to be a hardware key (HIGH) was stored as STANDARD, in words someone can act on. */
+export const TIER_REASONS: Record<string, string> = {
+  backup_eligible:
+    'It came from a passkey provider that syncs between devices (iCloud Keychain, 1Password, Google Password Manager), not from a hardware security key.',
+  attestation_unverified: 'The key could not prove which model it is. Use a FIDO-certified security key.',
+  mds_status_denied: 'That security key model has a known security problem.',
+  aaguid_not_allowlisted: 'That security key model is not on the approved list.',
+  mds_entry_missing: 'That security key model is not listed as trusted.',
+}
+
 /**
- * Enrol a passkey on the signed-in account. Throws an AuthError with `stepUp` set when the account already has
- * passkeys and none was used recently: call `stepUp` from a fresh click, then try again.
+ * Enrol a passkey on the signed-in account; `hardware` asks for it to count as HIGH (tier_hint), which the service
+ * grants only to a non-syncing, attested, MDS-listed security key. Throws an AuthError with `stepUp` set when the
+ * account already has a key and none was used recently: call `stepUp` with that tier from a fresh click, then try
+ * again.
  */
-export async function registerPasskey(nickname: string | null): Promise<void> {
+export async function registerPasskey(nickname: string | null, hardware = false): Promise<Registration> {
   const issued = await request<Issued>('/auth/register/options', {
-    json: nickname ? { nickname } : {},
+    json: { ...(nickname ? { nickname } : {}), tier_hint: hardware ? 'HIGH' : 'STANDARD' },
   })
   const publicKey = PublicKeyCredential.parseCreationOptionsFromJSON(
     issued.options as PublicKeyCredentialCreationOptionsJSON,
   )
   const credential = credentialJson(await navigator.credentials.create({ publicKey }))
-  await request('/auth/register/verify', { json: { challenge_id: issued.challenge_id, credential } })
+  return request<Registration>('/auth/register/verify', { json: { challenge_id: issued.challenge_id, credential } })
 }

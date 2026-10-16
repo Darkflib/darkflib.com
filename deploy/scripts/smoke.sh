@@ -158,7 +158,7 @@ for demo in queueing-knee retry-storms overload breaking-the-loop circuit-breake
 done
 
 echo "access pages"
-for page in /login/ /login/enrol/; do
+for page in /login/ /login/enrol/ /login/step-up/ /login/denied/; do
     fetch darkflib.com "$page"
     check "$page is 200" is "$status" 200
     check "$page revalidates (no-cache)" is "$(header cache-control)" no-cache
@@ -190,6 +190,23 @@ check "the tools page is the tools page" contains "$(curl --silent --header 'Hos
 fetch darkflib.com /tools/ --cookie smoke=1 --header 'X-Auth-High-At: 1'
 check "a client's own X-Auth-* header is stripped before the auth service sees it" is "$status" 200
 
+echo "tools gated by role"
+fetch darkflib.com /tools/stepup/ --cookie smoke=1 --header 'Sec-Fetch-Mode: navigate'
+check "a held but inactive role sends a page load to step up" is "$status" 303
+check "the step-up redirect comes back to the tool" is "$(header location)" /login/step-up/?next=/tools/stepup/
+fetch darkflib.com /tools/stepup/ --cookie smoke=1
+check "anything else gets the service's step-up 401" is "$status" 401
+check "the step-up 401 keeps its WWW-Authenticate" contains "$(header www-authenticate)" "Passkey"
+check "the step-up 401 is never stored" is "$(header cache-control)" "private, no-store"
+fetch darkflib.com /tools/locked/ --cookie smoke=1 --header 'Sec-Fetch-Mode: navigate'
+check "no role for the tool sends a page load to the denied page" is "$status" 303
+check "the denied redirect names the tool" is "$(header location)" /login/denied/?next=/tools/locked/
+fetch darkflib.com /tools/locked/ --cookie smoke=1
+check "anything else gets the service's 403" is "$status" 403
+check "the 403 is never stored" is "$(header cache-control)" "private, no-store"
+fetch darkflib.com /tools/locked/ --header 'Sec-Fetch-Mode: navigate'
+check "no session still goes to sign in, whatever the tool" is "$(header location)" /login/?next=/tools/locked/
+
 echo "session debugger (/tools/debug/)"
 fetch darkflib.com /tools/debug/ --cookie smoke=1
 check "the debugger is behind the gate and served" is "$status" 200
@@ -203,6 +220,7 @@ echoed=$(curl --silent --header 'Host: darkflib.com' --cookie smoke=1 --header '
 check "it echoes what /auth/verify sent" contains "$echoed" '"X-Auth-User": "smoke-user"'
 check "it echoes the level from /auth/verify, not the client's" contains "$echoed" '"X-Auth-Level": "FEDERATED"'
 check "an absent level stays empty" contains "$echoed" '"X-Auth-High-At": ""'
+check "it echoes the active roles" contains "$echoed" '"X-Auth-Roles": "user"'
 
 echo "access log"
 # An OAuth callback's code and state must never reach the access log: a code is good until it is redeemed.

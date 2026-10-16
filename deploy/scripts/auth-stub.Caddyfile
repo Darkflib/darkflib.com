@@ -13,12 +13,35 @@
 	}
 
 	@signed_in header Cookie *smoke=1*
+	# Per-tool answers, keyed on the path Caddy's forward_auth passes as X-Forwarded-Uri (wwff-auth docs/contract.md):
+	# /tools/locked/ is a tool the stand-in user holds no role for, /tools/stepup/ one whose role isn't active, and
+	# everything else is allowed with the role "user".
+	@tool_forbidden header X-Forwarded-Uri /tools/locked/*
+	@tool_step_up header X-Forwarded-Uri /tools/stepup/*
 	handle /auth/verify {
 		handle @signed_in {
+			handle @tool_forbidden {
+				header Content-Type application/problem+json
+				respond `{"reason": "tool_forbidden", "tool": "locked"}` 403
+			}
+			handle @tool_step_up {
+				header Content-Type application/problem+json
+				header WWW-Authenticate `Passkey error="insufficient_user_authentication", tier="STANDARD", max_age=900`
+				respond `{"step_up": {"tier": "STANDARD", "max_age": 900, "action": "tool:stepup", "bound": false, "reason": "missing"}}` 401
+			}
 			header X-Auth-User smoke-user
 			header X-Auth-Level FEDERATED
 			header X-Auth-Federated-At {time.now.unix}
+			header X-Auth-Roles user
 			respond 204
+		}
+		respond `{"reason": "no_session"}` 401
+	}
+
+	handle /auth/tools {
+		handle @signed_in {
+			header Content-Type application/json
+			respond `{"roles": {"held": ["user", "admin"], "active": ["user"]}, "tools": [{"slug": "debug", "active": true, "step_up": null}, {"slug": "stepup", "active": false, "step_up": {"tier": "STANDARD", "max_age": 900}}]}` 200
 		}
 		respond `{"reason": "no_session"}` 401
 	}
@@ -29,7 +52,7 @@
 		header Cache-Control "public, max-age=600"
 		handle @signed_in {
 			header Content-Type application/json
-			respond `{"user": {"id": "smoke-user", "display_name": "Smoke", "email": null}, "expires_at": "2099-01-01T00:00:00Z", "login_method": "github", "has_passkey": false, "identities": [{"id": "i1", "provider": "github", "label": "smoke"}], "assurance": {"FEDERATED": {"auth_at": "2026-01-01T00:00:00Z", "age": 1}, "STANDARD": null, "HIGH": null}}` 200
+			respond `{"user": {"id": "smoke-user", "display_name": "Smoke", "email": null}, "expires_at": "2099-01-01T00:00:00Z", "login_method": "github", "has_passkey": false, "identities": [{"id": "i1", "provider": "github", "label": "smoke"}], "assurance": {"FEDERATED": {"auth_at": "2026-01-01T00:00:00Z", "age": 1}, "STANDARD": null, "HIGH": null}, "roles": {"held": ["user", "admin"], "active": ["user"]}}` 200
 		}
 		respond 204
 	}

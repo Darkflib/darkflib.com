@@ -227,6 +227,22 @@ function accessPages(): Page[] {
       title: 'ADD A PASSKEY — DARKFLIB',
       description: 'Add a passkey to your account.',
     },
+    // Where the gate sends a page load it refuses (deploy/Caddyfile): a role held but not proven recently enough, or
+    // no role for the tool.
+    {
+      ...access,
+      path: '/login/step-up/',
+      key: 'stepup',
+      title: 'CONFIRM IT’S YOU — DARKFLIB',
+      description: 'Prove a passkey or hardware key again to open a tool.',
+    },
+    {
+      ...access,
+      path: '/login/denied/',
+      key: 'denied',
+      title: 'NO ACCESS — DARKFLIB',
+      description: 'Your account has no role for that tool.',
+    },
     // Served only behind wwff-auth's forward_auth (deploy/Caddyfile).
     {
       ...access,
