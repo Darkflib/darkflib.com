@@ -9,6 +9,7 @@ import {
   contrast,
   criteria,
   grade,
+  groupNodes,
   isLarge,
   luminance,
   over,
@@ -16,6 +17,7 @@ import {
   parseColour,
   parsePalette,
   type Rgb,
+  reason,
   showRatio,
   simulate,
   suggest,
@@ -225,6 +227,8 @@ describe('the audit', () => {
   it('sums up and says what conformance is still possible', () => {
     assert.deepEqual(auditSummary(audit), {
       violations: 2,
+      measured: 0,
+      measuredFailures: 0,
       elements: 3,
       worst: 'critical',
       failingLevels: ['A', 'AA'],
@@ -252,5 +256,75 @@ describe('the audit', () => {
     assert.match(rows.Violations.note ?? '', /1 critical, 1 serious/)
     assert.equal(rows['Text contrast (AA)'].tone, 'warn')
     assert.equal(summary('accessibility', { ok: true } as PageResult)[0].value, 'not in this run (made before audits)')
+  })
+})
+
+describe('what axe left for review', () => {
+  const review = {
+    elements: 165,
+    by_pseudo: 6,
+    by_pixels: 156,
+    unsettled: { shortTextContent: 2, 'not measured: gone': 1 },
+    failures: [
+      {
+        method: 'pixels' as const,
+        target: '.button-primary',
+        text: 'VIEW MY WORK',
+        fg: '#ffffff',
+        bg: '#e616c9',
+        ratio: 3.31,
+        ratio_worst: 2.62,
+        expected: 4.5,
+        level: 'AA' as const,
+        font_size: 12,
+        font_weight: 700,
+        varied: true,
+      },
+    ],
+    failures_total: 1,
+    error: null,
+  }
+  const clean = { ...audit, violations: [], counts: { ...audit.counts, violations: 0, nodes: 0, by_level: {} } }
+
+  it('counts measured failures against the level the page can claim', () => {
+    assert.equal(automatedLevel(clean), 'AAA')
+    assert.equal(automatedLevel({ ...clean, contrast_review: review }), 'A')
+    const aaaOnly = { ...review, failures: [{ ...review.failures[0], level: 'AAA' as const }] }
+    assert.equal(automatedLevel({ ...clean, contrast_review: aaaOnly }), 'AA')
+    assert.deepEqual(
+      [
+        auditSummary({ ...clean, contrast_review: review }).measured,
+        auditSummary({ ...clean, contrast_review: review }).measuredFailures,
+      ],
+      [162, 1],
+    )
+  })
+
+  it("says axe's reasons in words", () => {
+    assert.equal(reason('bgOverlap'), 'another element overlaps the background')
+    assert.equal(reason('not measured: gone'), 'not measured (gone)')
+    assert.equal(reason('somethingNew'), 'somethingNew')
+  })
+
+  it('groups nodes that share a reason, largest group first', () => {
+    const groups = groupNodes([
+      { target: 'a', summary: 'pseudo' },
+      { target: 'b', summary: 'overlap' },
+      { target: 'c', summary: 'pseudo' },
+    ])
+    assert.deepEqual(
+      groups.map((group) => [group.summary, group.nodes.map((node) => node.target)]),
+      [
+        ['pseudo', ['a', 'c']],
+        ['overlap', ['b']],
+      ],
+    )
+  })
+
+  it('is a page recon row, and a finding when it fails AA', () => {
+    const result = { ok: true, accessibility: { ...clean, contrast_review: review } } as unknown as PageResult
+    const row = summary('accessibility', result).find((entry) => entry.label === 'Contrast (measured)')
+    assert.equal(row?.value, "162 of 165 elements axe couldn't judge, 1 below AA")
+    assert.equal(row?.tone, 'warn')
   })
 })

@@ -141,6 +141,38 @@ export interface ContrastPair {
   example: string | null
   target: string | null
   count: number
+  /** How the pair was found: axe itself, axe ignoring a ::before/::after layer, or measured from the rendering.
+   * Absent from runs before wwff-pagerecon settled what axe leaves for review. */
+  method?: 'axe' | 'pseudo' | 'pixels'
+}
+
+/** A contrast failure among the elements axe left for review, settled another way (wwff-pagerecon's
+ * `contrast_review`). */
+export interface ContrastFailure {
+  method: 'pseudo' | 'pixels'
+  target: string
+  text: string | null
+  fg: string | null
+  bg: string | null
+  /** 10th percentile over the background pixels for `pixels` (most of the text has at least this); axe's for `pseudo`. */
+  ratio: number | null
+  ratio_worst: number | null
+  expected: number | null
+  level: 'AA' | 'AAA'
+  font_size: number | null
+  font_weight: number | null
+  /** The background changes across the element (an image, a gradient). */
+  varied: boolean
+}
+
+export interface ContrastReview {
+  elements: number
+  by_pseudo: number
+  by_pixels: number
+  unsettled: Record<string, number>
+  failures: ContrastFailure[]
+  failures_total: number
+  error: string | null
 }
 
 /** The contract's `accessibility` (axe-core, WCAG 2.2). */
@@ -152,6 +184,8 @@ export interface Accessibility {
   passes: number
   inapplicable: number
   contrast: ContrastPair[]
+  /** What axe left for review, settled another way; absent from earlier runs, null when axe decided everything. */
+  contrast_review?: ContrastReview | null
   counts: {
     violations: number
     nodes: number
@@ -946,11 +980,31 @@ export function summary(id: SectionId, r: PageResult, now = Date.now()): Row[] {
               }
             : { tone: 'good' }),
         },
+        ...measuredRows(audit.contrast_review),
         { label: 'Needs review', value: audit.incomplete.length || undefined, optional: true },
         { label: 'Engine', value: `${audit.engine.name} ${audit.engine.version}` },
       ]
     }
   }
+}
+
+/** What page recon says of the contrast axe left for review and wwff-pagerecon measured another way. */
+function measuredRows(review: ContrastReview | null | undefined): Row[] {
+  if (!review) return []
+  const aa = review.failures.filter((failure) => failure.level === 'AA').length
+  const measured = review.by_pseudo + review.by_pixels
+  return [
+    {
+      label: 'Contrast (measured)',
+      value: `${measured} of ${review.elements} elements axe couldn't judge${aa ? `, ${aa} below AA` : ''}`,
+      ...(aa
+        ? {
+            tone: 'warn' as const,
+            note: `Text contrast measured from the rendering fails WCAG AA (1.4.3) on ${aa} element${aa === 1 ? '' : 's'}`,
+          }
+        : { tone: 'good' as const }),
+    },
+  ]
 }
 
 export const SECTIONS: SectionId[] = [
