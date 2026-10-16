@@ -36,6 +36,8 @@ export function UsersPage() {
   const [selected, setSelected] = useState<string | null>(userFromUrl)
   // The selection as of now, for discarding a user's details that arrive after another was chosen.
   const selectedRef = useRef(selected)
+  // The latest details request per user, so a slower, older answer never overwrites a newer one in the results.
+  const loadSeq = useRef(new Map<string, number>())
   const [user, setUser] = useState<AdminUser | null>(null)
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
@@ -87,7 +89,10 @@ export function UsersPage() {
   const load = useCallback(
     (id: string) =>
       run(async () => {
+        const seq = (loadSeq.current.get(id) ?? 0) + 1
+        loadSeq.current.set(id, seq)
         const details = await getAdminUser(id)
+        if (loadSeq.current.get(id) !== seq) return
         // Keep the user's entry in the results in step with the details, so a role change shows there too.
         setResults(
           (current) =>
