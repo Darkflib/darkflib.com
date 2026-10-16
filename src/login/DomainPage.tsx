@@ -17,6 +17,7 @@ import {
   findings,
   headerChecks,
   minorFindings,
+  nameserverMatrix,
   normaliseDomain,
   show,
   summary,
@@ -348,6 +349,7 @@ export function DomainPage() {
               {run.checks.map((check) => (
                 <Result key={check} check={check} result={run.results?.[check]} />
               ))}
+              {run.results?.dns?.ok && run.results.dns.data && <Nameservers data={run.results.dns.data} />}
             </div>
           </>
         )}
@@ -460,6 +462,102 @@ function Result({ check, result }: { check: Check; result: CollectionResult | un
           </details>
           <CopyButton label="Copy JSON" text={() => JSON.stringify(result, null, 2)} />
         </div>
+      )}
+    </section>
+  )
+}
+
+/** Every authoritative nameserver address asked the same questions (domaincheck v0.4), side by side. */
+function Nameservers({ data }: { data: Record<string, unknown> }) {
+  const matrix = nameserverMatrix(data)
+  if (!matrix) return null
+  const { columns, rows, unrouted } = matrix
+  const drifting = rows.filter((row) => row.differs).length
+  return (
+    <section className="panel debug-panel debug-wide" aria-labelledby="domain-ns-title">
+      <h3 id="domain-ns-title" className="domain-h3">
+        {'// DNS · NAMESERVERS'}
+        <span className={drifting ? 'domain-tone-warn' : 'domain-tone-good'}>
+          {drifting ? ` ${drifting} DIFFER${drifting === 1 ? 'S' : ''}` : ' AGREE'}
+        </span>
+      </h3>
+      <p className="debug-note">
+        Each address of each nameserver, from the parent's delegation and the zone's own NS set, asked directly. Marked
+        ≠ where one says something other than most do; only authoritative answers count.
+      </p>
+      <div className="domain-ns-scroll">
+        <table className="domain-ns">
+          <caption className="domain-sr">Answers per nameserver address</caption>
+          <thead>
+            <tr>
+              <th scope="col">Record</th>
+              {columns.map((column) => (
+                <th
+                  key={`${column.nameserver} ${column.ip}`}
+                  scope="col"
+                  className={column.tone === 'bad' ? 'domain-ns-uncounted' : undefined}
+                >
+                  <span className="domain-ns-name">{column.nameserver}</span>
+                  <span className="domain-ns-ip">{column.ip}</span>
+                  <span className={`domain-ns-status domain-tone-${column.tone}`}>{column.status}</span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.label} className={row.differs ? 'domain-ns-differs' : undefined}>
+                <th scope="row">
+                  {row.label}
+                  {row.differs && <span className="domain-tone-warn"> ≠</span>}
+                </th>
+                {row.cells.map((cell, index) => (
+                  <td
+                    key={`${columns[index].nameserver} ${columns[index].ip}`}
+                    className={
+                      cell?.differs
+                        ? 'domain-tone-warn domain-ns-odd'
+                        : cell?.counted === false
+                          ? 'domain-ns-uncounted-cell'
+                          : undefined
+                    }
+                    title={
+                      cell?.differs
+                        ? 'Differs from what most nameservers say'
+                        : cell?.counted === false
+                          ? "Not counted: this answer wasn't authoritative, or the query failed"
+                          : undefined
+                    }
+                  >
+                    {cell === null ? (
+                      <span className="domain-ns-none">—</span>
+                    ) : cell.values.length === 0 ? (
+                      <span className="domain-ns-none">(none)</span>
+                    ) : (
+                      cell.values.map((value) => (
+                        <div key={value} className={cell.extra.includes(value) ? 'domain-ns-extra' : undefined}>
+                          {cell.extra.includes(value) && <span className="domain-sr">extra: </span>}
+                          {value}
+                        </div>
+                      ))
+                    )}
+                    {cell?.missing.map((value) => (
+                      <div key={`missing:${value}`} className="domain-ns-missing">
+                        <span className="domain-sr">missing: </span>
+                        {value}
+                      </div>
+                    ))}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {unrouted.length > 0 && (
+        <p className="debug-note">
+          Not checked, as the checker has no IPv6 route: {unrouted.join(', ')}. That says nothing about those servers.
+        </p>
       )}
     </section>
   )

@@ -230,6 +230,94 @@
   font-size: 12px;
 }
 
+/* The per-nameserver table: a row per record, a column per address; scrolls sideways rather than squeezing. */
+.domain-ns-scroll {
+  overflow-x: auto;
+  margin-top: 4px;
+}
+
+.domain-ns {
+  border-collapse: collapse;
+  font-size: 11px;
+  color: #eaf3ff;
+  min-width: 100%;
+}
+
+.domain-ns th,
+.domain-ns td {
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(143, 174, 203, 0.18);
+  text-align: left;
+  vertical-align: top;
+}
+
+.domain-ns td {
+  max-width: 260px;
+  overflow-wrap: anywhere;
+}
+
+.domain-ns thead th {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.domain-ns tbody th {
+  position: sticky;
+  left: 0;
+  background: #080e1c;
+  color: #8faecb;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.domain-ns-name,
+.domain-ns-ip,
+.domain-ns-status {
+  display: block;
+}
+
+.domain-ns-ip {
+  color: #8faecb;
+}
+
+.domain-ns-status {
+  margin-top: 2px;
+  font-size: 10px;
+}
+
+.domain-ns-uncounted .domain-ns-name {
+  text-decoration: line-through;
+  text-decoration-color: rgba(255, 92, 232, 0.6);
+}
+
+.domain-ns td.domain-ns-odd {
+  background: rgba(255, 200, 97, 0.08);
+  box-shadow: inset 2px 0 0 #ffc861;
+}
+
+.domain-ns-none {
+  color: #5f7d9c;
+}
+
+.domain-ns-extra::before {
+  content: "+ ";
+}
+
+.domain-ns-missing {
+  color: #ff9a6e;
+  text-decoration: line-through;
+}
+
+.domain-ns-missing::before {
+  content: "− ";
+}
+
+.domain-ns td.domain-ns-uncounted-cell {
+  color: #8faecb;
+  font-style: italic;
+}
+
 .domain-detail {
   margin: 4px 0 10px;
   overflow-x: auto;

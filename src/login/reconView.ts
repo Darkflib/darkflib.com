@@ -98,6 +98,248 @@ export function normaliseDomain(input: string): string {
   return text.replace(/\.$/, '').toLowerCase()
 }
 
+/** domaincheck's NameserverProbe (schema 2.1+, `nameserver_comparison.servers`): one nameserver address, asked directly. */
+interface Probe {
+  nameserver: string
+  ip: string
+  family: number
+  status: string
+  error: string | null
+  rcode: string | null
+  authoritative: boolean
+  soa: {
+    serial: number
+    mname: string
+    rname: string
+    refresh: number
+    retry: number
+    expire: number
+    minimum: number
+  } | null
+  answers: Record<string, { values?: string[]; rcode?: string | null; authoritative?: boolean; error?: string | null }>
+}
+
+const probes = (comparison: unknown) => list(at(comparison, 'servers')) as unknown as Probe[]
+
+/** Whether a probe's answers count toward what the nameservers agree on (domaincheck's own rule). */
+const counts = (probe: Probe) =>
+  probe.status === 'answered' && probe.authoritative && (probe.rcode === 'NOERROR' || probe.rcode === 'NXDOMAIN')
+
+/** This checker has no route there (IPv6 from an IPv4-only host): nothing was sent, so it says nothing about the server. */
+const noRoute = (probe: Probe) => probe.status === 'unreachable' && probe.error === 'NoRoute'
+
+const where = (probe: Probe) => `${probe.nameserver} ${probe.ip}`
+
+/** What went wrong with a nameserver address, in words, or undefined when its answers count. */
+function trouble(probe: Probe): string | undefined {
+  if (counts(probe) || noRoute(probe)) return undefined
+  if (probe.status === 'timeout') return 'no answer (timeout)'
+  if (probe.status !== 'answered') return `no answer (${probe.status}${probe.error ? `: ${probe.error}` : ''})`
+  if (probe.rcode !== 'NOERROR' && probe.rcode !== 'NXDOMAIN') return `answered ${probe.rcode}`
+  return 'answered, but not authoritatively'
+}
+
+/** The summary rows drawn from `nameserver_comparison`: serial drift, unanswering servers, NS sets, record drift. */
+function comparisonRows(comparison: Record<string, unknown>): Row[] {
+  const servers = probes(comparison)
+  const serials = list(comparison.serials).map(Number)
+  const troubled = servers.flatMap((probe) => {
+    const why = trouble(probe)
+    return why ? [`${where(probe)}: ${why}`] : []
+  })
+  const asked = servers.filter((probe) => !noRoute(probe))
+  const unrouted = servers.length - asked.length
+  const parentOnly = list(comparison.parent_only).map(String)
+  const zoneOnly = list(comparison.zone_only).map(String)
+  const disagreements = list(comparison.disagreements) as unknown as {
+    record_type: string
+    differing: { nameserver: string; ip: string; missing: string[]; extra: string[] }[]
+  }[]
+  // Zones served by more than one provider (each its own primary) differ in serial and SOA by design.
+  const primaries = [...new Set(servers.filter(counts).flatMap((probe) => (probe.soa ? [probe.soa.mname] : [])))]
+  const multi = primaries.length > 1
+  const drifting = disagreements.filter((entry) => !(multi && entry.record_type === 'SOA'))
+  const drift = drifting.map((entry) => {
+    const first = entry.differing[0]
+    const how = first
+      ? [
+          first.missing.length && `lacks ${first.missing.join(', ')}`,
+          first.extra.length && `adds ${first.extra.join(', ')}`,
+        ]
+          .filter(Boolean)
+          .join(' and ')
+      : ''
+    const more = entry.differing.length > 1 ? ` (and ${entry.differing.length - 1} more)` : ''
+    const label = entry.record_type === 'SOA' ? 'SOA (primary, contact or timers)' : entry.record_type
+    return first ? `${label}: ${first.nameserver} ${first.ip} ${how || 'differs'}${more}` : label
+  })
+  return [
+    multi
+      ? {
+          label: 'Serial',
+          value: serials.join(', '),
+          tone: 'info',
+          note: `${primaries.length} primaries (${primaries.join(', ')}): more than one provider, so serials and SOA fields aren't comparable`,
+        }
+      : serials.length > 1
+        ? {
+            label: 'Serial',
+            value: serials.join(' ≠ '),
+            tone: 'warn',
+            note: `The nameservers serve different SOA serials (${serials.join(', ')}): one has not caught up`,
+          }
+        : { label: 'Serial', value: serials[0] },
+    {
+      label: 'Nameservers answering',
+      value: servers.length
+        ? `${asked.length - troubled.length} of ${asked.length} address${asked.length === 1 ? '' : 'es'}`
+        : undefined,
+      ...(troubled.length
+        ? { tone: 'bad', note: `Nameservers not answering for the zone: ${troubled.join('; ')}` }
+        : asked.length > 0 && { tone: 'good' }),
+    },
+    {
+      label: 'IPv6 not checked',
+      value: unrouted ? `${unrouted} address${unrouted === 1 ? '' : 'es'} (no IPv6 route from the checker)` : undefined,
+      tone: 'info',
+      optional: true,
+    },
+    {
+      label: 'NS sets',
+      value: parentOnly.length || zoneOnly.length ? 'parent and zone differ' : undefined,
+      tone: 'warn',
+      note: `The delegation and the zone list different nameservers: ${[
+        parentOnly.length && `only the parent lists ${parentOnly.join(', ')}`,
+        zoneOnly.length && `only the zone lists ${zoneOnly.join(', ')}`,
+      ]
+        .filter(Boolean)
+        .join('; ')}`,
+      optional: true,
+    },
+    {
+      label: 'Record drift',
+      value: drifting.map((entry) => entry.record_type).join(', '),
+      tone: 'warn',
+      note: `The nameservers give different answers. ${drift.join('; ')}`,
+      optional: true,
+    },
+  ]
+}
+
+export interface MatrixColumn {
+  nameserver: string
+  ip: string
+  family: number
+  /** "ok", or what went wrong ("no answer (timeout)", "no IPv6 route"). */
+  status: string
+  tone: Tone
+  /** Whether its answers count toward the consensus (authoritative, NOERROR or NXDOMAIN). */
+  counted: boolean
+}
+
+export interface MatrixCell {
+  values: string[]
+  /** Whether this answer counts: its address counts, and the answer itself was authoritative and NOERROR/NXDOMAIN. */
+  counted: boolean
+  /** Counted, and not what most counted nameservers said. */
+  differs: boolean
+  /** When it differs: its values the consensus lacks, and the consensus's values it lacks. */
+  extra: string[]
+  missing: string[]
+}
+
+export interface MatrixRow {
+  label: string
+  /** One per column; null where that address gave no answer for it. */
+  cells: (MatrixCell | null)[]
+  differs: boolean
+}
+
+/** A field as one address answered it, and whether that answer counts (authoritative, NOERROR or NXDOMAIN). */
+type Read = { values: string[]; counts: boolean } | null
+
+const soaField =
+  (pick: (soa: NonNullable<Probe['soa']>) => string) =>
+  (probe: Probe): Read =>
+    probe.soa ? { values: [pick(probe.soa)], counts: true } : null
+
+const MATRIX_ROWS: [string, (probe: Probe) => Read][] = [
+  ['Serial', soaField((soa) => String(soa.serial))],
+  ['Primary', soaField((soa) => soa.mname)],
+  ['Contact', soaField((soa) => soa.rname)],
+  [
+    'Timers',
+    soaField((soa) => `refresh ${soa.refresh} · retry ${soa.retry} · expire ${soa.expire} · min ${soa.minimum}`),
+  ],
+  ...['NS', 'A', 'AAAA', 'MX', 'TXT', 'CAA'].map((type): [string, (probe: Probe) => Read] => [
+    type,
+    (probe) => {
+      const answer = probe.answers?.[type]
+      if (!answer || answer.error) return null
+      // A refused or failed query is shown as its rcode, and like a non-authoritative answer, doesn't count.
+      if (answer.rcode !== 'NOERROR' && answer.rcode !== 'NXDOMAIN')
+        return { values: [answer.rcode ?? 'no rcode'], counts: false }
+      return {
+        values: answer.rcode === 'NXDOMAIN' ? ['NXDOMAIN'] : (answer.values ?? []),
+        counts: answer.authoritative !== false,
+      }
+    },
+  ]),
+]
+
+/**
+ * `nameserver_comparison` as a table: a column per nameserver address, a row per compared field, and each cell marked
+ * where a counted nameserver says something other than what most of them say (the first seen wins a tie, as in
+ * domaincheck). Null when the run predates the comparison (domaincheck < v0.4) or found no nameservers.
+ */
+export function nameserverMatrix(
+  data: Record<string, unknown>,
+): { columns: MatrixColumn[]; rows: MatrixRow[]; unrouted: string[] } | null {
+  const every = probes(at(data, 'nameserver_comparison'))
+  // Addresses this checker can't reach at all (no IPv6 route) say nothing about the zone: a note, not a column.
+  const servers = every.filter((probe) => !noRoute(probe))
+  const unrouted = every.filter(noRoute).map(where)
+  if (every.length === 0) return null
+  const columns = servers.map((probe): MatrixColumn => {
+    const why = trouble(probe)
+    return {
+      nameserver: probe.nameserver,
+      ip: probe.ip,
+      family: probe.family,
+      status: why ?? 'ok',
+      tone: why ? 'bad' : 'good',
+      counted: counts(probe),
+    }
+  })
+  const rows = MATRIX_ROWS.map(([label, read]): MatrixRow => {
+    const reads = servers.map((probe, index): Read => {
+      const found = probe.status === 'answered' ? read(probe) : null
+      return found && { values: found.values, counts: found.counts && columns[index].counted }
+    })
+    const key = (cell: string[]) => cell.join('\n')
+    const tally = new Map<string, number>()
+    let consensus: string[] | undefined
+    for (const cell of reads) {
+      if (!cell?.counts) continue
+      tally.set(key(cell.values), (tally.get(key(cell.values)) ?? 0) + 1)
+      if (!consensus || (tally.get(key(cell.values)) ?? 0) > (tally.get(key(consensus)) ?? 0)) consensus = cell.values
+    }
+    const cells = reads.map((cell): MatrixCell | null => {
+      if (cell === null) return null
+      const differs = cell.counts && tally.size > 1 && consensus !== undefined && key(cell.values) !== key(consensus)
+      return {
+        values: cell.values,
+        counted: cell.counts,
+        differs,
+        extra: differs ? cell.values.filter((value) => !consensus?.includes(value)) : [],
+        missing: differs ? (consensus ?? []).filter((value) => !cell.values.includes(value)) : [],
+      }
+    })
+    return { label, cells, differs: cells.some((cell) => cell?.differs) }
+  })
+  return { columns, rows, unrouted }
+}
+
 /** The few fields worth reading first for each check; the full result is under it. */
 export function summary(check: Check, data: Record<string, unknown>, now = Date.now()): Row[] {
   switch (check) {
@@ -158,6 +400,7 @@ export function summary(check: Check, data: Record<string, unknown>, now = Date.
       const skips = list(at(data, 'policy_skips'), (skip) =>
         `${skip.nameserver_name ?? ''} ${skip.nameserver_ip ?? ''}`.trim(),
       )
+      const comparison = at(data, 'nameserver_comparison') as Record<string, unknown> | null | undefined
       return [
         nxdomain
           ? { label: 'Exists', value: 'no (NXDOMAIN)', tone: 'bad', note: 'The name does not exist in DNS' }
@@ -201,9 +444,11 @@ export function summary(check: Check, data: Record<string, unknown>, now = Date.
           note: 'Every subdomain resolves (wildcard record)',
           optional: true,
         },
+        ...(comparison ? comparisonRows(comparison) : []),
+        // Read from the comparison's probes when there is one (domaincheck v0.4), which say it per address.
         {
           label: 'Lame delegations',
-          value: lame.length || undefined,
+          value: comparison ? undefined : lame.length || undefined,
           tone: 'bad',
           note: `${lame.length} nameserver${lame.length === 1 ? '' : 's'} named in the delegation did not answer for the zone`,
           optional: true,
