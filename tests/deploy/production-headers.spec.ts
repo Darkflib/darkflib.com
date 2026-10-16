@@ -74,6 +74,14 @@ test('the access pages run under production headers without CSP violations', asy
   await page.goto('/tools/stepup/')
   await expect(page).toHaveURL(/\/login\/step-up\//)
   await expect(page.getByText('STEPUP needs a passkey from the last 15 minutes.')).toBeVisible()
+  // A role that needs a fresh GitHub/Google sign-in starts that sign-in directly: /login/ would only offer CONTINUE to
+  // a session that is already signed in.
+  await page.goto('/tools/reauth/')
+  await expect(page.getByText('REAUTH needs a GitHub or Google sign-in from the last 12 hours.')).toBeVisible()
+  await expect(page.getByRole('link', { name: /SIGN IN AGAIN WITH GITHUB/ })).toHaveAttribute(
+    'href',
+    '/auth/github/start?next=%2Ftools%2Freauth%2F',
+  )
   await page.goto('/tools/')
 
   // The session debugger: the forwarded headers and the stand-in's passkey render, and a FEDERATED-only session

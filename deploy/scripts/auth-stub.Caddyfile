@@ -14,10 +14,12 @@
 
 	@signed_in header Cookie *smoke=1*
 	# Per-tool answers, keyed on the path Caddy's forward_auth passes as X-Forwarded-Uri (wwff-auth docs/contract.md):
-	# /tools/locked/ is a tool the stand-in user holds no role for, /tools/stepup/ one whose role isn't active, and
-	# everything else is allowed with the role "user".
+	# /tools/locked/ is a tool the stand-in user holds no role for, /tools/stepup/ one whose role needs a passkey,
+	# /tools/reauth/ one whose role needs a fresh GitHub/Google sign-in, and everything else is allowed with the role
+	# "user".
 	@tool_forbidden header X-Forwarded-Uri /tools/locked/*
 	@tool_step_up header X-Forwarded-Uri /tools/stepup/*
+	@tool_reauth header X-Forwarded-Uri /tools/reauth/*
 	handle /auth/verify {
 		handle @signed_in {
 			handle @tool_forbidden {
@@ -28,6 +30,11 @@
 				header Content-Type application/problem+json
 				header WWW-Authenticate `Passkey error="insufficient_user_authentication", tier="STANDARD", max_age=900`
 				respond `{"step_up": {"tier": "STANDARD", "max_age": 900, "action": "tool:stepup", "bound": false, "reason": "missing"}}` 401
+			}
+			handle @tool_reauth {
+				header Content-Type application/problem+json
+				header WWW-Authenticate `Passkey error="insufficient_user_authentication", tier="FEDERATED", max_age=43200`
+				respond `{"step_up": {"tier": "FEDERATED", "max_age": 43200, "action": "tool:reauth", "bound": false, "reason": "stale"}}` 401
 			}
 			header X-Auth-User smoke-user
 			header X-Auth-Level FEDERATED
@@ -41,7 +48,7 @@
 	handle /auth/tools {
 		handle @signed_in {
 			header Content-Type application/json
-			respond `{"roles": {"held": ["user", "admin"], "active": ["user"]}, "tools": [{"slug": "debug", "active": true, "step_up": null}, {"slug": "stepup", "active": false, "step_up": {"tier": "STANDARD", "max_age": 900}}]}` 200
+			respond `{"roles": {"held": ["user", "admin"], "active": ["user"]}, "tools": [{"slug": "debug", "active": true, "step_up": null}, {"slug": "stepup", "active": false, "step_up": {"tier": "STANDARD", "max_age": 900}}, {"slug": "reauth", "active": false, "step_up": {"tier": "FEDERATED", "max_age": 43200}}]}` 200
 		}
 		respond `{"reason": "no_session"}` 401
 	}

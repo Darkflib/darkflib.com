@@ -6,7 +6,10 @@ import {
   getTools,
   isCancel,
   nextPath,
+  type Provider,
   passkeysSupported,
+  type SessionState,
+  startUrl,
   stepUp,
   type ToolAccess,
   toolSlug,
@@ -20,6 +23,12 @@ function within(seconds: number): string {
   return `${seconds} seconds`
 }
 
+/** The providers to offer for a fresh GitHub/Google sign-in: the ones linked to this account, or both. */
+function reauthProviders(session: SessionState | null): Provider[] {
+  const linked = [...new Set(session?.identities.map((identity) => identity.provider) ?? [])]
+  return linked.length > 0 ? linked : ['github', 'google']
+}
+
 /**
  * /login/step-up/?next=/tools/<slug>/: the gate sends a page load here when the user holds a role for the tool but
  * hasn't proven its level recently enough. Asks for that proof, then goes on to the tool.
@@ -28,6 +37,9 @@ export function StepUpPage() {
   const [next] = useState(() => nextPath(window.location.search))
   const slug = toolSlug(next)
   const [tool, setTool] = useState<ToolAccess | null | undefined>(undefined)
+  const [session, setSession] = useState<SessionState | null>(null)
+  // GET /auth/tools failed for a reason other than an older service's 404: say so rather than guess.
+  const [failed, setFailed] = useState(false)
   const [message, setMessage] = useState('')
   // The account has no key of the level asked for, so offer enrolment.
   const [noKey, setNoKey] = useState(false)
@@ -36,13 +48,21 @@ export function StepUpPage() {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const session = await getSession()
+      const state = await getSession()
       if (cancelled) return
-      if (session === null) {
+      if (state === null) {
         window.location.replace(`/login/?${new URLSearchParams({ next })}`)
         return
       }
-      const access = await getTools().catch(() => null)
+      setSession(state)
+      let access: Awaited<ReturnType<typeof getTools>>
+      try {
+        access = await getTools()
+      } catch {
+        // Not "no roles": going back to the tool now would only bounce off the gate and land here again.
+        if (!cancelled) setFailed(true)
+        return
+      }
       if (cancelled) return
       const found = access?.tools.find((entry) => entry.slug === slug)
       if (access && !found) {
@@ -90,7 +110,15 @@ export function StepUpPage() {
       <h2 id="stepup-heading" className="access-heading">
         Confirm it's you<span>.</span>
       </h2>
-      {tool === undefined || !need ? (
+      {failed ? (
+        <>
+          <p className="access-intro">Couldn't check what {name} needs.</p>
+          <button className="access-submit" type="button" onClick={() => window.location.reload()}>
+            <span>TRY AGAIN</span>
+            <span aria-hidden="true">↻</span>
+          </button>
+        </>
+      ) : tool === undefined || !need ? (
         <p className="access-intro">Checking what {name} needs…</p>
       ) : (
         <>
@@ -98,10 +126,15 @@ export function StepUpPage() {
             {name} needs {LEVEL_PROOF[need.tier]} from the last {within(need.max_age)}.
           </p>
           {need.tier === 'FEDERATED' ? (
-            <a className="access-submit" href={`/login/?${new URLSearchParams({ next })}`}>
-              <span>SIGN IN AGAIN</span>
-              <span aria-hidden="true">↗</span>
-            </a>
+            // A fresh provider sign-in, started directly: /login/ would only offer CONTINUE to a signed-in session.
+            <div className="access-providers">
+              {reauthProviders(session).map((provider) => (
+                <a key={provider} className="access-submit" href={startUrl(provider, next)}>
+                  <span>SIGN IN AGAIN WITH {provider === 'github' ? 'GITHUB' : 'GOOGLE'}</span>
+                  <span aria-hidden="true">↗</span>
+                </a>
+              ))}
+            </div>
           ) : passkeysSupported() ? (
             <button className="access-submit" type="button" onClick={prove} disabled={busy}>
               <span className="access-provider-label">

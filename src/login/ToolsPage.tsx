@@ -17,6 +17,7 @@ export function ToolsPage() {
   const [session, setSession] = useState<SessionState | null | undefined>(undefined)
   // What the user can see (GET /auth/tools); null from a service without roles, where every tool is open.
   const [access, setAccess] = useState<ToolAccess[] | null | undefined>(undefined)
+  const [accessFailed, setAccessFailed] = useState(false)
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -25,7 +26,8 @@ export function ToolsPage() {
     getSession().then((state) => !cancelled && setSession(state))
     getTools().then(
       (result) => !cancelled && setAccess(result?.tools ?? null),
-      () => !cancelled && setAccess([]),
+      // Not the same as having no tools: say the list couldn't be loaded.
+      () => !cancelled && setAccessFailed(true),
     )
     return () => {
       cancelled = true
@@ -89,6 +91,9 @@ export function ToolsPage() {
                 )
               })}
             </ul>
+          )}
+          {session && accessFailed && (
+            <p className="access-feedback">Couldn't load your tools. Refresh to try again.</p>
           )}
           {session && access?.length === 0 && <p className="access-intro">No tools are open to your account yet.</p>}
           {session && !session.has_passkey && (
