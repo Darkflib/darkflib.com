@@ -992,12 +992,23 @@ function ctSummary(data: Record<string, unknown>, now: number, dns: Record<strin
   const policy = caaPolicy(dns)
   const conflicts = caaConflicts(data, dns)
   const fallback = str(at(data, 'fallback_reason'))
+  // Cert Spotter searched the name alone (wwff-recon, when the search with subdomains was too big for its free API).
+  const nameOnly = at(data, 'subdomains') === false
   const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
   return [
     {
       label: 'Source',
-      value: history ? 'crt.sh (every logged certificate)' : 'Cert Spotter (current certificates only)',
-      ...(fallback && { tone: 'info', note: `crt.sh failed (${fallback}), so only current certificates are listed` }),
+      value: history
+        ? 'crt.sh (every logged certificate)'
+        : nameOnly
+          ? 'Cert Spotter (current certificates, this name only)'
+          : 'Cert Spotter (current certificates only)',
+      ...(fallback && {
+        tone: 'info',
+        note: nameOnly
+          ? `crt.sh failed (${fallback}) and the domain has too many names for Cert Spotter's free search, so only current certificates for the name itself are listed`
+          : `crt.sh failed (${fallback}), so only current certificates are listed`,
+      }),
     },
     {
       label: 'Certificates',

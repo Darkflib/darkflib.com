@@ -130,6 +130,18 @@ describe('CT summary', () => {
     assert.equal(got['First logged'], undefined)
   })
 
+  it('says when Cert Spotter could only search the name itself', () => {
+    const got = rows({
+      ...ct,
+      source: 'certspotter',
+      history: false,
+      subdomains: false,
+      fallback_reason: 'crt.sh answered 502',
+    })
+    assert.equal(got.Source.value, 'Cert Spotter (current certificates, this name only)')
+    assert.match(got.Source.note ?? '', /name itself/)
+  })
+
   it('notes a name with no current certificate, without making it a finding', () => {
     const got = rows({ ...ct, current: 0, certificates: [], issuers: [], names: [] })
     assert.equal(got.Certificates.tone, 'info')
