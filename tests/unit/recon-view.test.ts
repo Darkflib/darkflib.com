@@ -5,6 +5,7 @@ import { describe, it } from 'node:test'
 import {
   type CollectionResult,
   findings,
+  nameserverMatrix,
   normaliseDomain,
   type Row,
   summary,
@@ -192,5 +193,188 @@ describe('findings', () => {
       ),
       [],
     )
+  })
+})
+
+// domaincheck v0.4's nameserver_comparison, trimmed from a live run (darkflib.com) and then given trouble: ns2 is a
+// serial behind with an MX gone, ns3 times out, ns4 answers non-authoritatively, and IPv6 has no route from the checker.
+const answers = (overrides: Record<string, string[]> = {}) => {
+  const base: Record<string, string[]> = {
+    NS: ['ns1.vultr.com', 'ns2.vultr.com'],
+    A: ['198.98.49.246'],
+    AAAA: [],
+    MX: ['10 darkflib.com', '20 mx2.darkflib.com'],
+    TXT: ['v=spf1 -all'],
+    CAA: [],
+    ...overrides,
+  }
+  return Object.fromEntries(
+    Object.entries(base).map(([type, values]) => [
+      type,
+      { rcode: 'NOERROR', authoritative: true, values, error: null },
+    ]),
+  )
+}
+const soa = (serial: number) => ({
+  mname: 'ns1.vultr.com',
+  rname: 'dnsadm.choopa.com',
+  serial,
+  refresh: 10800,
+  retry: 3600,
+  expire: 604800,
+  minimum: 3600,
+})
+const probe = (nameserver: string, ip: string, extra: Record<string, unknown>) => ({
+  nameserver,
+  ip,
+  family: ip.includes(':') ? 6 : 4,
+  sources: ['parent', 'zone'],
+  address_source: 'glue',
+  status: 'answered',
+  error: null,
+  rcode: 'NOERROR',
+  authoritative: true,
+  zone: 'darkflib.com',
+  soa: soa(2026101601),
+  answers: answers(),
+  ...extra,
+})
+const comparison = {
+  zone: 'darkflib.com',
+  parent_ns: ['ns1.vultr.com', 'ns2.vultr.com', 'ns3.vultr.com'],
+  zone_ns: ['ns1.vultr.com', 'ns2.vultr.com'],
+  parent_only: ['ns3.vultr.com'],
+  zone_only: [],
+  servers: [
+    probe('ns1.vultr.com', '173.199.96.96', {}),
+    probe('ns1.vultr.com', '2001:19f0:ccc::1', {
+      status: 'unreachable',
+      error: 'NoRoute',
+      rcode: null,
+      authoritative: false,
+      soa: null,
+      answers: {},
+    }),
+    probe('ns2.vultr.com', '173.199.96.97', { soa: soa(2026101500), answers: answers({ MX: ['10 darkflib.com'] }) }),
+    probe('ns3.vultr.com', '173.199.96.98', {
+      status: 'timeout',
+      error: 'Timeout',
+      rcode: null,
+      authoritative: false,
+      soa: null,
+      answers: {},
+    }),
+    probe('ns4.vultr.com', '173.199.96.99', { authoritative: false, answers: answers({ A: ['192.0.2.1'] }) }),
+  ],
+  serials: [2026101500, 2026101601],
+  serial_drift: true,
+  disagreements: [
+    {
+      record_type: 'MX',
+      consensus: ['10 darkflib.com', '20 mx2.darkflib.com'],
+      differing: [{ nameserver: 'ns2.vultr.com', ip: '173.199.96.97', missing: ['20 mx2.darkflib.com'], extra: [] }],
+    },
+  ],
+  truncated: false,
+}
+const compared = { ...dns, wildcard: { detected: false }, nameserver_comparison: comparison }
+
+describe('nameserver comparison', () => {
+  it('summarises drift, unanswering addresses, and the NS sets', () => {
+    const rows = summary('dns', compared, NOW)
+    assert.equal(row(rows, 'Serial').value, '2026101500 ≠ 2026101601')
+    assert.equal(row(rows, 'Serial').tone, 'warn')
+    // The IPv6 address was never asked, so it isn't counted against the zone.
+    assert.equal(row(rows, 'Nameservers answering').value, '2 of 4 addresses')
+    assert.equal(row(rows, 'Nameservers answering').tone, 'bad')
+    assert.equal(row(rows, 'IPv6 not checked').tone, 'info')
+    assert.equal(row(rows, 'Record drift').value, 'MX')
+    // The probes say lameness per address, so the per-name row stays out of the way.
+    assert.ok(!visibleRows(rows).some((entry) => entry.label === 'Lame delegations'))
+  })
+
+  it('becomes findings, worst first', () => {
+    assert.deepEqual(findings(['dns'], { dns: ok('dns', compared) }, NOW), [
+      {
+        check: 'dns',
+        tone: 'bad',
+        text:
+          'Nameservers not answering for the zone: ns3.vultr.com 173.199.96.98: no answer (timeout); ' +
+          'ns4.vultr.com 173.199.96.99: answered, but not authoritatively',
+      },
+      {
+        check: 'dns',
+        tone: 'warn',
+        text: 'The nameservers serve different SOA serials (2026101500, 2026101601): one has not caught up',
+      },
+      {
+        check: 'dns',
+        tone: 'warn',
+        text: 'The delegation and the zone list different nameservers: only the parent lists ns3.vultr.com',
+      },
+      {
+        check: 'dns',
+        tone: 'warn',
+        text: 'The nameservers give different answers. MX: ns2.vultr.com 173.199.96.97 lacks 20 mx2.darkflib.com',
+      },
+    ])
+  })
+
+  it('finds nothing when every nameserver agrees', () => {
+    const agreeing = {
+      ...comparison,
+      parent_only: [],
+      servers: [comparison.servers[0], probe('ns2.vultr.com', '173.199.96.97', {})],
+      serials: [2026101601],
+      serial_drift: false,
+      disagreements: [],
+    }
+    const data = { ...compared, nameserver_comparison: agreeing }
+    assert.deepEqual(findings(['dns'], { dns: ok('dns', data) }, NOW), [])
+    assert.equal(row(summary('dns', data, NOW), 'Serial').value, 2026101601)
+    assert.equal(row(summary('dns', data, NOW), 'Nameservers answering').tone, 'good')
+  })
+
+  it('lays out a column per address and marks what differs from most', () => {
+    const matrix = nameserverMatrix(compared)
+    assert.ok(matrix)
+    assert.deepEqual(
+      matrix.columns.map((column) => [column.ip, column.status, column.tone, column.counted]),
+      [
+        ['173.199.96.96', 'ok', 'good', true],
+        ['173.199.96.97', 'ok', 'good', true],
+        ['173.199.96.98', 'no answer (timeout)', 'bad', false],
+        ['173.199.96.99', 'answered, but not authoritatively', 'bad', false],
+      ],
+    )
+    // Never asked, so a note rather than a column.
+    assert.deepEqual(matrix.unrouted, ['ns1.vultr.com 2001:19f0:ccc::1'])
+    const byLabel = Object.fromEntries(matrix.rows.map((entry) => [entry.label, entry]))
+    assert.deepEqual(
+      matrix.rows.map((entry) => entry.label),
+      ['Serial', 'Primary', 'Timers', 'NS', 'A', 'AAAA', 'MX', 'TXT', 'CAA'],
+    )
+    // Two counted answers, one each: the first seen is the consensus, so ns2 is the odd one out.
+    assert.deepEqual(
+      byLabel.Serial.cells.map((cell) => cell && [cell.values[0], cell.differs]),
+      [['2026101601', false], ['2026101500', true], null, ['2026101601', false]],
+    )
+    assert.equal(byLabel.MX.differs, true)
+    assert.deepEqual(byLabel.MX.cells[1], {
+      values: ['10 darkflib.com'],
+      differs: true,
+      extra: [],
+      missing: ['20 mx2.darkflib.com'],
+    })
+    // ns4's A differs, but a non-authoritative answer doesn't count, so it isn't marked.
+    assert.equal(byLabel.A.differs, false)
+    assert.deepEqual(byLabel.A.cells[3], { values: ['192.0.2.1'], differs: false, extra: [], missing: [] })
+    assert.deepEqual(byLabel.AAAA.cells[0], { values: [], differs: false, extra: [], missing: [] })
+    assert.equal(byLabel.NS.differs, false)
+  })
+
+  it('is absent for runs from before the comparison', () => {
+    assert.equal(nameserverMatrix(dns), null)
+    assert.ok(visibleRows(summary('dns', dns, NOW)).every((entry) => entry.label !== 'Serial'))
   })
 })
