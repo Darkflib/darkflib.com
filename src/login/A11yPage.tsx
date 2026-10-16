@@ -7,12 +7,14 @@ import {
   contrast,
   criteria,
   grade,
+  groupNodes,
   IMPACT_TONE,
   pairOf,
   parseColour,
   parsePalette,
   REQUIREMENTS,
   type Rgb,
+  reason,
   resolvePair,
   showRatio,
   simulate,
@@ -22,7 +24,7 @@ import {
 } from './a11y'
 import { AuthError, getSession } from './auth'
 import { getRun, listRuns, type PageRun, RunStillGoing, startRun, waitForRun } from './pageRecon'
-import { type Accessibility, type AxeRule, keyed, normaliseUrl } from './pageView'
+import { type Accessibility, type AxeRule, type ContrastReview, keyed, measurementGaps, normaliseUrl } from './pageView'
 import './Debug.css'
 import './Users.css'
 import './Page.css'
@@ -119,6 +121,12 @@ export function A11yPage() {
           Automated checks find perhaps a third of what WCAG asks. A clean audit means nothing obvious is wrong, not
           that the page conforms: keyboard use, reading order, and whether text alternatives make sense still need a
           person.
+        </p>
+        <p className="debug-note">
+          More colour and accessibility tools (picker, palettes, conversions):{' '}
+          <a className="debug-link" href="https://tools.mikepreston.org/colour-picker" rel="noopener">
+            tools.mikepreston.org/colour-picker ↗
+          </a>
         </p>
       </section>
       <div className="debug-grid">
@@ -700,6 +708,21 @@ function Report({ audit, onCheck }: { audit: Accessibility; onCheck: (pair: { fg
             {level === 'none' ? 'fails A' : `${level} so far`}
           </dd>
         </div>
+        {audit.contrast_review && (
+          <div>
+            <dt>Contrast measured</dt>
+            <dd
+              className={
+                sum.measuredFailures || measurementGaps(audit.contrast_review).incomplete
+                  ? 'page-tone-warn'
+                  : 'page-tone-good'
+              }
+            >
+              {sum.measured} · {sum.measuredFailures}
+              {sum.measuredFailuresAtLeast && '+'} below AA
+            </dd>
+          </div>
+        )}
         <div>
           <dt>Passed rules</dt>
           <dd>{audit.passes}</dd>
@@ -740,6 +763,8 @@ function Report({ audit, onCheck }: { audit: Accessibility; onCheck: (pair: { fg
                         {' '}
                         needs {item.expected}:1 ({item.rule === 'color-contrast-enhanced' ? '1.4.6 AAA' : '1.4.3 AA'}
                         ), {item.count} element{item.count === 1 ? '' : 's'}
+                        {item.method === 'pixels' && ', measured from the rendering'}
+                        {item.method === 'pseudo' && ', measured through a decorative layer'}
                         {item.font_size && `, ${item.font_size} ${item.font_weight ?? ''}`}
                       </span>
                       {item.example && <span className="a11y-example">“{item.example}”</span>}
@@ -762,6 +787,7 @@ function Report({ audit, onCheck }: { audit: Accessibility; onCheck: (pair: { fg
         </div>
       )}
 
+      {audit.contrast_review && <Measured review={audit.contrast_review} onCheck={onCheck} />}
       <Rules title="VIOLATIONS" rules={audit.violations} open />
       <Rules title="NEEDS REVIEW" rules={audit.incomplete} />
     </>
@@ -793,15 +819,22 @@ function Rules({ title, rules, open = false }: { title: string; rules: AxeRule[]
               </a>
             </p>
           )}
-          <ol className="a11y-nodes">
-            {keyed(rule.nodes, (node) => `${node.target}`).map(({ key, item: node }) => (
-              <li key={key}>
-                <code className="debug-mono">{node.target}</code>
-                {node.html && <pre className="debug-raw a11y-html">{node.html}</pre>}
-                {node.summary && <p className="a11y-summary">{node.summary}</p>}
-              </li>
-            ))}
-          </ol>
+          {groupNodes(rule.nodes).map((group) => (
+            <div key={group.summary ?? ''} className="a11y-group">
+              {group.summary && <p className="a11y-summary">{group.summary}</p>}
+              {group.nodes.length > 1 && (
+                <p className="debug-note">{`${group.nodes.length} elements for this reason:`}</p>
+              )}
+              <ol className="a11y-nodes">
+                {keyed(group.nodes, (node) => `${node.target}`).map(({ key, item: node }) => (
+                  <li key={key}>
+                    <code className="debug-mono">{node.target}</code>
+                    {node.html && <pre className="debug-raw a11y-html">{node.html}</pre>}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
           {rule.nodes_total > rule.nodes.length && (
             <p className="debug-note">
               {rule.nodes_total - rule.nodes.length} more not listed (the first {rule.nodes.length} are kept).
@@ -809,6 +842,93 @@ function Rules({ title, rules, open = false }: { title: string; rules: AxeRule[]
           )}
         </details>
       ))}
+    </div>
+  )
+}
+
+/** The contrast axe left for review, settled by wwff-pagerecon: axe again ignoring a decorative ::before/::after
+ * layer, or the text colour against the pixels actually rendered behind it. */
+function Measured({
+  review,
+  onCheck,
+}: {
+  review: ContrastReview
+  onCheck: (pair: { fg: string; bg: string }) => void
+}) {
+  const unsettled = Object.entries(review.unsettled)
+  return (
+    <div className="a11y-pairs">
+      <h4 className="page-h3">{`// CONTRAST AXE COULDN'T JUDGE (${review.elements})`}</h4>
+      <p className="debug-note">
+        axe leaves text for review when it can't tell what's behind it. Of these, {review.by_pseudo} were checked again
+        ignoring a decorative ::before/::after layer (axe's own ratio), and {review.by_pixels} were measured from the
+        rendering: a screenshot with the text hidden, each element's text colour against the pixels behind its text. For
+        those, the ratio is what most of the text gets (10th percentile), and the worst spot is shown too.
+        {review.error && ` The second pass failed: ${review.error}.`}
+      </p>
+      {review.failures.length === 0 ? (
+        measurementGaps(review).incomplete ? (
+          <p className="page-tone-warn">
+            No failures among the elements measured, but the measurement is incomplete (below): what it didn't reach is
+            unchecked.
+          </p>
+        ) : (
+          <p className="page-tone-good">{'Every measured element passes AAA.'}</p>
+        )
+      ) : (
+        <ul>
+          {keyed(review.failures, (failure) => failure.target).map(({ key, item }) => {
+            const pair = item.fg && item.bg ? pairOf({ fg: item.fg, bg: item.bg }) : undefined
+            return (
+              <li key={key}>
+                <span
+                  className="a11y-vision-sample"
+                  style={pair ? { color: toHex(pair.fg), backgroundColor: toHex(pair.bg) } : undefined}
+                >
+                  Aa
+                </span>
+                <span className="a11y-pair-text">
+                  <strong>{item.text ? `“${item.text}”` : item.target}</strong>{' '}
+                  <span className={item.level === 'AA' ? 'page-tone-bad' : 'page-tone-warn'}>
+                    {item.ratio ?? '?'}:1
+                  </span>
+                  <span className="debug-note">
+                    {' '}
+                    needs {item.expected}:1 for {item.level === 'AA' ? '1.4.3 AA' : '1.4.6 AAA'}
+                    {item.method === 'pixels'
+                      ? `, worst spot ${item.ratio_worst ?? '?'}:1${item.varied ? ', background varies' : ''}`
+                      : ', through a decorative layer'}
+                    {item.font_size ? `, ${item.font_size}px${(item.font_weight ?? 400) >= 700 ? ' bold' : ''}` : ''}
+                  </span>
+                  <code className="debug-mono a11y-example">
+                    {item.fg} on {item.bg} · {item.target}
+                  </code>
+                </span>
+                {item.fg && item.bg && (
+                  <button
+                    type="button"
+                    className="debug-inline"
+                    onClick={() => onCheck({ fg: item.fg ?? '', bg: item.bg ?? '' })}
+                  >
+                    Check
+                  </button>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      {review.failures_total > review.failures.length && (
+        <p className="debug-note">
+          {review.failures_total - review.failures.length} more failures not listed (the worst {review.failures.length}{' '}
+          are kept).
+        </p>
+      )}
+      {unsettled.length > 0 && (
+        <p className="debug-note">
+          Still for a person to check: {unsettled.map(([key, count]) => `${count} × ${reason(key)}`).join(', ')}.
+        </p>
+      )}
     </div>
   )
 }

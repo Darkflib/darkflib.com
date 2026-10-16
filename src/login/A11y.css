@@ -310,6 +310,10 @@
   color: #eaf3ff;
 }
 
+.a11y-group {
+  margin: 8px 0 12px;
+}
+
 .a11y-nodes {
   display: grid;
   gap: 10px;

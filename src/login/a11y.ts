@@ -1,9 +1,9 @@
 // What /tools/a11y/ computes: colours parsed, WCAG 2 contrast and what each level asks of it, the nearest colour that
 // passes, how a pair looks with each kind of colour-vision deficiency, APCA's lightness contrast, and the reading of a
-// page recon run's accessibility audit (wwff-pagerecon docs/contract.md, `accessibility`). No DOM and no runtime
-// imports, so the unit tests run it headless.
+// page recon run's accessibility audit (wwff-pagerecon docs/contract.md, `accessibility`). No DOM, so the unit tests
+// run it headless.
 
-import type { Accessibility, AxeRule, ContrastPair } from './pageView'
+import { type Accessibility, type AxeRule, type ContrastPair, measuredBelowAA } from './pageView.ts'
 
 /** sRGB, 0-255 per channel, and alpha 0-1. */
 export interface Rgb {
@@ -313,6 +313,11 @@ export function pairOf(pair: Pick<ContrastPair, 'fg' | 'bg'>): { fg: Rgb; bg: Rg
 
 export interface AuditSummary {
   violations: number
+  /** Contrast elements axe couldn't judge that were measured another way, and how many of them fail AA. */
+  measured: number
+  measuredFailures: number
+  /** measuredFailures is a lower bound: the service kept only the worst failures, and dropped ones may be AA. */
+  measuredFailuresAtLeast: boolean
   elements: number
   worst?: string
   failingLevels: string[]
@@ -324,6 +329,9 @@ export function auditSummary(audit: Accessibility): AuditSummary {
   const levels = (['A', 'AA', 'AAA'] as const).filter((level) => (audit.counts.by_level[level] ?? 0) > 0)
   return {
     violations: audit.counts.violations,
+    measured: (audit.contrast_review?.by_pseudo ?? 0) + (audit.contrast_review?.by_pixels ?? 0),
+    measuredFailures: audit.contrast_review ? measuredBelowAA(audit.contrast_review).count : 0,
+    measuredFailuresAtLeast: audit.contrast_review ? measuredBelowAA(audit.contrast_review).atLeast : false,
     elements: audit.counts.nodes,
     worst: (['critical', 'serious', 'moderate', 'minor'] as const).find(
       (impact) => (audit.counts.by_impact[impact] ?? 0) > 0,
@@ -339,9 +347,44 @@ export function auditSummary(audit: Accessibility): AuditSummary {
  * highest level with no violation at it or below it.
  */
 export function automatedLevel(audit: Accessibility): 'AAA' | 'AA' | 'A' | 'none' {
-  const at = (level: 'A' | 'AA' | 'AAA') => (audit.counts.by_level[level] ?? 0) > 0
+  // Contrast measured from the rendering counts as much as axe's own verdicts.
+  const measured = (level: 'AA' | 'AAA') =>
+    (audit.contrast_review?.failures ?? []).some((failure) => failure.level === level)
+  const at = (level: 'A' | 'AA' | 'AAA') =>
+    (audit.counts.by_level[level] ?? 0) > 0 || (level !== 'A' && measured(level))
   if (at('A')) return 'none'
   if (at('AA')) return 'A'
   if (at('AAA')) return 'AA'
   return 'AAA'
+}
+
+/** axe's reasons for leaving contrast undecided (its message keys), in words. */
+const REASONS: Record<string, string> = {
+  bgImage: 'text over an image',
+  bgGradient: 'text over a gradient',
+  bgOverlap: 'another element overlaps the background',
+  pseudoContent: 'a ::before/::after layer covers it',
+  elmPartiallyObscured: 'partly covered by another element',
+  elmPartiallyObscuring: 'it partly covers another element',
+  shortTextContent: 'too little text to judge',
+  nonBmp: 'only symbols or icon-font characters',
+  nonTextContent: 'no real text',
+  shadowOnText: 'a text shadow',
+  equalRatio: 'text and background the same colour',
+}
+
+export const reason = (key: string) =>
+  key.startsWith('not measured: ') ? `not measured (${key.slice('not measured: '.length)})` : (REASONS[key] ?? key)
+
+/** Nodes of a rule that share a failure summary (axe's "Fix any of the following" text), so a reason repeated
+ * across 150 elements is said once with the elements under it. Largest group first. */
+export function groupNodes<T extends { summary: string | null }>(nodes: T[]): { summary: string | null; nodes: T[] }[] {
+  const groups = new Map<string, { summary: string | null; nodes: T[] }>()
+  for (const node of nodes) {
+    const key = node.summary ?? ''
+    const group = groups.get(key)
+    if (group) group.nodes.push(node)
+    else groups.set(key, { summary: node.summary, nodes: [node] })
+  }
+  return [...groups.values()].sort((a, b) => b.nodes.length - a.nodes.length)
 }
