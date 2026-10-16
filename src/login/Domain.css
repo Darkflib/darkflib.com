@@ -18,9 +18,9 @@
 }
 
 .domain-checks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px 18px;
   width: 100%;
   margin: 0;
   padding: 0;
@@ -28,6 +28,25 @@
   color: #c6d6ec;
   font-size: 11px;
   letter-spacing: 0.06em;
+}
+
+.domain-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.domain-check input {
+  margin: 2px 0 0;
+}
+
+.domain-check-blurb {
+  display: block;
+  margin-top: 2px;
+  color: #8faecb;
+  font-size: 10px;
+  letter-spacing: 0.02em;
 }
 
 .domain-sr {
@@ -44,8 +63,30 @@
   z-index: 2;
 }
 
-.domain-run-title {
+.domain-run[hidden] {
+  display: none;
+}
+
+.domain-run-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
   margin: 0 1.25% 10px;
+}
+
+.domain-run-head .debug-note {
+  margin: 0;
+}
+
+.domain-run-actions {
+  display: flex;
+  gap: 14px;
+  margin-left: auto;
+}
+
+.domain-run-title {
+  margin: 0;
   font-family: var(--font-display);
   font-size: 28px;
   color: #eaf3ff;
@@ -57,6 +98,94 @@
   font-weight: 500;
   letter-spacing: 0.11em;
   color: #b8e9ff;
+}
+
+.domain-findings {
+  margin: 0 1.25% 10px;
+  position: relative;
+  z-index: 2;
+}
+
+.domain-findings ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.domain-findings li::before {
+  content: "▲ ";
+}
+
+.domain-findings li.domain-tone-bad::before {
+  content: "■ ";
+}
+
+.domain-findings p {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+.domain-finding-check {
+  display: inline-block;
+  min-width: 110px;
+  color: #8faecb;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+/* Row and finding tones: good is the pass cyan, bad the fail magenta (Debug.css), warn an amber between. */
+.debug-facts dd.domain-tone-good,
+.domain-tone-good {
+  color: #61eeff;
+}
+
+.debug-facts dd.domain-tone-info {
+  color: #c6d6ec;
+}
+
+.debug-facts dd.domain-tone-warn,
+.domain-tone-warn {
+  color: #ffc861;
+}
+
+.debug-facts dd.domain-tone-bad,
+.domain-tone-bad {
+  color: #ff5ce8;
+}
+
+.debug-facts dd[title] {
+  cursor: help;
+}
+
+.domain-collecting {
+  animation: domain-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes domain-pulse {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .domain-collecting {
+    animation: none;
+  }
+}
+
+.domain-raw-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.domain-raw {
+  flex: 1;
+  min-width: 0;
 }
 
 .domain-raw summary {
@@ -74,6 +203,22 @@
   margin: 0 1.25% 20px;
   position: relative;
   z-index: 2;
+}
+
+.domain-history li[aria-current] .debug-inline {
+  color: #fff;
+  text-decoration-color: #61eeff;
+}
+
+.domain-history li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+}
+
+.domain-history li .debug-note {
+  margin: 0;
 }
 
 .domain-history ul {

@@ -95,13 +95,13 @@ test('the access pages run under production headers without CSP violations', asy
 
   // Domain recon: a run renders each check's summary or its error, and the balance after it.
   await page.goto('/tools/domain/')
-  await expect(page.getByText('Costs 1 credit. Balance: 3')).toBeVisible()
+  await expect(page.getByText('Costs 1 credit, whichever checks you pick. Balance: 3')).toBeVisible()
   await page.getByRole('textbox', { name: 'Domain' }).fill('example.com')
   await page.getByRole('button', { name: 'RUN' }).click()
   const registration = page.getByRole('region', { name: 'REGISTRATION' })
   await expect(registration).toContainText('RESERVED-Internet Assigned Numbers Authority')
   await expect(page.getByRole('region', { name: 'TLS' })).toContainText('TIMEOUT')
-  await expect(page.getByText('Costs 1 credit. Balance: 2')).toBeVisible()
+  await expect(page.getByText('Costs 1 credit, whichever checks you pick. Balance: 2')).toBeVisible()
 
   await page.goto('/tools/')
   await expect(page.getByText('Credits: domain 3')).toBeVisible()

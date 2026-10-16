@@ -213,7 +213,9 @@ trace, records, DNSSEC, CAA), TLS (chain, versions, CT, OCSP), and HTTP headers 
 [domaincheck](https://github.com/wwff-tech/domain-check). Caddy proxies `/tools/domain/api/*` to the `wwff-recon`
 container inside the gate, so it gets the same `X-Auth-*` headers; the service checks `user` itself, spends one
 `domain` credit per run through wwff-auth, and refunds it when every check failed for an upstream reason. The page
-shows a summary per check with the full `domaincheck` result under it, the balance, and the recent runs; its API is
+shows a summary per check (each row marked good, worth a look, or bad, from `src/login/reconView.ts`), the findings
+that deserve attention above them, the full `domaincheck` result under each, the balance, and the recent runs; the
+shown run is in the address bar (`?run=`) so a reload reopens it while the service keeps it (an hour). Its API is
 wwff-recon's `docs/contract.md`. Being its own container, wwff-recon can later queue runs or collect from several
 points of presence behind the same API.
 

@@ -2,23 +2,15 @@
 // /tools/domain/api/* behind the same forward_auth gate as the page.
 
 import { AuthError } from './auth'
+import type { Check, CollectionResult } from './reconView'
 
-export type Check = 'rdap' | 'dns' | 'tls' | 'headers'
+export type { Check, CollectionResult }
 export const CHECKS: { id: Check; name: string; blurb: string }[] = [
   { id: 'rdap', name: 'REGISTRATION', blurb: 'RDAP, or WHOIS where a registry has no RDAP' },
   { id: 'dns', name: 'DNS', blurb: 'delegation trace, records, DNSSEC, CAA' },
   { id: 'tls', name: 'TLS', blurb: 'certificate chain, versions, CT, OCSP' },
   { id: 'headers', name: 'HTTP', blurb: 'response and security headers, redirects' },
 ]
-
-/** domaincheck's CollectionResult, as JSON. `data` is the collector's own model, rendered loosely. */
-export interface CollectionResult {
-  collector: Check
-  ok: boolean
-  duration_ms: number
-  data: Record<string, unknown> | null
-  error: { kind: string; retryable: boolean; upstream: string | null; message: string } | null
-}
 
 export interface Run {
   id: string
