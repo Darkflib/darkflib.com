@@ -215,8 +215,14 @@ container inside the gate, so it gets the same `X-Auth-*` headers; the service c
 `domain` credit per run through wwff-auth, and refunds it when every check failed for an upstream reason. The page
 shows a summary per check (each row marked good, worth a look, or bad, from `src/login/reconView.ts`), the findings
 that deserve attention above them, the full `domaincheck` result under each, the balance, and the recent runs; the
-shown run is in the address bar (`?run=`) so a reload reopens it while the service keeps it (an hour). Its API is
-wwff-recon's `docs/contract.md`. Being its own container, wwff-recon can later queue runs or collect from several
+shown run is in the address bar (`?run=`) so a reload reopens it while the service keeps it (90 days, in a SQLite
+file on wwff-recon's volume). Any run can be compared with another from the newest 100 (the same domain over time, or
+two domains): `src/login/reconCompare.ts` lines up the summary rows side by side, marks the ones that changed and the
+findings that appeared or cleared, with the raw JSON difference under it, and the pair is in the address bar too
+(`?run=…&vs=…`). A run downloads as its JSON, or as a report (`src/login/reconReport.ts`): one HTML file with the
+findings, the summaries, and SVG diagrams of the DNS delegation, the certificate chain, and the redirects. It has no
+script and a CSP of its own that forbids any request, and it prints to PDF. Both work off rows, so a row added to
+`reconView.ts` shows up in the comparison and the report unchanged. Its API is wwff-recon's `docs/contract.md`. Being its own container, wwff-recon can later queue runs or collect from several
 points of presence behind the same API.
 
 

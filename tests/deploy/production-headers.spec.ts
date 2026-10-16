@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises'
+import { pathToFileURL } from 'node:url'
 import { expect, test } from '@playwright/test'
 
 // Runs against the real image (deploy/scripts/smoke.sh with KEEP=1), not the Node test server, so the page is loaded
@@ -102,6 +104,45 @@ test('the access pages run under production headers without CSP violations', asy
   await expect(registration).toContainText('RESERVED-Internet Assigned Numbers Authority')
   await expect(page.getByRole('region', { name: 'TLS' })).toContainText('TIMEOUT')
   await expect(page.getByText('Costs 1 credit, whichever checks you pick. Balance: 2')).toBeVisible()
+
+  // Comparing: the address bar reopens a run and the one it's compared with. The later run's TLS answers where the
+  // earlier one timed out, and the registry status changed.
+  await page.goto('/tools/domain/?run=r2&vs=r1')
+  const comparison = page.getByRole('region', { name: '// COMPARE' })
+  await expect(comparison).toContainText('cleared')
+  await expect(comparison.getByRole('row', { name: /^TLS/ })).toHaveClass(/domain-diff-changed/)
+  await expect(comparison.getByRole('row', { name: /^Status/ }).first()).toHaveClass(/domain-diff-changed/)
+  await expect(page.getByRole('combobox', { name: 'Compare with' })).toHaveValue('r1')
+  await comparison.getByText(/Raw JSON diff/).click()
+  await expect(comparison.locator('pre')).toContainText('+ rdap.data.status[]: "client transfer prohibited"')
+
+  // Export: the raw run, and the report, which opens on its own with no request at all.
+  const [json] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Download JSON' }).click(),
+  ])
+  expect(json.suggestedFilename()).toBe('recon-example.com-20260108-0000.json')
+  const saved = JSON.parse(await readFile((await json.path()) as string, 'utf8'))
+  expect(saved.id).toBe('r2')
+  const [report] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Download report' }).click(),
+  ])
+  expect(report.suggestedFilename()).toBe('recon-example.com-20260108-0000.html')
+  const reportPage = await context.newPage()
+  const fetched: string[] = []
+  reportPage.on('request', (request) => {
+    if (!request.url().startsWith('file:')) fetched.push(request.url())
+  })
+  // Saved under its own name, so the browser opens it as HTML (Playwright's download path has no extension).
+  const reportFile = test.info().outputPath(report.suggestedFilename())
+  await report.saveAs(reportFile)
+  await reportPage.goto(pathToFileURL(reportFile).href)
+  await expect(reportPage.getByRole('heading', { name: 'example.com', level: 1 })).toBeVisible()
+  await expect(reportPage.getByRole('img', { name: 'Certificate chain' })).toBeVisible()
+  await expect(reportPage.getByRole('img', { name: 'Redirects' })).toBeVisible()
+  expect(fetched).toEqual([])
+  await reportPage.close()
 
   await page.goto('/tools/')
   await expect(page.getByText('Credits: domain 3')).toBeVisible()
