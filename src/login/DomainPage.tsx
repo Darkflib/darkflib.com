@@ -73,6 +73,13 @@ function summary(check: Check, data: Record<string, unknown>): [string, Value][]
           list(at(data, 'caa_tree'), (node) => (list(node.records).length ? (node.zone as string) : null)).join(', '),
         ],
         ['Lame delegations', list(at(data, 'lame_delegation')).length],
+        // Nameservers the delegation named at internal addresses, which wwff-recon refused to query (domaincheck v0.3).
+        [
+          'Not queried (internal)',
+          list(at(data, 'policy_skips'), (skip) =>
+            `${skip.nameserver_name ?? ''} ${skip.nameserver_ip ?? ''}`.trim(),
+          ).join(', ') || undefined,
+        ],
       ]
     case 'tls':
       return [
