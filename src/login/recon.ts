@@ -2,30 +2,16 @@
 // /tools/domain/api/* behind the same forward_auth gate as the page.
 
 import { AuthError } from './auth'
+import type { Run } from './reconRun'
 import type { Check, CollectionResult } from './reconView'
 
-export type { Check, CollectionResult }
+export type { Check, CollectionResult, Run }
 export const CHECKS: { id: Check; name: string; blurb: string }[] = [
   { id: 'rdap', name: 'REGISTRATION', blurb: 'RDAP, or WHOIS where a registry has no RDAP' },
   { id: 'dns', name: 'DNS', blurb: 'delegation trace, records, DNSSEC, CAA' },
   { id: 'tls', name: 'TLS', blurb: 'certificate chain, versions, CT, OCSP' },
   { id: 'headers', name: 'HTTP', blurb: 'response and security headers, redirects' },
 ]
-
-export interface Run {
-  id: string
-  domain: string
-  domain_unicode: string
-  domain_a_label: string
-  checks: Check[]
-  status: 'queued' | 'running' | 'complete' | 'failed'
-  created_at: string
-  completed_at: string | null
-  cost: number
-  refunded: boolean
-  balance_after: number | null
-  results?: Partial<Record<Check, CollectionResult>>
-}
 
 const API = '/tools/domain/api'
 
@@ -57,7 +43,14 @@ export const startRun = (domain: string, checks: Check[]) => call<Run>('/runs', 
 
 export const getRun = (id: string) => call<Run>(`/runs/${encodeURIComponent(id)}`)
 
-export const listRuns = () => call<{ runs: Run[] }>('/runs')
+/** The caller's runs, newest first, without results: `limit` 1-100 (the service's default is 20), `domain` to only
+ * list one domain's (matched on its A-label). Kept 90 days (wwff-recon docs/contract.md, "Retention"). */
+export const listRuns = (options: { limit?: number; domain?: string } = {}) => {
+  const query = new URLSearchParams()
+  if (options.limit !== undefined) query.set('limit', String(options.limit))
+  if (options.domain !== undefined) query.set('domain', options.domain)
+  return call<{ runs: Run[] }>(`/runs${query.size ? `?${query}` : ''}`)
+}
 
 /** Thrown by waitForRun when a run is still unfinished at the client's deadline: it may yet finish server-side. */
 export class RunStillGoing extends Error {

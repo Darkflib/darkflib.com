@@ -12,7 +12,9 @@ import {
   startRun,
   waitForRun,
 } from './recon'
-import { findings, normaliseDomain, show, summary, visibleRows } from './reconView'
+import { compareRuns, jsonDiff, runLabel } from './reconCompare'
+import { exportName, reportHtml } from './reconReport'
+import { findings, normaliseDomain, show, summary, type Tone, visibleRows } from './reconView'
 import './Debug.css'
 import './Users.css'
 import './Domain.css'
@@ -29,19 +31,37 @@ function describe(error: AuthError): string {
     case 'credits_unavailable':
       return "Credits couldn't be checked just now, so nothing ran and nothing was spent. Try again shortly."
     case 'not_found':
-      return 'That run has expired (runs are kept for about an hour) or never existed.'
+      return 'That run has expired (runs are kept for 90 days) or never existed.'
     default:
       return `Refused: ${error.reason ?? `HTTP ${error.status}`}.`
   }
 }
 
-/** Puts the shown run in the address bar, so a reload or a shared link (to yourself) reopens it. */
-function remember(id: string | null) {
+/**
+ * Puts the shown run (`run`) and the one it is compared with (`vs`) in the address bar, so a reload or a shared link
+ * (to yourself) reopens them.
+ */
+function remember(id: string | null, param: 'run' | 'vs' = 'run') {
   const url = new URL(window.location.href)
-  if (id) url.searchParams.set('run', id)
-  else url.searchParams.delete('run')
+  if (id) url.searchParams.set(param, id)
+  else url.searchParams.delete(param)
   window.history.replaceState(null, '', url)
 }
+
+/** Hands the browser a file to save: a blob URL and a download link, which the site's CSP has no say over. */
+function download(name: string, type: string, text: string) {
+  const url = URL.createObjectURL(new Blob([text], { type }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = name
+  document.body.append(link)
+  link.click()
+  link.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 10_000)
+}
+
+/** How many recent runs the page lists, and so can compare: the service's maximum. */
+const HISTORY = 100
 
 /** A run being started: what the page shows until the service answers (up to 45 s). */
 function pending(domain: string, checks: Check[]): Run {
@@ -72,6 +92,8 @@ export function DomainPage() {
   const [balance, setBalance] = useState<number | null>(null)
   const [run, setRun] = useState<Run | null>(null)
   const [history, setHistory] = useState<Run[]>([])
+  // The run the shown one is compared with, if any.
+  const [versus, setVersus] = useState<Run | null>(null)
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
   const [elapsed, setElapsed] = useState(0)
@@ -85,7 +107,7 @@ export function DomainPage() {
 
   const refreshHistory = useCallback(() => {
     const request = ++historyRequest.current
-    listRuns().then(
+    listRuns({ limit: HISTORY }).then(
       (result) => request === historyRequest.current && !page.current.cancelled && setHistory(result.runs),
       () => request === historyRequest.current && !page.current.cancelled && setHistory([]),
     )
@@ -151,12 +173,17 @@ export function DomainPage() {
     setMessage('')
     // "Run again" replaces the run on show; if the new one never starts, that one comes back.
     const previous = run
+    const previousVersus = versus
     setRun(pending(target, selected))
+    compareWith(null)
     try {
       const started = await startRun(target, selected)
       if (page.current.cancelled) return
+      // The same domain again: the new run is shown against the one it replaces.
+      if (previous?.results && previous.domain_a_label === started.domain_a_label) compareWith(previous)
       await follow(started)
     } catch (error) {
+      if (!page.current.cancelled && previousVersus) compareWith(previousVersus)
       // Nothing to show for a run that never started: back to what was shown before it.
       if (!page.current.cancelled) setRun((current) => (current?.id === '' ? previous : current))
       failed(error)
@@ -173,8 +200,35 @@ export function DomainPage() {
     if (target) void execute(target, checks)
   }
 
-  async function open(id: string) {
+  function compareWith(other: Run | null) {
+    setVersus(other)
+    remember(other?.id || null, 'vs')
+  }
+
+  /** Loads a run to compare the shown one with (a summary from the list has no results). */
+  async function openVersus(id: string) {
+    if (!id) return compareWith(null)
     setMessage('')
+    remember(id, 'vs')
+    try {
+      const other = await getRun(id)
+      if (!page.current.cancelled) compareWith(other)
+    } catch (error) {
+      if (page.current.cancelled) return
+      // A run to compare with that has gone leaves the shown run alone (failed() would clear it from the address bar).
+      if (error instanceof AuthError && error.reason === 'not_found') {
+        setMessage(describe(error))
+        compareWith(null)
+        return
+      }
+      failed(error, "Couldn't open that run to compare. Pick it again.")
+      if (!(error instanceof AuthError && error.stepUp)) compareWith(null)
+    }
+  }
+
+  async function open(id: string, keepVersus = false) {
+    setMessage('')
+    if (!keepVersus) compareWith(null)
     // In the address bar before the request, so a step-up on the way comes back to this run (a 404 clears it).
     remember(id)
     let found: Run | undefined
@@ -202,9 +256,14 @@ export function DomainPage() {
       () => undefined,
     )
     refreshHistory()
-    const linked = new URLSearchParams(window.location.search).get('run')
-    if (linked) void open(linked)
-    else input.current?.focus()
+    const params = new URLSearchParams(window.location.search)
+    const linked = params.get('run')
+    const against = params.get('vs')
+    if (linked) {
+      void open(linked, true).then(() => {
+        if (against && !signal.cancelled) void openVersus(against)
+      })
+    } else input.current?.focus()
     return () => {
       signal.cancelled = true
     }
@@ -308,9 +367,34 @@ export function DomainPage() {
                     Run again (1 credit)
                   </button>
                   <CopyButton label="Copy run JSON" text={() => JSON.stringify(run, null, 2)} />
+                  <button
+                    type="button"
+                    className="debug-inline"
+                    onClick={() => download(exportName(run, 'json'), 'application/json', JSON.stringify(run, null, 2))}
+                  >
+                    Download JSON
+                  </button>
+                  <button
+                    type="button"
+                    className="debug-inline"
+                    onClick={() => download(exportName(run, 'html'), 'text/html', reportHtml(run))}
+                  >
+                    Download report
+                  </button>
                 </span>
               )}
             </div>
+            {!unfinished && run.results && (
+              <ComparePicker run={run} versus={versus} history={history} onPick={(id) => void openVersus(id)} />
+            )}
+            {!unfinished && run.results && versus?.results && (
+              <Comparison
+                // Earlier on the left, whichever was picked first.
+                before={Date.parse(versus.created_at) <= Date.parse(run.created_at) ? versus : run}
+                after={Date.parse(versus.created_at) <= Date.parse(run.created_at) ? run : versus}
+                onClose={() => compareWith(null)}
+              />
+            )}
             {!unfinished && run.results && <Findings items={flagged} />}
             <div className="debug-grid">
               {run.checks.map((check) => (
@@ -339,7 +423,9 @@ export function DomainPage() {
               </li>
             ))}
           </ul>
-          <p className="debug-note">Runs are kept for about an hour.</p>
+          <p className="debug-note">
+            Runs are kept for 90 days (the newest {HISTORY} are listed). Open one, then compare it with another.
+          </p>
         </section>
       )}
     </SiteShell>
@@ -361,6 +447,180 @@ function Findings({ items }: { items: ReturnType<typeof findings> }) {
           ))}
         </ul>
       )}
+    </section>
+  )
+}
+
+function ComparePicker({
+  run,
+  versus,
+  history,
+  onPick,
+}: {
+  run: Run
+  versus: Run | null
+  history: Run[]
+  onPick: (id: string) => void
+}) {
+  const others = history.filter(
+    (entry) => entry.id !== run.id && entry.status !== 'running' && entry.status !== 'queued',
+  )
+  if (others.length === 0 && !versus) return null
+  // The same domain's runs first: comparing a domain with itself over time is the usual case.
+  const same = others.filter((entry) => entry.domain_a_label === run.domain_a_label)
+  const rest = others.filter((entry) => entry.domain_a_label !== run.domain_a_label)
+  return (
+    <div className="domain-compare-pick">
+      <label htmlFor="domain-versus">Compare with</label>
+      <select
+        id="domain-versus"
+        className="users-input domain-select"
+        value={versus?.id ?? ''}
+        onChange={(event) => onPick(event.target.value)}
+      >
+        <option value="">— nothing —</option>
+        {versus && !others.some((entry) => entry.id === versus.id) && (
+          <option value={versus.id}>{runLabel(versus)}</option>
+        )}
+        {same.length > 0 && (
+          <optgroup label={`${run.domain_unicode}, other runs`}>
+            {same.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {runLabel(entry)}
+              </option>
+            ))}
+          </optgroup>
+        )}
+        {rest.length > 0 && (
+          <optgroup label="Other domains">
+            {rest.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {runLabel(entry)}
+              </option>
+            ))}
+          </optgroup>
+        )}
+      </select>
+    </div>
+  )
+}
+
+const OUTCOME = (outcome: string | null) =>
+  outcome === null ? 'not run' : outcome === 'ok' ? 'OK' : outcome.toUpperCase()
+
+function Comparison({ before, after, onClose }: { before: Run; after: Run; onClose: () => void }) {
+  const [changedOnly, setChangedOnly] = useState(false)
+  const diff = compareRuns(before, after)
+  const raw = jsonDiff(before.results ?? {}, after.results ?? {})
+  const name = (check: Check) => CHECKS.find((entry) => entry.id === check)?.name ?? check
+  const tone = (value: Tone | undefined) => (value ? `domain-tone-${value}` : undefined)
+  const { appeared, cleared, kept } = diff.findings
+  const outcomes = diff.checks.filter((check) => check.before !== check.after).length
+  return (
+    <section className="panel debug-panel domain-compare" aria-labelledby="domain-compare-title">
+      <div className="domain-compare-head">
+        <h3 id="domain-compare-title" className="domain-h3">
+          {'// COMPARE'}
+        </h3>
+        <span className="debug-note">
+          {diff.changedRows === 0 && outcomes === 0 && appeared.length === 0 && cleared.length === 0
+            ? 'no differences in the summaries'
+            : [
+                outcomes > 0 && `${outcomes} check${outcomes === 1 ? '' : 's'} with a different outcome`,
+                `${diff.changedRows} row${diff.changedRows === 1 ? '' : 's'} changed`,
+                `${appeared.length} finding${appeared.length === 1 ? '' : 's'} appeared`,
+                `${cleared.length} cleared`,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+        </span>
+        <label className="domain-check">
+          <input type="checkbox" checked={changedOnly} onChange={(event) => setChangedOnly(event.target.checked)} />
+          <span>Changed only</span>
+        </label>
+        <button type="button" className="debug-inline" onClick={onClose}>
+          Close
+        </button>
+      </div>
+      {(appeared.length > 0 || cleared.length > 0 || kept.length > 0) && (
+        <ul className="domain-compare-findings" aria-label="Findings compared">
+          {appeared.map((item) => (
+            <li key={`+${item.check}:${item.text}`} className={`domain-tone-${item.tone}`}>
+              <span className="domain-diff-mark">appeared</span>{' '}
+              <span className="domain-finding-check">{name(item.check)}</span> {item.text}
+            </li>
+          ))}
+          {cleared.map((item) => (
+            <li key={`-${item.check}:${item.text}`} className="domain-tone-good">
+              <span className="domain-diff-mark">cleared</span>{' '}
+              <span className="domain-finding-check">{name(item.check)}</span> <s>{item.text}</s>
+            </li>
+          ))}
+          {kept.length > 0 && (
+            <li className="debug-note">
+              {kept.length} finding{kept.length === 1 ? '' : 's'} in both
+            </li>
+          )}
+        </ul>
+      )}
+      <div className="domain-compare-scroll">
+        <table className="domain-compare-table">
+          <thead>
+            <tr>
+              <th scope="col">Field</th>
+              <th scope="col">{runLabel(before)}</th>
+              <th scope="col">{runLabel(after)}</th>
+            </tr>
+          </thead>
+          {diff.checks.map((check) => {
+            const rows = changedOnly ? check.rows.filter((row) => row.changed) : check.rows
+            const outcomeChanged = check.before !== check.after
+            if (changedOnly && rows.length === 0 && !outcomeChanged) return null
+            return (
+              <tbody key={check.check}>
+                <tr className={outcomeChanged ? 'domain-diff-changed' : undefined}>
+                  <th scope="rowgroup" className="domain-compare-check">
+                    {name(check.check)}
+                  </th>
+                  <td>{OUTCOME(check.before)}</td>
+                  <td>{OUTCOME(check.after)}</td>
+                </tr>
+                {rows.map((row) => (
+                  <tr key={row.label} className={row.changed ? 'domain-diff-changed' : undefined}>
+                    <th scope="row">{row.label}</th>
+                    <td className={tone(row.beforeTone)}>{show(row.before)}</td>
+                    <td className={tone(row.afterTone)}>{show(row.after)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            )
+          })}
+        </table>
+      </div>
+      <div className="domain-raw-row">
+        <details className="domain-raw">
+          <summary>
+            Raw JSON diff ({raw.length} change{raw.length === 1 ? '' : 's'}, timings left out)
+          </summary>
+          <pre className="debug-raw domain-diff-pre">
+            {raw.length === 0
+              ? 'The results are the same.'
+              : raw
+                  .map((change) =>
+                    change.kind === 'added'
+                      ? `+ ${change.path}: ${JSON.stringify(change.after)}`
+                      : change.kind === 'removed'
+                        ? `- ${change.path}: ${JSON.stringify(change.before)}`
+                        : `~ ${change.path}: ${JSON.stringify(change.before)} → ${JSON.stringify(change.after)}`,
+                  )
+                  .join('\n')}
+          </pre>
+        </details>
+        <CopyButton
+          label="Copy diff JSON"
+          text={() => JSON.stringify({ before: before.id, after: after.id, changes: raw }, null, 2)}
+        />
+      </div>
     </section>
   )
 }
