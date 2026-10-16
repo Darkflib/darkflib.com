@@ -114,6 +114,9 @@ export function DomainPage() {
   const page = useRef({ cancelled: false })
   // Only the newest history request may replace the list.
   const historyRequest = useRef(0)
+  // Only the newest pick of a run to compare with may apply; any later change of comparison (a new pick, Close,
+  // another run shown) supersedes one still loading.
+  const versusRequest = useRef(0)
   // Only the newest run started or opened may be shown: each start or open takes the next number, and an older one's
   // responses (and polling) stop counting.
   const runRequest = useRef(0)
@@ -233,6 +236,7 @@ export function DomainPage() {
   }
 
   function compareWith(other: Run | null) {
+    versusRequest.current++
     setVersus(other)
     remember(other?.id || null, 'vs')
   }
@@ -242,11 +246,13 @@ export function DomainPage() {
     if (!id) return compareWith(null)
     setMessage('')
     remember(id, 'vs')
+    const request = ++versusRequest.current
+    const current = () => request === versusRequest.current && !page.current.cancelled
     try {
       const other = await getRun(id)
-      if (!page.current.cancelled) compareWith(other)
+      if (current()) compareWith(other)
     } catch (error) {
-      if (page.current.cancelled) return
+      if (!current()) return
       // A run to compare with that has gone leaves the shown run alone (failed() would clear it from the address bar).
       if (error instanceof AuthError && error.reason === 'not_found') {
         setMessage(describe(error))
