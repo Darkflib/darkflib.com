@@ -999,13 +999,20 @@ export function measuredBelowAA(review: ContrastReview): { count: number; atLeas
   return { count, atLeast, shown: `${count}${atLeast ? '+' : ''}` }
 }
 
+/** How many elements the measurement meant to settle but didn't reach, and whether it is incomplete for that or
+ * because a pass failed: either way it can't read as clean. */
+export function measurementGaps(review: ContrastReview): { missed: number; incomplete: boolean } {
+  const missed = Object.entries(review.unsettled)
+    .filter(([reason]) => reason.startsWith('not measured'))
+    .reduce((sum, [, n]) => sum + n, 0)
+  return { missed, incomplete: Boolean(review.error) || missed > 0 }
+}
+
 function measuredRows(review: ContrastReview | null | undefined): Row[] {
   if (!review) return []
   const aa = measuredBelowAA(review)
   const measured = review.by_pseudo + review.by_pixels
-  const missed = Object.entries(review.unsettled)
-    .filter(([reason]) => reason.startsWith('not measured'))
-    .reduce((sum, [, n]) => sum + n, 0)
+  const { missed, incomplete } = measurementGaps(review)
   return [
     {
       label: 'Contrast (measured)',
@@ -1015,7 +1022,7 @@ function measuredRows(review: ContrastReview | null | undefined): Row[] {
             tone: 'warn' as const,
             note: `Text contrast axe couldn't judge, measured another way, fails WCAG AA (1.4.3) on ${aa.shown} element${aa.count === 1 && !aa.atLeast ? '' : 's'}`,
           }
-        : review.error || missed
+        : incomplete
           ? {
               // A pass that failed, or elements it never reached, isn't a clean result.
               tone: 'warn' as const,

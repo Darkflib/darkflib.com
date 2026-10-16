@@ -24,7 +24,7 @@ import {
 } from './a11y'
 import { AuthError, getSession } from './auth'
 import { getRun, listRuns, type PageRun, RunStillGoing, startRun, waitForRun } from './pageRecon'
-import { type Accessibility, type AxeRule, type ContrastReview, keyed, normaliseUrl } from './pageView'
+import { type Accessibility, type AxeRule, type ContrastReview, keyed, measurementGaps, normaliseUrl } from './pageView'
 import './Debug.css'
 import './Users.css'
 import './Page.css'
@@ -711,7 +711,13 @@ function Report({ audit, onCheck }: { audit: Accessibility; onCheck: (pair: { fg
         {audit.contrast_review && (
           <div>
             <dt>Contrast measured</dt>
-            <dd className={sum.measuredFailures || audit.contrast_review.error ? 'page-tone-warn' : 'page-tone-good'}>
+            <dd
+              className={
+                sum.measuredFailures || measurementGaps(audit.contrast_review).incomplete
+                  ? 'page-tone-warn'
+                  : 'page-tone-good'
+              }
+            >
               {sum.measured} · {sum.measuredFailures}
               {sum.measuredFailuresAtLeast && '+'} below AA
             </dd>
@@ -861,7 +867,14 @@ function Measured({
         {review.error && ` The second pass failed: ${review.error}.`}
       </p>
       {review.failures.length === 0 ? (
-        <p className="page-tone-good">{'Every measured element passes AAA.'}</p>
+        measurementGaps(review).incomplete ? (
+          <p className="page-tone-warn">
+            No failures among the elements measured, but the measurement is incomplete (below): what it didn't reach is
+            unchecked.
+          </p>
+        ) : (
+          <p className="page-tone-good">{'Every measured element passes AAA.'}</p>
+        )
       ) : (
         <ul>
           {keyed(review.failures, (failure) => failure.target).map(({ key, item }) => {

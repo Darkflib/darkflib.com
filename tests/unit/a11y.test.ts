@@ -27,6 +27,7 @@ import {
   type Accessibility,
   type ContrastReview,
   measuredBelowAA,
+  measurementGaps,
   type PageResult,
   summary,
 } from '../../src/login/pageView.ts'
@@ -339,6 +340,15 @@ describe('what axe left for review', () => {
     const partial = { ...review, failures: [], failures_total: 0 }
     assert.equal(row(partial)?.tone, 'warn') // review.unsettled has a "not measured: gone"
     assert.equal(row({ ...partial, unsettled: {} })?.tone, 'good')
+  })
+
+  it('knows when the measurement is incomplete', () => {
+    assert.deepEqual(measurementGaps(review), { missed: 1, incomplete: true })
+    assert.deepEqual(measurementGaps({ ...review, unsettled: { shortTextContent: 2 } }), {
+      missed: 0,
+      incomplete: false,
+    })
+    assert.equal(measurementGaps({ ...review, unsettled: {}, error: 'boom' }).incomplete, true)
   })
 
   it("says axe's reasons in words", () => {
