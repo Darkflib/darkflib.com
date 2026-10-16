@@ -177,6 +177,17 @@
 						response_header_timeout 60s
 					}
 				}
+				# wwff-pagerecon (Darkflib/wwff-pagerecon): the page recon tool's API, also its own container on
+				# darkflib.network, behind the gate the same way. It loads the user's URL in a headless browser and spends
+				# their `page` credits; its screenshots are served from here too (/tools/page/api/runs/{id}/screenshots/*),
+				# same-origin, so the site's img-src 'self' allows them. WWFF_PAGERECON_UPSTREAM exists for the smoke test.
+				@pagerecon_api path /tools/page/api/*
+				# A run may take up to 45 s (its contract), as domain recon's.
+				reverse_proxy @pagerecon_api {$WWFF_PAGERECON_UPSTREAM:wwff-pagerecon:8000} {
+					transport http {
+						response_header_timeout 60s
+					}
+				}
 
 				@auth_headers path /tools/debug/headers.json
 				header @auth_headers Content-Type application/json

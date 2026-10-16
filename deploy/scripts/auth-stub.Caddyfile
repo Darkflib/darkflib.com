@@ -1,4 +1,4 @@
-# A stand-in for wwff-auth (and for wwff-recon's /tools/domain/api/*), run by smoke.sh from the site's own image: just enough of /auth/verify and /auth/session
+# A stand-in for wwff-auth (and for wwff-recon's /tools/domain/api/* and wwff-pagerecon's /tools/page/api/*), run by smoke.sh from the site's own image: just enough of /auth/verify and /auth/session
 # to exercise deploy/Caddyfile's routing. A request carrying the cookie smoke=1 is signed in.
 {
 	admin off
@@ -59,7 +59,7 @@
 		header Cache-Control "public, max-age=600"
 		handle @signed_in {
 			header Content-Type application/json
-			respond `{"user": {"id": "smoke-user", "display_name": "Smoke", "email": null}, "expires_at": "2099-01-01T00:00:00Z", "login_method": "github", "has_passkey": false, "identities": [{"id": "i1", "provider": "github", "label": "smoke"}], "assurance": {"FEDERATED": {"auth_at": "2026-01-01T00:00:00Z", "age": 1}, "STANDARD": null, "HIGH": null}, "roles": {"held": ["user", "admin"], "active": ["user"]}, "credits": {"balances": {"domain": 3}}}` 200
+			respond `{"user": {"id": "smoke-user", "display_name": "Smoke", "email": null}, "expires_at": "2099-01-01T00:00:00Z", "login_method": "github", "has_passkey": false, "identities": [{"id": "i1", "provider": "github", "label": "smoke"}], "assurance": {"FEDERATED": {"auth_at": "2026-01-01T00:00:00Z", "age": 1}, "STANDARD": null, "HIGH": null}, "roles": {"held": ["user", "admin"], "active": ["user"]}, "credits": {"balances": {"domain": 3, "page": 3}}}` 200
 		}
 		respond 204
 	}
@@ -128,6 +128,27 @@
 	handle /tools/domain/api/runs {
 		header Content-Type application/json
 		respond `{"runs": [{"id": "r2", "domain": "example.com", "domain_unicode": "example.com", "domain_a_label": "example.com", "checks": ["rdap", "tls", "headers"], "status": "complete", "created_at": "2026-01-08T00:00:00Z", "completed_at": "2026-01-08T00:00:03Z", "cost": 1, "refunded": false, "balance_after": 1}, {"id": "r1", "domain": "example.com", "domain_unicode": "example.com", "domain_a_label": "example.com", "checks": ["rdap", "tls"], "status": "complete", "created_at": "2026-01-01T00:00:00Z", "completed_at": "2026-01-01T00:00:02Z", "cost": 1, "refunded": false, "balance_after": 2}]}` 200
+	}
+
+	# wwff-pagerecon (Darkflib/wwff-pagerecon docs/contract.md), stateless: every run is the same loaded page, with a
+	# few things for the page to flag (no CSP or Open Graph, an image without alt text, mixed content, an old jQuery),
+	# and its screenshot is the site's own OG card, served from the image.
+	@pagerecon_start {
+		path /tools/page/api/runs
+		method POST
+	}
+	handle @pagerecon_start {
+		header Content-Type application/json
+		respond `{"id": "p1", "url": "https://example.com/", "host": "example.com", "full_page": false, "status": "complete", "created_at": "2026-01-01T00:00:00Z", "completed_at": "2026-01-01T00:00:04Z", "cost": 1, "refunded": false, "balance_after": 2, "result": {"ok": true, "error": null, "duration_ms": 4123, "final_url": "https://example.com/", "notes": [], "document": {"status": 200, "url": "https://example.com/", "redirects": [{"url": "http://example.com/", "status": 301, "location": "https://example.com/"}], "headers": [["content-type", "text/html; charset=utf-8"], ["server", "nginx/1.18.0"], ["x-powered-by", "PHP/7.4.3"], ["set-cookie", "sid=abc; Path=/; HttpOnly"]], "remote": {"ip": "93.184.215.14", "port": 443}, "tls": {"protocol": "TLS 1.3", "issuer": "Example CA", "subject": "example.com", "valid_from": 1767225600, "valid_to": 4102444800}}, "screenshots": {"viewport": {"width": 1280, "height": 800, "bytes": 81234, "url": "/tools/page/api/runs/p1/screenshots/viewport"}, "full_page": null}, "metadata": {"title": "Example Domain", "lang": "en", "charset": "utf-8", "viewport": "width=device-width, initial-scale=1", "description": null, "canonical": null, "robots": null, "generator": "WordPress 6.4.2", "theme_color": null, "icons": [], "meta": [{"key": "name:viewport", "content": "width=device-width, initial-scale=1"}, {"key": "name:generator", "content": "WordPress 6.4.2"}], "open_graph": {}, "twitter": {}, "json_ld": []}, "structure": {"headings": [{"level": 1, "text": "Example Domain"}], "landmarks": [{"role": "main", "label": null}], "word_count": 31, "forms": 0, "iframes": [], "scripts": {"external": 2, "inline": 0, "module": 0, "async_or_defer": 1}}, "links": [{"href": "https://example.com/about", "text": "About", "rel": [], "target": null, "scheme": "https", "internal": true, "status": 404}, {"href": "https://www.iana.org/domains/example", "text": "More information", "rel": [], "target": null, "scheme": "https", "internal": false, "status": null}], "styles": {"stylesheets": [{"href": "https://example.com/site.css", "media": null, "rules": 12}], "inline_style_blocks": 1, "inline_style_attributes": 0, "fonts": [{"family": "Inter", "weight": "400", "style": "normal", "status": "loaded"}]}, "images": [{"src": "https://example.com/hero.jpg", "alt": null, "has_alt": false, "width": 600, "height": 300, "natural_width": 1200, "natural_height": 600, "loading": null, "format": "jpeg", "bytes": 182334}], "timing": {"ttfb_ms": 182, "dom_interactive_ms": 590, "dom_content_loaded_ms": 640, "load_ms": 1450, "first_contentful_paint_ms": 702, "largest_contentful_paint_ms": 1210, "cumulative_layout_shift": 0.02, "transfer_bytes": 260000, "resource_count": 5}, "requests": [{"url": "https://example.com/", "method": "GET", "type": "document", "status": 200, "mime": "text/html", "bytes": 1256, "host": "example.com", "third_party": false, "failure": null, "ms": 182}, {"url": "https://example.com/site.css", "method": "GET", "type": "stylesheet", "status": 200, "mime": "text/css", "bytes": 4100, "host": "example.com", "third_party": false, "failure": null, "ms": 40}, {"url": "https://code.jquery.com/jquery-3.4.1.min.js", "method": "GET", "type": "script", "status": 200, "mime": "application/javascript", "bytes": 88145, "host": "code.jquery.com", "third_party": true, "failure": null, "ms": 90}, {"url": "http://cdn.example.net/track.js", "method": "GET", "type": "script", "status": 200, "mime": "application/javascript", "bytes": 2100, "host": "cdn.example.net", "third_party": true, "failure": null, "ms": 60}, {"url": "https://example.com/hero.jpg", "method": "GET", "type": "image", "status": 200, "mime": "image/jpeg", "bytes": 182334, "host": "example.com", "third_party": false, "failure": null, "ms": 120}], "blocked": [{"host": "169.254.169.254", "port": 80, "ip": "169.254.169.254", "reason": "denied_address"}], "libraries": [{"name": "jQuery", "version": "3.4.1", "source": "global"}, {"name": "WordPress", "version": "6.4.2", "source": "meta"}], "csp": {"header": null, "report_only": null, "meta": [], "violations": []}, "console_errors": [], "budget": {"bytes": 280000, "bytes_limit": 26214400, "requests": 5, "requests_limit": 400, "exceeded": false}}}` 200
+	}
+	handle /tools/page/api/runs {
+		header Content-Type application/json
+		respond `{"runs": [{"id": "p1", "url": "https://example.com/", "host": "example.com", "full_page": false, "status": "complete", "created_at": "2026-01-01T00:00:00Z", "completed_at": "2026-01-01T00:00:04Z", "cost": 1, "refunded": false, "balance_after": 2}]}` 200
+	}
+	handle /tools/page/api/runs/p1/screenshots/viewport {
+		root * /srv/www
+		rewrite * /images/og-card.jpg
+		file_server
 	}
 
 	handle {

@@ -276,6 +276,14 @@ function accessPages(): Page[] {
       description: 'Registration, DNS, TLS, and HTTP headers for a domain.',
       noscript: indent(['<p>Domain recon needs JavaScript.</p>', '<p><a href="/tools/">All tools</a></p>']),
     },
+    {
+      ...access,
+      path: '/tools/page/',
+      key: 'page',
+      title: 'PAGE RECON — TOOLS — DARKFLIB',
+      description: 'One URL in a headless browser: what it loads, and what stands out.',
+      noscript: indent(['<p>Page recon needs JavaScript.</p>', '<p><a href="/tools/">All tools</a></p>']),
+    },
   ]
 }
 

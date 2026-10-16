@@ -43,7 +43,7 @@ docker rm -f darkflib-smoke
 | `src/components/SiteShell.tsx`  | Chrome every page shares: top bar, footer, contact dialog                   |
 | `src/styles/`                   | Reset, self-hosted font faces, and global tokens and primitives             |
 | `src/content.ts`                | Projects, featured posts and tools (linking to mikepreston.org), tech stack  |
-| `src/login/`                    | The access pages and the tools behind them: `/login/`, `/login/enrol/`, `/login/step-up/`, `/login/denied/`, `/tools/`, the session debugger at `/tools/debug/`, user admin at `/tools/users/`, and domain recon at `/tools/domain/`. See [Private tools](#private-tools). Kept out of search and the sitemap |
+| `src/login/`                    | The access pages and the tools behind them: `/login/`, `/login/enrol/`, `/login/step-up/`, `/login/denied/`, `/tools/`, the session debugger at `/tools/debug/`, user admin at `/tools/users/`, domain recon at `/tools/domain/`, and page recon at `/tools/page/`. See [Private tools](#private-tools). Kept out of search and the sitemap |
 | `src/kev/`                      | Reading and summarising the KEV snapshot the site serves at `/feeds/kev.json` |
 | `kev-snapshot/`                 | The Go program that writes that snapshot on the server, hourly              |
 | `src/sw/`                       | Service worker entry and the page↔worker message protocol                   |
@@ -225,7 +225,24 @@ script and a CSP of its own that forbids any request, and it prints to PDF. Both
 `reconView.ts` shows up in the comparison and the report unchanged. Its API is wwff-recon's `docs/contract.md`. Being its own container, wwff-recon can later queue runs or collect from several
 points of presence behind the same API.
 
+### Page recon
 
+`/tools/page/`, for the `user` role: one URL loaded in headless Chromium by
+[wwff-pagerecon](https://github.com/Darkflib/wwff-pagerecon) (private), as a visitor's browser would, so it's an active
+scan with its own `page` credits, separate from domain recon's. A run reports a screenshot, metadata (meta tags, Open
+Graph, Twitter cards, JSON-LD), structure (headings, landmarks, word count), links (same-origin ones checked), styles
+and fonts, images, Navigation/Paint/LCP/CLS timings, the document's headers, every request the page made (type,
+status, size, host, third party or not), the libraries and versions it exposes, and the CSP in effect. The page
+(`src/login/PageReconPage.tsx`) shows the findings first (no CSP or a weak one, no Open Graph, missing alt text, mixed
+content, heavy third parties, outdated or exposed library versions, slow LCP, …, from `src/login/pageView.ts`, which
+is unit-tested), then a summary per section, then the full data in tables and as JSON. Caddy proxies
+`/tools/page/api/*` to the `wwff-pagerecon` container inside the gate, as for domain recon; the service checks `user`
+itself, spends one `page` credit per run, and refunds it when the page didn't load for a reason on the other side.
+Screenshots are served by the service under the same path, so `img-src 'self'` allows them. Every connection the
+browser makes goes through an egress proxy in the service that refuses internal addresses; its API, limits and SSRF
+policy are wwff-pagerecon's `docs/contract.md`.
+
+### The session debugger
 
 `/tools/debug/` is the first tool and a placeholder: the session as `/auth/session` reports it (each level's proof
 time, with live ages), the `X-Auth-*` headers a tool behind the gate receives, example requirements checked against

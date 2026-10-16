@@ -25,6 +25,12 @@ export const TOOLS: Tool[] = [
     name: 'DOMAIN RECON',
     blurb: 'Registration, DNS, TLS, and HTTP headers for a domain. One domain credit a run.',
   },
+  {
+    slug: 'page',
+    name: 'PAGE RECON',
+    blurb:
+      'One URL in a headless browser: screenshot, metadata, links, images, timings, headers, and every request it makes. One page credit a run.',
+  },
 ]
 
 /** The tool's display name, or its slug when this site has no entry for it. */

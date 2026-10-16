@@ -28,6 +28,7 @@ export default defineConfig({
         'tools-debug': 'tools/debug/index.html',
         'tools-users': 'tools/users/index.html',
         'tools-domain': 'tools/domain/index.html',
+        'tools-page': 'tools/page/index.html',
       },
     },
   },
