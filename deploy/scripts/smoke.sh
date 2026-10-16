@@ -64,6 +64,7 @@ trap cleanup EXIT
 "$engine" run --detach --name "$name" --network "$network" \
     --env "WWFF_AUTH_UPSTREAM=$auth_name:8000" \
     --env "WWFF_RECON_UPSTREAM=$auth_name:8000" \
+    --env "WWFF_PAGERECON_UPSTREAM=$auth_name:8000" \
     --read-only \
     --tmpfs /data:rw,nosuid,nodev,mode=1777 \
     --tmpfs /config:rw,nosuid,nodev,mode=1777 \
@@ -223,6 +224,20 @@ check "a run reaches wwff-recon through the gate" is "$status" 200
 check "a run is private and never stored" is "$(header cache-control)" "private, no-store"
 fetch darkflib.com /tools/domain/api/runs
 check "the recon API needs a session, like the page" is "$status" 401
+
+echo "page recon (/tools/page/)"
+fetch darkflib.com /tools/page/ --cookie smoke=1
+check "the page recon page is served behind the gate" is "$status" 200
+fetch darkflib.com /tools/page/api/runs --cookie smoke=1 --request POST --header 'Content-Type: application/json' \
+    --data '{"url": "https://example.com/"}'
+check "a run reaches wwff-pagerecon through the gate" is "$status" 200
+check "a page recon run is private and never stored" is "$(header cache-control)" "private, no-store"
+fetch darkflib.com /tools/page/api/runs/p1/screenshots/viewport --cookie smoke=1
+check "a screenshot is served same-origin through the gate" is "$status" 200
+check "a screenshot is a JPEG" is "$(header content-type)" image/jpeg
+check "a screenshot is private and never stored" is "$(header cache-control)" "private, no-store"
+fetch darkflib.com /tools/page/api/runs/p1/screenshots/viewport
+check "a screenshot needs a session, like the page" is "$status" 401
 
 echo "session debugger (/tools/debug/)"
 fetch darkflib.com /tools/debug/ --cookie smoke=1

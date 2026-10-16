@@ -103,8 +103,25 @@ test('the access pages run under production headers without CSP violations', asy
   await expect(page.getByRole('region', { name: 'TLS' })).toContainText('TIMEOUT')
   await expect(page.getByText('Costs 1 credit. Balance: 2')).toBeVisible()
 
+  // Page recon: a run shows the findings, the sections, and the screenshot (served same-origin, so img-src 'self'
+  // allows it), and the balance after it.
+  await page.goto('/tools/page/')
+  await expect(page.getByText('Costs 1 credit. Balance: 3')).toBeVisible()
+  await page.getByRole('textbox', { name: 'URL' }).fill('example.com')
+  await page.getByRole('button', { name: 'RUN' }).click()
+  const flagged = page.getByRole('region', { name: 'Findings' })
+  await expect(flagged).toContainText('No Content-Security-Policy')
+  await expect(flagged).toContainText('jQuery 3.4.1 has known XSS flaws')
+  await expect(flagged).toContainText('over plain HTTP from an HTTPS page')
+  await expect(page.getByRole('region', { name: 'IMAGES' })).toContainText('Without alt')
+  const shot = page.getByRole('img', { name: /The page at https:\/\/example\.com\// })
+  await expect(shot).toBeVisible()
+  await expect.poll(() => shot.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0)
+  await expect(page.getByText('Costs 1 credit. Balance: 2')).toBeVisible()
+  await expect(page).toHaveURL(/\/tools\/page\/\?run=p1$/)
+
   await page.goto('/tools/')
-  await expect(page.getByText('Credits: domain 3')).toBeVisible()
+  await expect(page.getByText('Credits: domain 3 · page 3')).toBeVisible()
 
   // The session debugger: the forwarded headers and the stand-in's passkey render, and a FEDERATED-only session
   // would be asked to step up for anything that needs a passkey.
