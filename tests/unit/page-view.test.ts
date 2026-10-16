@@ -8,6 +8,7 @@ import {
   cspGaps,
   describeFailure,
   findings,
+  framingProtection,
   header,
   hosts,
   libraryRisk,
@@ -320,7 +321,7 @@ describe('CSP', () => {
     assert.deepEqual(csp.get('default-src'), ["'self'"])
   })
   it('finds the gaps', () => {
-    const texts = (policy: string, xfo = false) => cspGaps(policy, xfo).map((g) => g.text)
+    const texts = (policy: string) => cspGaps(policy).map((g) => g.text)
     assert.deepEqual(texts("default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"), [])
     assert.ok(
       texts("script-src 'self' 'unsafe-inline'").includes(
@@ -331,10 +332,42 @@ describe('CSP', () => {
     assert.ok(texts("script-src 'unsafe-eval' https:").includes("The CSP allows eval ('unsafe-eval')"))
     assert.ok(texts('script-src https:').includes('The CSP lets scripts load from anywhere (https:)'))
     assert.ok(texts('img-src *').includes('The CSP has no script-src or default-src, so scripts are unrestricted'))
-    assert.ok(
-      texts("default-src 'self'").includes('Any site can frame the page (no frame-ancestors or X-Frame-Options)'),
+  })
+  it('counts only framing protection browsers enforce', () => {
+    assert.equal(framingProtection("frame-ancestors 'none'", undefined), "frame-ancestors 'none'")
+    assert.equal(
+      framingProtection("frame-ancestors 'self' https://a.example", undefined),
+      "frame-ancestors 'self' https://a.example",
     )
-    assert.ok(!texts("default-src 'self'", true).some((t) => t.includes('frame')))
+    assert.equal(framingProtection(null, 'DENY'), 'X-Frame-Options DENY')
+    assert.equal(framingProtection(null, 'sameorigin'), 'X-Frame-Options SAMEORIGIN')
+    // A wildcard or bare scheme in frame-ancestors lets anyone frame it; so does an invalid or conflicting XFO.
+    for (const policy of [
+      'frame-ancestors https:',
+      'frame-ancestors *',
+      'frame-ancestors https://*',
+      "default-src 'self'",
+    ])
+      assert.equal(framingProtection(policy, undefined), null, policy)
+    for (const xfo of ['ALLOWALL', 'ALLOW-FROM https://a.example', 'DENY, SAMEORIGIN', ''])
+      assert.equal(framingProtection(null, xfo), null, xfo)
+    assert.equal(framingProtection(null, 'DENY, deny'), 'X-Frame-Options DENY')
+    // With frame-ancestors set, browsers ignore X-Frame-Options: an open one isn't rescued by DENY.
+    assert.equal(framingProtection('frame-ancestors https:', 'DENY'), null)
+  })
+  it('ignores frame-ancestors from a meta tag', () => {
+    const r = clean()
+    r.csp = {
+      header: null,
+      report_only: null,
+      meta: ["default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"],
+      violations: [],
+    }
+    assert.ok(
+      findings(r, NOW).some(
+        (f) => f.text === 'Any site can frame the page (no effective frame-ancestors header or X-Frame-Options)',
+      ),
+    )
   })
   it('counts report-only as not enforced', () => {
     const r = clean()

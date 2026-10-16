@@ -649,8 +649,8 @@ function Links({ result }: { result: PageResult }) {
           </tr>
         </thead>
         <tbody>
-          {links.map((l) => (
-            <tr key={l.href}>
+          {keyed(links, (l) => l.href).map(({ key, item: l }) => (
+            <tr key={key}>
               <td>{cut(l.text || '(no text)', 40)}</td>
               <td>{l.internal ? 'internal' : l.scheme === 'http' || l.scheme === 'https' ? 'external' : l.scheme}</td>
               <td>{[...l.rel, l.target].filter(Boolean).join(' ') || '—'}</td>

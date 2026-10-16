@@ -250,7 +250,7 @@ export function parseCsp(policy: string): Map<string, string[]> {
 }
 
 /** What's weak about a CSP, worst first: each a tone and a sentence. */
-export function cspGaps(policy: string, hasFrameOptions: boolean): { tone: Tone; text: string }[] {
+export function cspGaps(policy: string): { tone: Tone; text: string }[] {
   const csp = parseCsp(policy)
   const gaps: { tone: Tone; text: string }[] = []
   const scripts = csp.get('script-src') ?? csp.get('default-src')
@@ -269,9 +269,28 @@ export function cspGaps(policy: string, hasFrameOptions: boolean): { tone: Tone;
   if (!objects || !(objects.includes("'none'") || (objects.length === 1 && objects[0] === "'self'")))
     gaps.push({ tone: 'info', text: "The CSP doesn't restrict plugins (object-src 'none')" })
   if (!csp.has('base-uri')) gaps.push({ tone: 'info', text: 'The CSP has no base-uri' })
-  if (!csp.has('frame-ancestors') && !hasFrameOptions)
-    gaps.push({ tone: 'warn', text: 'Any site can frame the page (no frame-ancestors or X-Frame-Options)' })
   return gaps
+}
+
+/**
+ * Whether other sites can frame the page, judged by what browsers enforce: `frame-ancestors` only from a CSP header
+ * (browsers ignore it in a meta tag) and only when it names no wildcard or bare scheme (when it's set, browsers ignore
+ * X-Frame-Options); without it, X-Frame-Options only when it's DENY or SAMEORIGIN (any other value, or conflicting repeats, allows framing). Answers how it's protected, or
+ * null when it isn't.
+ */
+export function framingProtection(
+  cspHeader: string | null | undefined,
+  frameOptions: string | undefined,
+): string | null {
+  const ancestors = cspHeader ? parseCsp(cspHeader).get('frame-ancestors') : undefined
+  if (ancestors) {
+    const open = ancestors.some((s) => s === '*' || /^[a-z][a-z0-9+.-]*:$/i.test(s) || /^(https?:\/\/)?\*$/i.test(s))
+    // With frame-ancestors set, browsers ignore X-Frame-Options altogether.
+    return open ? null : `frame-ancestors ${ancestors.join(' ') || "(empty: 'none')"}`
+  }
+  const values = [...new Set((frameOptions ?? '').split(',').map((v) => v.trim().toUpperCase()))].filter(Boolean)
+  if (values.length === 1 && (values[0] === 'DENY' || values[0] === 'SAMEORIGIN')) return `X-Frame-Options ${values[0]}`
+  return null
 }
 
 /** Versions worth more than a mention. Deliberately short: well-known, long-settled cases only. */
@@ -360,7 +379,8 @@ export function summary(id: SectionId, r: PageResult, now = Date.now()): Row[] {
       const csp = r.csp
       const enforced = csp?.header ?? (csp?.meta.length ? csp.meta.join(', ') : undefined)
       const frameOptions = header(h, 'x-frame-options')
-      const gaps = enforced ? cspGaps(enforced, frameOptions !== undefined) : []
+      const gaps = enforced ? cspGaps(enforced) : []
+      const framing = framingProtection(csp?.header, frameOptions)
       const hsts = header(h, 'strict-transport-security')
       const maxAge = Number(hsts?.match(/max-age=(\d+)/i)?.[1] ?? Number.NaN)
       const server = header(h, 'server')
@@ -414,6 +434,16 @@ export function summary(id: SectionId, r: PageResult, now = Date.now()): Row[] {
         },
         { label: 'Permissions-Policy', value: header(h, 'permissions-policy'), optional: true },
         { label: 'X-Frame-Options', value: frameOptions, optional: true },
+        {
+          label: 'Framing',
+          value: framing ? `only as allowed (${framing})` : 'any site',
+          ...(framing
+            ? { tone: 'good' as const }
+            : {
+                tone: 'warn' as const,
+                note: 'Any site can frame the page (no effective frame-ancestors header or X-Frame-Options)',
+              }),
+        },
         {
           label: 'Server version',
           value: server && /\d/.test(server) ? server : undefined,
