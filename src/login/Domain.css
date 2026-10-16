@@ -317,3 +317,35 @@
   color: #8faecb;
   font-style: italic;
 }
+
+.domain-detail {
+  margin: 4px 0 10px;
+  overflow-x: auto;
+}
+
+/* Suite names are long unbroken identifiers (ECDHE_RSA_WITH_AES_128_GCM_SHA256): let them break on a phone. */
+.domain-detail .debug-table th {
+  overflow-wrap: anywhere;
+}
+
+.domain-detail summary {
+  cursor: pointer;
+  color: #8faecb;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+.domain-detail .debug-table {
+  margin-top: 6px;
+}
+
+.domain-detail .debug-table th[title] {
+  cursor: help;
+}
+
+.domain-minor {
+  margin: 0 0 10px;
+  padding-left: 16px;
+  color: #8faecb;
+  font-size: 11px;
+}
