@@ -273,7 +273,7 @@ function accessPages(): Page[] {
       path: '/tools/domain/',
       key: 'domain',
       title: 'DOMAIN RECON — TOOLS — DARKFLIB',
-      description: 'Registration, DNS, TLS, and HTTP headers for a domain.',
+      description: 'Registration, DNS, TLS, HTTP headers, and certificate transparency for a domain.',
       noscript: indent(['<p>Domain recon needs JavaScript.</p>', '<p><a href="/tools/">All tools</a></p>']),
     },
     {
@@ -283,6 +283,14 @@ function accessPages(): Page[] {
       title: 'PAGE RECON — TOOLS — DARKFLIB',
       description: 'One URL in a headless browser: what it loads, and what stands out.',
       noscript: indent(['<p>Page recon needs JavaScript.</p>', '<p><a href="/tools/">All tools</a></p>']),
+    },
+    {
+      ...access,
+      path: '/tools/a11y/',
+      key: 'a11y',
+      title: 'ACCESSIBILITY — TOOLS — DARKFLIB',
+      description: 'WCAG contrast checks, colour-vision previews, and axe-core page audits.',
+      noscript: indent(['<p>The accessibility tool needs JavaScript.</p>', '<p><a href="/tools/">All tools</a></p>']),
     },
   ]
 }

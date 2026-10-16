@@ -29,6 +29,7 @@ export default defineConfig({
         'tools-users': 'tools/users/index.html',
         'tools-domain': 'tools/domain/index.html',
         'tools-page': 'tools/page/index.html',
+        'tools-a11y': 'tools/a11y/index.html',
       },
     },
   },

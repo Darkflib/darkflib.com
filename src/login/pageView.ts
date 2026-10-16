@@ -29,6 +29,7 @@ export type SectionId =
   | 'timing'
   | 'requests'
   | 'libraries'
+  | 'accessibility'
 
 export interface Section {
   id: SectionId
@@ -99,6 +100,66 @@ export interface Screenshot {
   truncated?: boolean
 }
 
+/** One axe-core rule that failed (or that axe couldn't decide), as wwff-pagerecon trims it. */
+export interface AxeRule {
+  id: string
+  impact: 'critical' | 'serious' | 'moderate' | 'minor' | null
+  tags: string[]
+  wcag: string[]
+  level: 'A' | 'AA' | 'AAA' | null
+  best_practice: boolean
+  help: string | null
+  description: string | null
+  help_url: string | null
+  nodes_total: number
+  nodes: {
+    target: string | null
+    html: string | null
+    impact: string | null
+    summary: string | null
+    contrast?: {
+      fg: string | null
+      bg: string | null
+      ratio: number | null
+      expected: number | null
+      font_size: string | null
+      font_weight: string | null
+      reason: string | null
+    }
+  }[]
+}
+
+/** A distinct failing colour pair from axe's contrast rules. */
+export interface ContrastPair {
+  rule: string | null
+  fg: string | null
+  bg: string | null
+  ratio: number | null
+  expected: number | null
+  font_size: string | null
+  font_weight: string | null
+  example: string | null
+  target: string | null
+  count: number
+}
+
+/** The contract's `accessibility` (axe-core, WCAG 2.2). */
+export interface Accessibility {
+  engine: { name: string; version: string }
+  standard: string
+  violations: AxeRule[]
+  incomplete: AxeRule[]
+  passes: number
+  inapplicable: number
+  contrast: ContrastPair[]
+  counts: {
+    violations: number
+    nodes: number
+    by_impact: Partial<Record<'critical' | 'serious' | 'moderate' | 'minor', number>>
+    by_level: Partial<Record<'A' | 'AA' | 'AAA' | 'best-practice', number>>
+  }
+}
+
 /** The contract's `result`. Every section may be null (the page couldn't provide it, or the load failed). */
 export interface PageResult {
   ok: boolean
@@ -167,6 +228,8 @@ export interface PageResult {
     meta: string[]
     violations: { directive: string | null; blocked: string }[]
   } | null
+  /** Absent from runs made before the audit existed. */
+  accessibility?: Accessibility | null
   console_errors: string[]
   budget: { bytes: number; bytes_limit: number; requests: number; requests_limit: number; exceeded: boolean } | null
 }
@@ -182,6 +245,7 @@ export const SECTION_NAMES: Record<SectionId, string> = {
   timing: 'TIMING',
   requests: 'REQUESTS',
   libraries: 'LIBRARIES',
+  accessibility: 'ACCESSIBILITY',
 }
 
 const DAY = 86_400_000
@@ -835,6 +899,57 @@ export function summary(id: SectionId, r: PageResult, now = Date.now()): Row[] {
         }
       })
     }
+    case 'accessibility': {
+      const audit = r.accessibility
+      if (audit === undefined) return [{ label: 'Audit', value: 'not in this run (made before audits)' }]
+      if (audit === null) return [{ label: 'Audit', value: "didn't run (see the notes)" }]
+      const impact = audit.counts.by_impact
+      const severe = (impact.critical ?? 0) + (impact.serious ?? 0)
+      const text = audit.contrast.filter((pair) => pair.rule === 'color-contrast')
+      const levelFails = (['A', 'AA'] as const)
+        .filter((level) => (audit.counts.by_level[level] ?? 0) > 0)
+        .map((level) => `${level}: ${audit.counts.by_level[level]}`)
+      return [
+        {
+          label: 'Violations',
+          value: audit.counts.violations
+            ? `${audit.counts.violations} rules, ${audit.counts.nodes} elements`
+            : `none of ${audit.passes} rules that applied`,
+          ...(severe
+            ? {
+                tone: 'bad',
+                note: `${severe} accessibility rule${severe === 1 ? '' : 's'} failed at critical or serious impact (${[
+                  impact.critical && `${impact.critical} critical`,
+                  impact.serious && `${impact.serious} serious`,
+                ]
+                  .filter(Boolean)
+                  .join(', ')})`,
+              }
+            : audit.counts.violations
+              ? { tone: 'warn', note: `${audit.counts.violations} accessibility rules failed, none severe` }
+              : { tone: 'good' }),
+        },
+        {
+          label: 'WCAG A / AA fails',
+          value: levelFails.join(', ') || 'none found',
+          tone: levelFails.length ? 'info' : 'good',
+        },
+        {
+          label: 'Text contrast (AA)',
+          value: text.length
+            ? `${text.reduce((sum, pair) => sum + pair.count, 0)} elements, ${text.length} colour pair${text.length === 1 ? '' : 's'}`
+            : 'passes',
+          ...(text.length
+            ? {
+                tone: 'warn',
+                note: `Text contrast fails WCAG AA (1.4.3) in ${text.length} colour pair${text.length === 1 ? '' : 's'}`,
+              }
+            : { tone: 'good' }),
+        },
+        { label: 'Needs review', value: audit.incomplete.length || undefined, optional: true },
+        { label: 'Engine', value: `${audit.engine.name} ${audit.engine.version}` },
+      ]
+    }
   }
 }
 
@@ -849,6 +964,7 @@ export const SECTIONS: SectionId[] = [
   'timing',
   'requests',
   'libraries',
+  'accessibility',
 ]
 
 export function sections(r: PageResult, now = Date.now()): Section[] {

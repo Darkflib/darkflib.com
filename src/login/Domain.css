@@ -318,6 +318,12 @@
   font-style: italic;
 }
 
+/* CT: certificates and names with nothing current, kept for the history but quieter. */
+.debug-table .domain-ct-past th,
+.debug-table .domain-ct-past td {
+  color: #8faecb;
+}
+
 .domain-detail {
   margin: 4px 0 10px;
   overflow-x: auto;

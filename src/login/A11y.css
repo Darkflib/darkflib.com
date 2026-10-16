@@ -1,0 +1,345 @@
+/* /tools/a11y/: accessibility. Builds on the session debugger's panels and tables (Debug.css), user admin's inputs
+ * (Users.css) and page recon's forms and tones (Page.css). Colours chosen by the user are set through the CSSOM
+ * (React's style prop), which style-src does not govern. */
+
+.a11y-checker {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 16px 24px;
+  align-items: start;
+}
+
+@media (max-width: 820px) {
+  .a11y-checker {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.a11y-fields {
+  display: grid;
+  gap: 10px;
+}
+
+.a11y-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.a11y-field label {
+  color: #8faecb;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.a11y-field-row {
+  display: flex;
+  gap: 8px;
+}
+
+.a11y-input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  font-size: 14px;
+}
+
+.a11y-picker {
+  width: 44px;
+  height: 40px;
+  padding: 2px;
+  border: 1px solid rgba(143, 174, 203, 0.35);
+  background: transparent;
+  cursor: pointer;
+}
+
+.a11y-swap {
+  justify-self: start;
+}
+
+.a11y-sample {
+  padding: 14px 16px;
+  border: 1px solid;
+  border-radius: 4px;
+  font-family: system-ui, sans-serif;
+}
+
+.a11y-sample p {
+  margin: 0 0 6px;
+}
+
+.a11y-sample-large {
+  font-size: 24px;
+}
+
+.a11y-sample-bold {
+  font-size: 18.66px;
+  font-weight: 700;
+}
+
+.a11y-sample-normal {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.a11y-sample-small {
+  font-size: 12px;
+}
+
+.a11y-ratio {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: 44px;
+  line-height: 1;
+}
+
+.a11y-levels {
+  margin-bottom: 8px;
+}
+
+.a11y-suggest ul,
+.a11y-visions ul,
+.a11y-pairs ul,
+.a11y-history ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.a11y-suggest li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  font-size: 12px;
+}
+
+.a11y-suggest-label {
+  color: #c6d6ec;
+}
+
+.a11y-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 4px;
+  border: 1px solid rgba(234, 243, 255, 0.5);
+  vertical-align: -2px;
+}
+
+.a11y-visions ul {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.a11y-visions li,
+.a11y-pairs li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #eaf3ff;
+}
+
+.a11y-vision-sample {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 36px;
+  border: 1px solid rgba(143, 174, 203, 0.35);
+  font-family: system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.a11y-visions,
+.a11y-suggest {
+  grid-column: 1 / -1;
+}
+
+.a11y-visions h3,
+.a11y-suggest h3 {
+  margin: 4px 0 8px;
+  font-weight: 400;
+}
+
+.a11y-palette {
+  display: grid;
+  grid-template-columns: minmax(200px, 280px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 820px) {
+  .a11y-palette {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.a11y-textarea {
+  height: auto;
+  padding: 8px 10px;
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  resize: vertical;
+}
+
+.a11y-matrix {
+  border-collapse: separate;
+  border-spacing: 3px;
+  font-size: 11px;
+  color: #eaf3ff;
+}
+
+.a11y-matrix th {
+  padding: 2px 6px;
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.a11y-matrix td {
+  padding: 0;
+}
+
+.a11y-cell {
+  display: grid;
+  width: 64px;
+  height: 44px;
+  place-content: center;
+  border: 2px solid transparent;
+  font-family: system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.a11y-cell-ratio {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.a11y-cell-level {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* The verdict as a border too, so it never rests on the cell's own colours alone. */
+.a11y-cell-good {
+  border-color: #3ddc97;
+}
+
+.a11y-cell-warn {
+  border-color: #ffc857;
+  border-style: dashed;
+}
+
+.a11y-cell-bad {
+  border-color: #ff5d73;
+  border-style: dotted;
+}
+
+.a11y-matrix-self {
+  background: repeating-linear-gradient(45deg, transparent 0 4px, rgba(143, 174, 203, 0.15) 4px 8px);
+}
+
+.a11y-run {
+  margin-top: 12px;
+}
+
+.a11y-run-head {
+  margin: 0 0 10px;
+}
+
+.a11y-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+.a11y-stats div {
+  padding: 8px 10px;
+  border: 1px solid rgba(143, 174, 203, 0.2);
+}
+
+.a11y-stats dt {
+  color: #8faecb;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.a11y-stats dd {
+  margin: 4px 0 0;
+  font-size: 15px;
+}
+
+/* Untoned figures; a toned one keeps page recon's colour (Page.css). */
+.a11y-stats dd:not([class]) {
+  color: #eaf3ff;
+}
+
+.a11y-pairs,
+.a11y-rules {
+  margin-top: 16px;
+}
+
+.a11y-pair-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.a11y-example {
+  display: block;
+  color: #c6d6ec;
+}
+
+.a11y-impact {
+  display: inline-block;
+  min-width: 64px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.a11y-rule summary {
+  font-size: 12px;
+  color: #eaf3ff;
+}
+
+.a11y-nodes {
+  display: grid;
+  gap: 10px;
+  margin: 8px 0;
+  padding-left: 20px;
+  font-size: 12px;
+  color: #eaf3ff;
+}
+
+.a11y-nodes code {
+  overflow-wrap: anywhere;
+}
+
+.a11y-html {
+  max-height: 120px;
+  margin: 4px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.a11y-summary {
+  margin: 4px 0 0;
+  color: #c6d6ec;
+  white-space: pre-line;
+}
+
+.a11y-history {
+  margin-top: 14px;
+}
+
+.a11y-history li {
+  font-size: 12px;
+}

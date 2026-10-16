@@ -239,6 +239,12 @@ check "a screenshot is private and never stored" is "$(header cache-control)" "p
 fetch darkflib.com /tools/page/api/runs/p1/screenshots/viewport
 check "a screenshot needs a session, like the page" is "$status" 401
 
+echo "accessibility (/tools/a11y/)"
+fetch darkflib.com /tools/a11y/ --cookie smoke=1
+check "the accessibility page is served behind the gate" is "$status" 200
+fetch darkflib.com /tools/a11y/ --header 'Sec-Fetch-Mode: navigate'
+check "the accessibility page needs a session" is "$status" 303
+
 echo "session debugger (/tools/debug/)"
 fetch darkflib.com /tools/debug/ --cookie smoke=1
 check "the debugger is behind the gate and served" is "$status" 200

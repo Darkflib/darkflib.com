@@ -43,7 +43,7 @@ docker rm -f darkflib-smoke
 | `src/components/SiteShell.tsx`  | Chrome every page shares: top bar, footer, contact dialog                   |
 | `src/styles/`                   | Reset, self-hosted font faces, and global tokens and primitives             |
 | `src/content.ts`                | Projects, featured posts and tools (linking to mikepreston.org), tech stack  |
-| `src/login/`                    | The access pages and the tools behind them: `/login/`, `/login/enrol/`, `/login/step-up/`, `/login/denied/`, `/tools/`, the session debugger at `/tools/debug/`, user admin at `/tools/users/`, domain recon at `/tools/domain/`, and page recon at `/tools/page/`. See [Private tools](#private-tools). Kept out of search and the sitemap |
+| `src/login/`                    | The access pages and the tools behind them: `/login/`, `/login/enrol/`, `/login/step-up/`, `/login/denied/`, `/tools/`, the session debugger at `/tools/debug/`, user admin at `/tools/users/`, domain recon at `/tools/domain/`, page recon at `/tools/page/`, and accessibility at `/tools/a11y/`. See [Private tools](#private-tools). Kept out of search and the sitemap |
 | `src/kev/`                      | Reading and summarising the KEV snapshot the site serves at `/feeds/kev.json` |
 | `kev-snapshot/`                 | The Go program that writes that snapshot on the server, hourly              |
 | `src/sw/`                       | Service worker entry and the page↔worker message protocol                   |
@@ -208,9 +208,11 @@ users see their own balances on `/tools/` and in the session debugger.
 ### Domain recon
 
 `/tools/domain/`, for the `user` role: registration (RDAP, or WHOIS where a registry has none), DNS (delegation
-trace, records, DNSSEC, CAA), TLS (chain, versions, CT, OCSP), and HTTP headers for a domain, collected live by
+trace, records, DNSSEC, CAA), TLS (chain, versions, SCTs, OCSP), HTTP headers, and Certificate Transparency (every
+certificate the CT logs hold for the name and its subdomains: issuers, the names they reveal, and whether current
+issuers are ones the CAA records allow) for a domain, collected live by
 [wwff-recon](https://github.com/Darkflib/wwff-recon) (private) with
-[domaincheck](https://github.com/wwff-tech/domain-check). Caddy proxies `/tools/domain/api/*` to the `wwff-recon`
+[domaincheck](https://github.com/wwff-tech/domain-check), and crt.sh (or Cert Spotter) for CT. Caddy proxies `/tools/domain/api/*` to the `wwff-recon`
 container inside the gate, so it gets the same `X-Auth-*` headers; the service checks `user` itself, spends one
 `domain` credit per run through wwff-auth, and refunds it when every check failed for an upstream reason. The page
 shows a summary per check (each row marked good, worth a look, or bad, from `src/login/reconView.ts`), the findings
@@ -232,7 +234,8 @@ points of presence behind the same API.
 scan with its own `page` credits, separate from domain recon's. A run reports a screenshot, metadata (meta tags, Open
 Graph, Twitter cards, JSON-LD), structure (headings, landmarks, word count), links (same-origin ones checked), styles
 and fonts, images, Navigation/Paint/LCP/CLS timings, the document's headers, every request the page made (type,
-status, size, host, third party or not), the libraries and versions it exposes, and the CSP in effect. The page
+status, size, host, third party or not), the libraries and versions it exposes, the CSP in effect, and an
+accessibility audit (axe-core's WCAG 2.2 rules, summarised here and read in full by `/tools/a11y/`). The page
 (`src/login/PageReconPage.tsx`) shows the findings first (no CSP or a weak one, no Open Graph, missing alt text, mixed
 content, heavy third parties, outdated or exposed library versions, slow LCP, …, from `src/login/pageView.ts`, which
 is unit-tested), then a summary per section, then the full data in tables and as JSON. Caddy proxies
@@ -241,6 +244,19 @@ itself, spends one `page` credit per run, and refunds it when the page didn't lo
 Screenshots are served by the service under the same path, so `img-src 'self'` allows them. Every connection the
 browser makes goes through an egress proxy in the service that refuses internal addresses; its API, limits and SSRF
 policy are wwff-pagerecon's `docs/contract.md`.
+
+### Accessibility
+
+`/tools/a11y/`, for the `user` role (`src/login/A11yPage.tsx`, its maths in `src/login/a11y.ts`, unit-tested). A
+contrast checker: two colours (hex, `rgb()`, `hsl()` or a CSS name), the WCAG 2 ratio as WCAG reads it (truncated,
+never rounded up), a pass or fail for each of 1.4.3, 1.4.6 and 1.4.11, the nearest colours that pass (same hue, the
+text or the background moved), the pair as each kind of colour-vision deficiency sees it, and APCA's Lc for
+reference; the pair is in the address bar (`?fg=…&bg=…`). A palette grid of every pair from up to 24 colours. Both
+run in the browser and cost nothing. A page audit is a page recon run, so it spends a `page` credit and is gated as
+page recon's API: the page shows the run's `accessibility` section (violations worst first with their WCAG criteria
+and the elements, each failing colour pair with a fix and a button that loads it into the checker, what needs a
+person to review), and links to the rest of the run on `/tools/page/`. The access file lists `[tools.a11y]` with no
+credits of its own.
 
 ### The session debugger
 

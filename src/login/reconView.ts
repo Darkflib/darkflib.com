@@ -3,7 +3,7 @@
 // The payloads are domaincheck's models (schema_version 2.x) as JSON, read loosely: a missing field is "—", not an
 // error.
 
-export type Check = 'rdap' | 'dns' | 'tls' | 'headers'
+export type Check = 'rdap' | 'dns' | 'tls' | 'headers' | 'ct'
 
 /** domaincheck's CollectionResult, as JSON. `data` is the collector's own model, rendered loosely. */
 export interface CollectionResult {
@@ -340,8 +340,16 @@ export function nameserverMatrix(
   return { columns, rows, unrouted }
 }
 
-/** The few fields worth reading first for each check; the full result is under it. */
-export function summary(check: Check, data: Record<string, unknown>, now = Date.now()): Row[] {
+/**
+ * The few fields worth reading first for each check; the full result is under it. `others` (the rest of the run's
+ * results) lets a check be read against another: CT's issuers against the DNS check's CAA records.
+ */
+export function summary(
+  check: Check,
+  data: Record<string, unknown>,
+  now = Date.now(),
+  others?: Partial<Record<Check, CollectionResult>>,
+): Row[] {
   switch (check) {
     case 'rdap': {
       const registrar =
@@ -675,6 +683,8 @@ export function summary(check: Check, data: Record<string, unknown>, now = Date.
         { label: 'Cookies', value: list(at(data, 'cookies')).length },
       ]
     }
+    case 'ct':
+      return ctSummary(data, now, others?.dns?.ok ? (others.dns.data ?? undefined) : undefined)
   }
 }
 
@@ -712,7 +722,7 @@ export function findings(
       continue
     }
     const assessed = Array.isArray(at(result.data, 'assessment.findings'))
-    for (const row of visibleRows(summary(check, result.data, now))) {
+    for (const row of visibleRows(summary(check, result.data, now, results))) {
       if (assessed && row.assessed) continue
       if (row.tone === 'warn' || row.tone === 'bad') found.push({ check, tone: row.tone, text: row.note ?? row.label })
     }
@@ -853,3 +863,255 @@ export function minorFindings(data: Record<string, unknown>): string[] {
     entry.severity === 'low' || entry.severity === 'info' ? String(entry.title) : null,
   ).map(String)
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Certificate Transparency (wwff-recon's own `ct` check, docs/contract.md "Certificate Transparency"): what the public
+// CT logs hold for the name and its subdomains, from crt.sh, or Cert Spotter's current certificates when crt.sh fails.
+
+const records = (value: unknown) => (Array.isArray(value) ? (value as Record<string, unknown>[]) : [])
+
+const count = (value: unknown) => (typeof value === 'number' ? value : 0)
+
+/**
+ * The CAA issuer domains (RFC 8659) each common issuing organisation answers to, by its O= (or CN=) as CT records it.
+ * An issuer not listed here is never judged against CAA: guessing would flag certificates that were fine.
+ */
+const CAA_IDS: [RegExp, string[]][] = [
+  [/let'?s encrypt/i, ['letsencrypt.org']],
+  [
+    /digicert|geotrust|rapidssl|thawte|symantec|cloudflare/i,
+    ['digicert.com', 'symantec.com', 'geotrust.com', 'rapidssl.com', 'thawte.com', 'digicert.ne.jp'],
+  ],
+  [
+    /sectigo|comodo|usertrust|zerossl/i,
+    ['sectigo.com', 'comodoca.com', 'comodo.com', 'usertrust.com', 'trust-provider.com', 'zerossl.com'],
+  ],
+  [/google trust services/i, ['pki.goog']],
+  [/^amazon/i, ['amazon.com', 'amazontrust.com', 'awstrust.com', 'amazonaws.com']],
+  [/globalsign/i, ['globalsign.com']],
+  [/entrust/i, ['entrust.net', 'affirmtrust.com']],
+  [/godaddy|starfield/i, ['godaddy.com', 'starfieldtech.com']],
+  [/^ssl corp/i, ['ssl.com']],
+  [/buypass/i, ['buypass.com', 'buypass.no']],
+  [/certainly/i, ['certainly.com']],
+  [/actalis/i, ['actalis.it']],
+  [/harica|hellenic academic/i, ['harica.gr']],
+]
+
+/** The CAA domains an issuer answers to, or undefined when it isn't one this page knows. */
+export const caaIdsFor = (issuer: string) => CAA_IDS.find(([pattern]) => pattern.test(issuer))?.[1]
+
+export interface CaaPolicy {
+  /** The name the DNS check walked up from: the only name (with its wildcard) whose relevant CAA set is known. */
+  name: string
+  /** The zone whose records are that set. */
+  zone: string
+  /** Issuer domains `issue` allows: empty when `issue ";"` forbids every CA, undefined when there's no `issue` tag
+   * (any CA may issue for the name itself; RFC 8659 §4.2). */
+  issue?: string[]
+  /** The same for wildcards, or undefined when there's no `issuewild` (so `issue` applies; RFC 8659 §4.3). */
+  issuewild?: string[]
+}
+
+/** The CAA set that applies to the name: the closest zone on the DNS check's upward walk with any records. */
+export function caaPolicy(dns: Record<string, unknown> | undefined): CaaPolicy | undefined {
+  const tree = records(at(dns, 'caa_tree'))
+  const node = tree.find((entry) => records(entry.records).length > 0)
+  if (!node) return undefined
+  const values = (tag: string) =>
+    records(node.records)
+      .filter((record) => String(record.tag).toLowerCase() === tag)
+      .map((record) =>
+        String(record.value ?? '')
+          .split(';')[0]
+          .trim()
+          .toLowerCase(),
+      )
+  const issue = values('issue')
+  const wild = values('issuewild')
+  // Only issue/issuewild limit issuance; a set of iodef alone allows any CA.
+  if (!issue.length && !wild.length) return undefined
+  return {
+    name: String(tree[0].zone).toLowerCase().replace(/\.$/, ''),
+    zone: String(node.zone),
+    ...(issue.length && { issue: issue.filter(Boolean) }),
+    ...(wild.length && { issuewild: wild.filter(Boolean) }),
+  }
+}
+
+/** The issuer domains CAA allows for one certificate name, undefined when any CA may issue, or 'unknown' when the
+ * name's relevant CAA set isn't the one the DNS check found (a subdomain may have its own). */
+function allowedFor(name: string, policy: CaaPolicy): string[] | undefined | 'unknown' {
+  const bare = name.toLowerCase().replace(/\.$/, '')
+  if (bare === `*.${policy.name}`) return policy.issuewild ?? policy.issue
+  if (bare === policy.name) return policy.issue
+  return 'unknown'
+}
+
+export interface CaaConflict {
+  issuer: string
+  certificates: number
+}
+
+/**
+ * Current certificates whose issuer today's CAA records don't allow, per issuer. Each name on a certificate is judged
+ * on its own (a wildcard by issuewild, the name itself by issue), and only the checked name and its wildcard: other
+ * subdomains may have CAA sets of their own, which the DNS check didn't look up. CAA is checked at issuance, so a
+ * conflict can mean the records changed since; either way, that CA could not issue for the name now.
+ */
+export function caaConflicts(ct: Record<string, unknown>, dns: Record<string, unknown> | undefined): CaaConflict[] {
+  const policy = caaPolicy(dns)
+  if (!policy) return []
+  const found = new Map<string, number>()
+  for (const cert of records(at(ct, 'certificates'))) {
+    if (cert.current !== true) continue
+    const issuer = String(cert.issuer_name ?? '')
+    const ids = caaIdsFor(issuer)
+    if (!ids) continue
+    const refused = list(cert.names).some((name) => {
+      const allowed = allowedFor(String(name), policy)
+      return allowed !== 'unknown' && allowed !== undefined && !ids.some((id) => allowed.includes(id))
+    })
+    if (refused) found.set(issuer, (found.get(issuer) ?? 0) + 1)
+  }
+  return [...found].map(([issuer, certificates]) => ({ issuer, certificates }))
+}
+
+function ctSummary(data: Record<string, unknown>, now: number, dns: Record<string, unknown> | undefined): Row[] {
+  const history = at(data, 'history') === true
+  const total = count(at(data, 'total'))
+  const current = count(at(data, 'current'))
+  const issuers = records(at(data, 'issuers'))
+  const names = records(at(data, 'names'))
+  const certs = records(at(data, 'certificates'))
+  const recent = certs.filter((cert) => {
+    const issued = time(cert.not_before)
+    return issued !== undefined && now - issued < 30 * DAY && issued <= now
+  }).length
+  const wildcards = names.filter((name) => name.wildcard === true && count(name.current) > 0).length
+  const policy = caaPolicy(dns)
+  const conflicts = caaConflicts(data, dns)
+  const fallback = str(at(data, 'fallback_reason'))
+  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
+  return [
+    {
+      label: 'Source',
+      value: history ? 'crt.sh (every logged certificate)' : 'Cert Spotter (current certificates only)',
+      ...(fallback && { tone: 'info', note: `crt.sh failed (${fallback}), so only current certificates are listed` }),
+    },
+    {
+      label: 'Certificates',
+      value: history
+        ? `${total}${at(data, 'truncated') === true ? ` (newest ${certs.length} kept)` : ''}: ${current} current, ${count(at(data, 'expired'))} expired`
+        : `${current} current`,
+      ...(current === 0 && { tone: 'info', note: 'The CT logs hold no current certificate for this name' }),
+    },
+    { label: 'First logged', value: history ? isoDate(time(at(data, 'first_issued'))) : undefined, optional: true },
+    { label: 'Last issued', value: dated(time(at(data, 'last_issued')), now) },
+    { label: 'Issued in 30 days', value: recent || undefined, optional: true },
+    {
+      label: 'Current issuers',
+      value: issuers
+        .filter((issuer) => count(issuer.current) > 0)
+        .map((issuer) => `${issuer.name} (${issuer.current})`)
+        .join(', '),
+      optional: true,
+    },
+    { label: 'Issuers ever', value: history ? issuers.length : undefined, optional: true },
+    {
+      label: 'Names covered',
+      value: names.length
+        ? `${names.length}${at(data, 'names_truncated') === true ? '+' : ''} (${names.filter((name) => count(name.current) > 0).length} current)`
+        : undefined,
+      optional: true,
+    },
+    {
+      label: 'Wildcards',
+      value: wildcards ? `${plural(wildcards, 'current wildcard name')}` : undefined,
+      tone: 'info',
+      note: 'A current wildcard certificate covers every subdomain at that level',
+      optional: true,
+    },
+    {
+      label: 'CAA',
+      value: !policy
+        ? undefined
+        : conflicts.length
+          ? `not allowed: ${conflicts.map((entry) => `${entry.issuer} (${entry.certificates})`).join(', ')}`
+          : current > 0
+            ? `current issuers allowed for ${policy.name} (CAA at ${policy.zone})`
+            : undefined,
+      optional: true,
+      ...(conflicts.length
+        ? {
+            tone: 'warn',
+            note: `Current certificates from ${conflicts.map((entry) => entry.issuer).join(', ')}, which the CAA records at ${policy?.zone} don't allow`,
+          }
+        : { tone: 'good' }),
+    },
+    {
+      label: 'Shared with',
+      value: count(at(data, 'other_names'))
+        ? plural(count(at(data, 'other_names')), 'name outside this domain')
+        : undefined,
+      optional: true,
+    },
+  ]
+}
+
+export interface CtIssuerRow {
+  name: string
+  current: number
+  total: number
+  first?: string
+  last?: string
+}
+
+export const ctIssuers = (data: Record<string, unknown>): CtIssuerRow[] =>
+  records(at(data, 'issuers')).map((issuer) => ({
+    name: String(issuer.name),
+    current: count(issuer.current),
+    total: count(issuer.total),
+    first: isoDate(time(issuer.first_issued)),
+    last: isoDate(time(issuer.last_issued)),
+  }))
+
+export interface CtNameRow {
+  name: string
+  current: number
+  total: number
+  last?: string
+  wildcard: boolean
+}
+
+/** Every name the logged certificates cover within the domain, current ones first: subdomains, found passively. */
+export const ctNames = (data: Record<string, unknown>): CtNameRow[] =>
+  records(at(data, 'names')).map((name) => ({
+    name: String(name.name),
+    current: count(name.current),
+    total: count(name.total),
+    last: isoDate(time(name.last_issued)),
+    wildcard: name.wildcard === true,
+  }))
+
+export interface CtCertRow {
+  key: string
+  issued?: string
+  expires?: string
+  issuer: string
+  names: string[]
+  current: boolean
+  url?: string
+}
+
+export const ctCertificates = (data: Record<string, unknown>): CtCertRow[] =>
+  records(at(data, 'certificates')).map((cert, index) => ({
+    key: `${cert.id ?? ''}:${cert.serial ?? ''}:${index}`,
+    issued: isoDate(time(cert.not_before)),
+    expires: isoDate(time(cert.not_after)),
+    issuer: String(cert.issuer_name ?? cert.issuer ?? ''),
+    names: list(cert.names).map(String),
+    current: cert.current === true,
+    // Only crt.sh's own pages: the link comes from the service, but check it is what it says.
+    url: str(cert.url)?.startsWith('https://crt.sh/?id=') ? str(cert.url) : undefined,
+  }))
