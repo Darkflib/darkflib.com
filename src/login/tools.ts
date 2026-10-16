@@ -1,0 +1,28 @@
+/**
+ * The private tools this site has pages for, each at /tools/<slug>/ behind forward_auth (deploy/Caddyfile). Who may
+ * open each one is not decided here: wwff-auth's access file lists each tool's roles, and GET /auth/tools says which of
+ * these the signed-in user can see. A slug the access file doesn't list is refused at the gate.
+ */
+export interface Tool {
+  slug: string
+  name: string
+  blurb: string
+}
+
+export const TOOLS: Tool[] = [
+  {
+    slug: 'debug',
+    name: 'SESSION DEBUGGER',
+    blurb: 'Your session, what a tool receives from the gate, your passkeys, and step-ups.',
+  },
+]
+
+/** The tool's display name, or its slug when this site has no entry for it. */
+export const toolName = (slug: string) => TOOLS.find((tool) => tool.slug === slug)?.name ?? slug.toUpperCase()
+
+/** How a level is proven, in words. */
+export const LEVEL_PROOF = {
+  FEDERATED: 'a GitHub or Google sign-in',
+  STANDARD: 'a passkey',
+  HIGH: 'a hardware key',
+} as const

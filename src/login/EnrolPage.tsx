@@ -6,9 +6,12 @@ import {
   isCancel,
   nextPath,
   passkeysSupported,
+  type Registration,
   registerPasskey,
   type SessionState,
   stepUp,
+  TIER_REASONS,
+  type Tier,
 } from './auth'
 
 type Stage = 'ready' | 'step-up' | 'done'
@@ -22,6 +25,11 @@ export function EnrolPage() {
   const [session, setSession] = useState<SessionState | null | undefined>(undefined)
   const [stage, setStage] = useState<Stage>('ready')
   const [nickname, setNickname] = useState('')
+  // What the last attempt asked for, and what came of it.
+  const [hardware, setHardware] = useState(false)
+  const [result, setResult] = useState<Registration | null>(null)
+  // The level the service asked to see again before adding a key (HIGH when the account already holds a usable one).
+  const [stepUpTier, setStepUpTier] = useState<Tier>('STANDARD')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -41,21 +49,23 @@ export function EnrolPage() {
     }
   }, [])
 
-  async function create() {
+  async function create(asHardware: boolean) {
     setBusy(true)
     setMessage('')
+    setHardware(asHardware)
     try {
-      await registerPasskey(nickname.trim() || null)
+      setResult(await registerPasskey(nickname.trim() || null, asHardware))
       setStage('done')
     } catch (error) {
       if (error instanceof AuthError && error.stepUp) {
-        // The account already has a passkey and none was used recently. WebAuthn wants a fresh click per prompt,
-        // so ask for one rather than chaining a second prompt onto this one.
+        // The account already has a key and none was used recently. WebAuthn wants a fresh click per prompt, so ask
+        // for one rather than chaining a second prompt onto this one.
+        setStepUpTier(error.stepUp.tier)
         setStage('step-up')
       } else if (error instanceof AuthError && error.reason === 'mds_stale') {
-        setMessage('Hardware key checks are unavailable right now. Please try again later.')
+        setMessage('Hardware key checks are unavailable right now (the FIDO metadata is out of date). Try again later.')
       } else if (!isCancel(error)) {
-        setMessage('The passkey could not be saved. Please try again.')
+        setMessage('The key could not be saved. Please try again.')
       }
     } finally {
       setBusy(false)
@@ -66,9 +76,9 @@ export function EnrolPage() {
     setBusy(true)
     setMessage('')
     try {
-      await stepUp('STANDARD')
+      await stepUp(stepUpTier)
       setStage('ready')
-      setMessage('Confirmed. Now create the new passkey.')
+      setMessage(`Confirmed. Now add the new ${hardware ? 'hardware key' : 'passkey'}.`)
     } catch (error) {
       if (!isCancel(error)) setMessage('That passkey was not accepted.')
     } finally {
@@ -83,12 +93,27 @@ export function EnrolPage() {
   )
 
   if (stage === 'done') {
+    const high = result?.tier === 'HIGH'
+    const downgraded = hardware && !high
+    const until = result?.credential.cooldown_until
     return (
       <AccessScene headingId="enrol-heading" step="02 / PASSKEY" status="ENROLLED">
         <h2 id="enrol-heading" className="access-heading">
-          Passkey added<span>.</span>
+          {high ? 'Hardware key added' : 'Passkey added'}
+          <span>.</span>
         </h2>
-        <p className="access-intro">Next time, USE A PASSKEY signs you straight in.</p>
+        <p className="access-intro">
+          {high
+            ? `It counts as a hardware key (HIGH)${until ? ` once its first-day cooldown ends, at ${new Date(until).toLocaleString()}` : ''}. Until then it works as an ordinary passkey.`
+            : 'Next time, USE A PASSKEY signs you straight in.'}
+        </p>
+        {downgraded && (
+          <p className="access-feedback">
+            Saved as an ordinary passkey, not a hardware key.{' '}
+            {(result?.tier_reason && TIER_REASONS[result.tier_reason]) ??
+              'It did not meet the requirements for a hardware key.'}
+          </p>
+        )}
         <a className="access-submit" href={next}>
           <span>CONTINUE</span>
           <span aria-hidden="true">↗</span>
@@ -113,11 +138,13 @@ export function EnrolPage() {
         </p>
       ) : stage === 'step-up' ? (
         <>
-          <p className="access-intro">First, confirm it is you with a passkey you already have.</p>
+          <p className="access-intro">
+            First, confirm it is you with {stepUpTier === 'HIGH' ? 'your hardware key' : 'a passkey you already have'}.
+          </p>
           <button className="access-submit" type="button" onClick={confirm} disabled={busy}>
             <span className="access-provider-label">
               <PasskeyIcon />
-              CONFIRM WITH A PASSKEY
+              {stepUpTier === 'HIGH' ? 'CONFIRM WITH A HARDWARE KEY' : 'CONFIRM WITH A PASSKEY'}
             </span>
             <span aria-hidden="true">↗</span>
           </button>
@@ -126,7 +153,7 @@ export function EnrolPage() {
         <form
           onSubmit={(event) => {
             event.preventDefault()
-            create()
+            create(false)
           }}
         >
           <label className="access-label" htmlFor="nickname">
@@ -149,6 +176,22 @@ export function EnrolPage() {
             </span>
             <span aria-hidden="true">↗</span>
           </button>
+          <button
+            className="access-secondary access-hardware"
+            type="button"
+            onClick={() => create(true)}
+            disabled={busy || session === undefined}
+          >
+            <span className="access-provider-label">
+              <PasskeyIcon />
+              ADD A HARDWARE KEY
+            </span>
+            <span aria-hidden="true">↗</span>
+          </button>
+          <p className="access-note">
+            A hardware key (a YubiKey or other FIDO security key) can unlock tools that need the highest level. Synced
+            passkeys from a password manager count as ordinary passkeys.
+          </p>
         </form>
       )}
       <p className="access-feedback" role="status" aria-live="polite">

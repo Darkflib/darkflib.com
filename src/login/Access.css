@@ -327,6 +327,21 @@
   line-height: 1.6;
 }
 
+.access-tools p.access-needs {
+  color: #f7a8ea;
+}
+
+.access-hardware {
+  margin-top: 12px;
+}
+
+.access-note {
+  margin: 12px 0 0;
+  color: #8faecb;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
 .access-divider {
   display: flex;
   gap: 14px;

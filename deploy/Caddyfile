@@ -130,24 +130,46 @@
 				header >Cache-Control "private, no-store"
 				forward_auth {$WWFF_AUTH_UPSTREAM:wwff-auth:8000} {
 					uri /auth/verify
-					copy_headers X-Auth-User X-Auth-Level X-Auth-Federated-At X-Auth-Standard-At X-Auth-High-At
+					copy_headers X-Auth-User X-Auth-Level X-Auth-Federated-At X-Auth-Standard-At X-Auth-High-At X-Auth-Roles X-Auth-Tool
 
-					@denied status 401
-					handle_response @denied {
-						# A request matcher: handle_response's own matchers only see the service's response.
+					# The service's refusals (wwff-auth docs/contract.md, forward_auth). Page loads get a page for each;
+					# anything else gets the response as it is. The matchers inside each block are request matchers:
+					# handle_response's own matchers only see the service's response.
+					#
+					# A role held for this tool but not active: the step-up 401, told apart from the no-session one by
+					# its WWW-Authenticate: Passkey header.
+					@step_up {
+						status 401
+						header WWW-Authenticate Passkey*
+					}
+					handle_response @step_up {
 						@navigate header Sec-Fetch-Mode navigate
-						# The path alone: Caddy has no query-escaping placeholder, and the login page resolves next as a
-						# same-origin URL either way.
+						redir @navigate /login/step-up/?next={http.request.uri.path} 303
+						copy_response
+					}
+					# No session. The path alone in next: Caddy has no query-escaping placeholder, and the pages resolve
+					# next as a same-origin URL either way.
+					@signed_out status 401
+					handle_response @signed_out {
+						@navigate header Sec-Fetch-Mode navigate
 						redir @navigate /login/?next={http.request.uri.path} 303
+						copy_response
+					}
+					# No role for this tool, or a tool the access file doesn't list.
+					@forbidden status 403
+					handle_response @forbidden {
+						@navigate header Sec-Fetch-Mode navigate
+						redir @navigate /login/denied/?next={http.request.uri.path} 303
 						copy_response
 					}
 				}
 				# The session debugger's view of what a tool receives: the X-Auth-* headers exactly as forward_auth left
 				# them (empty where /auth/verify sent none). Only wwff-auth can have set them, since client copies are
-				# stripped above, and its values are ids, level names, and Unix seconds.
+				# stripped above, and its values are ids, level names, Unix seconds, and role and tool names (which wwff-auth restricts to
+				# [a-z0-9-], so none can break the JSON).
 				@auth_headers path /tools/debug/headers.json
 				header @auth_headers Content-Type application/json
-				respond @auth_headers `{"X-Auth-User": "{http.request.header.X-Auth-User}", "X-Auth-Level": "{http.request.header.X-Auth-Level}", "X-Auth-Federated-At": "{http.request.header.X-Auth-Federated-At}", "X-Auth-Standard-At": "{http.request.header.X-Auth-Standard-At}", "X-Auth-High-At": "{http.request.header.X-Auth-High-At}"}` 200
+				respond @auth_headers `{"X-Auth-User": "{http.request.header.X-Auth-User}", "X-Auth-Level": "{http.request.header.X-Auth-Level}", "X-Auth-Federated-At": "{http.request.header.X-Auth-Federated-At}", "X-Auth-Standard-At": "{http.request.header.X-Auth-Standard-At}", "X-Auth-High-At": "{http.request.header.X-Auth-High-At}", "X-Auth-Roles": "{http.request.header.X-Auth-Roles}", "X-Auth-Tool": "{http.request.header.X-Auth-Tool}"}` 200
 				file_server
 			}
 		}

@@ -1,15 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AccessScene, PasskeyIcon } from './AccessScene'
-import { getSession, logout, type SessionState } from './auth'
-
-/** The private tools, each at /tools/<slug>/ behind forward_auth (deploy/Caddyfile). */
-const TOOLS = [
-  {
-    slug: 'debug',
-    name: 'SESSION DEBUGGER',
-    blurb: 'Your session, what a tool receives from the gate, your passkeys, and step-ups.',
-  },
-]
+import { getSession, getTools, logout, type SessionState, type ToolAccess } from './auth'
+import { LEVEL_PROOF, TOOLS, toolName } from './tools'
 
 const PROVIDER_NAMES: Record<SessionState['login_method'], string> = {
   github: 'GitHub',
@@ -23,12 +15,20 @@ const PROVIDER_NAMES: Record<SessionState['login_method'], string> = {
  */
 export function ToolsPage() {
   const [session, setSession] = useState<SessionState | null | undefined>(undefined)
+  // What the user can see (GET /auth/tools); null from a service without roles, where every tool is open.
+  const [access, setAccess] = useState<ToolAccess[] | null | undefined>(undefined)
+  const [accessFailed, setAccessFailed] = useState(false)
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     getSession().then((state) => !cancelled && setSession(state))
+    getTools().then(
+      (result) => !cancelled && setAccess(result?.tools ?? null),
+      // Not the same as having no tools: say the list couldn't be loaded.
+      () => !cancelled && setAccessFailed(true),
+    )
     return () => {
       cancelled = true
     }
@@ -71,19 +71,31 @@ export function ToolsPage() {
               ? `Signed in as ${session.user.display_name ?? session.identities[0]?.label ?? 'you'}, with ${PROVIDER_NAMES[session.login_method]}.`
               : 'Checking your session…'}
           </p>
-          {session && (
+          {session && access !== undefined && (
             <ul className="access-tools">
-              {TOOLS.map((tool) => (
-                <li key={tool.slug}>
-                  <a className="access-secondary" href={`/tools/${tool.slug}/`}>
-                    <span>{tool.name}</span>
-                    <span aria-hidden="true">↗</span>
-                  </a>
-                  <p>{tool.blurb}</p>
-                </li>
-              ))}
+              {(access ?? TOOLS.map((tool) => ({ slug: tool.slug, active: true, step_up: null }))).map((tool) => {
+                const blurb = TOOLS.find((entry) => entry.slug === tool.slug)?.blurb
+                const href = `/tools/${tool.slug}/`
+                return (
+                  <li key={tool.slug}>
+                    <a
+                      className="access-secondary"
+                      href={tool.active ? href : `/login/step-up/?${new URLSearchParams({ next: href })}`}
+                    >
+                      <span>{toolName(tool.slug)}</span>
+                      <span aria-hidden="true">↗</span>
+                    </a>
+                    {blurb && <p>{blurb}</p>}
+                    {tool.step_up && <p className="access-needs">Needs {LEVEL_PROOF[tool.step_up.tier]} first.</p>}
+                  </li>
+                )
+              })}
             </ul>
           )}
+          {session && accessFailed && (
+            <p className="access-feedback">Couldn't load your tools. Refresh to try again.</p>
+          )}
+          {session && access?.length === 0 && <p className="access-intro">No tools are open to your account yet.</p>}
           {session && !session.has_passkey && (
             <a className="access-secondary" href="/login/enrol/?next=/tools/">
               <span className="access-provider-label">
