@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { SiteShell } from '../components/SiteShell'
 import {
   type AdminUser,
@@ -30,37 +30,54 @@ const userFromUrl = () => new URLSearchParams(window.location.search).get('user'
 export function UsersPage() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<AdminUserSummary[] | null>(null)
+  // The query the shown results (and their `next` cursor) belong to, which the search box may since have left behind.
+  const [searched, setSearched] = useState('')
   const [next, setNext] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(userFromUrl)
+  // The selection as of now, for discarding a user's details that arrive after another was chosen.
+  const selectedRef = useRef(selected)
   const [user, setUser] = useState<AdminUser | null>(null)
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
-  // A step-up the service asked for, and the action to repeat once it's done.
-  const [pending, setPending] = useState<{ tier: Tier; retry: () => Promise<void> } | null>(null)
+  // A step-up the service asked for, and the call to repeat once it's done: only the call that was refused, never one
+  // that had already succeeded (a credit change is not idempotent).
+  const [pending, setPending] = useState<{
+    tier: Tier
+    action: () => Promise<void>
+    after?: () => Promise<void>
+  } | null>(null)
 
-  /** Runs an admin call; a step-up 401 parks it until the user confirms, anything else becomes the message. */
-  const run = useCallback(async (action: () => Promise<void>) => {
+  /**
+   * Runs one admin call. A step-up 401 parks it until the user confirms; anything else becomes the message. `after`
+   * (a refresh, a message) runs once the call has succeeded, outside it: if `after` is refused in turn, only `after` is
+   * parked. Resolves to whether the call itself succeeded.
+   */
+  const run = useCallback(async (action: () => Promise<void>, after?: () => Promise<void>): Promise<boolean> => {
     setBusy(true)
     setMessage('')
     try {
       await action()
     } catch (error) {
       if (error instanceof AuthError && error.stepUp) {
-        setPending({ tier: error.stepUp.tier, retry: action })
+        setPending({ tier: error.stepUp.tier, action, after })
       } else if (error instanceof AuthError) {
         setMessage(describe(error))
       } else {
         setMessage(`Failed: ${error instanceof Error ? error.message : String(error)}`)
       }
+      return false
     } finally {
       setBusy(false)
     }
+    await after?.()
+    return true
   }, [])
 
   const search = useCallback(
     (q: string, cursor: string | null = null) =>
       run(async () => {
         const page = await searchUsers(q, cursor)
+        setSearched(q)
         setResults((current) => (cursor && current ? [...current, ...page.users] : page.users))
         setNext(page.next)
       }),
@@ -70,7 +87,9 @@ export function UsersPage() {
   const load = useCallback(
     (id: string) =>
       run(async () => {
-        setUser(await getAdminUser(id))
+        const details = await getAdminUser(id)
+        // Another user may have been chosen while this was in flight: never show (or act on) a stale one.
+        if (selectedRef.current === id) setUser(details)
       }),
     [run],
   )
@@ -80,7 +99,10 @@ export function UsersPage() {
   }, [search])
 
   useEffect(() => {
+    selectedRef.current = selected
     if (!selected) return
+    // No controls for the previous user while the next one loads.
+    setUser((current) => (current?.id === selected ? current : null))
     const url = new URL(window.location.href)
     url.searchParams.set('user', selected)
     window.history.replaceState(null, '', url)
@@ -89,7 +111,7 @@ export function UsersPage() {
 
   async function confirm() {
     if (!pending) return
-    const { tier, retry } = pending
+    const { tier, action, after } = pending
     setBusy(true)
     setMessage('')
     try {
@@ -100,17 +122,20 @@ export function UsersPage() {
       if (!isCancel(error)) setMessage(error instanceof AuthError ? describe(error) : 'That was not accepted.')
       return
     }
-    await run(retry)
+    await run(action, after)
   }
 
   function toggleRole(role: string, held: boolean) {
     if (!user) return
     const id = user.id
-    run(async () => {
-      await setUserRole(id, role, held)
-      setUser(await getAdminUser(id))
-      setMessage(`${held ? 'Granted' : 'Revoked'} ${role}.`)
-    })
+    run(
+      () => setUserRole(id, role, held),
+      async () => {
+        const done = `${held ? 'Granted' : 'Revoked'} ${role}.`
+        if (await load(id)) setMessage(done)
+        else setMessage((refused) => `${done} ${refused || 'Refreshing the details failed.'}`)
+      },
+    )
   }
 
   function submitCredits(event: FormEvent<HTMLFormElement>) {
@@ -122,12 +147,19 @@ export function UsersPage() {
     const note = String(form.get('note')).trim()
     const target = event.currentTarget
     const id = user.id
-    run(async () => {
-      const result = await adjustCredits(id, type, amount, note)
-      setUser(await getAdminUser(id))
-      setMessage(`${type}: ${amount > 0 ? '+' : ''}${amount}, balance now ${result.balance}.`)
-      target.reset()
-    })
+    let balance = 0
+    run(
+      async () => {
+        balance = (await adjustCredits(id, type, amount, note)).balance
+      },
+      // Applied: clear the form at once, so a failed refresh can't invite applying it again.
+      async () => {
+        target.reset()
+        const done = `${type}: ${amount > 0 ? '+' : ''}${amount}, balance now ${balance}.`
+        if (await load(id)) setMessage(done)
+        else setMessage((refused) => `${done} ${refused || 'Refreshing the details failed.'}`)
+      },
+    )
   }
 
   const creditTypes = user ? Object.keys(user.credits.balances) : []
@@ -221,7 +253,7 @@ export function UsersPage() {
             </ul>
           )}
           {next && (
-            <button className="debug-link users-more" type="button" onClick={() => search(query.trim(), next)}>
+            <button className="debug-link users-more" type="button" onClick={() => search(searched, next)}>
               More
             </button>
           )}
