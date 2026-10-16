@@ -260,6 +260,14 @@ function accessPages(): Page[] {
       description: 'The session as wwff-auth and the gate see it.',
       noscript: indent(['<p>The session debugger needs JavaScript.</p>', '<p><a href="/tools/">All tools</a></p>']),
     },
+    {
+      ...access,
+      path: '/tools/users/',
+      key: 'users',
+      title: 'USER ADMIN — TOOLS — DARKFLIB',
+      description: 'Users, roles, and credits.',
+      noscript: indent(['<p>User admin needs JavaScript.</p>', '<p><a href="/tools/">All tools</a></p>']),
+    },
   ]
 }
 

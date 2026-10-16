@@ -92,6 +92,14 @@ export function ToolsPage() {
               })}
             </ul>
           )}
+          {session?.credits && Object.keys(session.credits.balances).length > 0 && (
+            <p className="access-note access-credits">
+              Credits:{' '}
+              {Object.entries(session.credits.balances)
+                .map(([type, balance]) => `${type} ${balance}`)
+                .join(' · ')}
+            </p>
+          )}
           {session && accessFailed && (
             <p className="access-feedback">Couldn't load your tools. Refresh to try again.</p>
           )}

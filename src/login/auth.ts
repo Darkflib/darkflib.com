@@ -23,6 +23,8 @@ export interface SessionState {
   assurance: Record<Tier, Assurance | null>
   /** Granted roles, and those the session has proven the level for. Absent from a service without roles. */
   roles?: Roles
+  /** Credit balances by type. Absent from a service without credits. */
+  credits?: { balances: Record<string, number> }
 }
 
 export interface Roles {
@@ -72,7 +74,7 @@ export function linkUrl(provider: Provider, next: string): string {
   return `/auth/${provider}/start?${new URLSearchParams({ link: '1', next })}`
 }
 
-async function request<T>(path: string, init?: { json?: unknown; method?: 'DELETE' }): Promise<T> {
+async function request<T>(path: string, init?: { json?: unknown; method?: 'DELETE' | 'PUT' }): Promise<T> {
   const response = await fetch(path, {
     method: init?.method ?? (init ? 'POST' : 'GET'),
     credentials: 'same-origin',
@@ -233,3 +235,71 @@ export async function registerPasskey(nickname: string | null, hardware = false)
   const credential = credentialJson(await navigator.credentials.create({ publicKey }))
   return request<Registration>('/auth/register/verify', { json: { challenge_id: issued.challenge_id, credential } })
 }
+
+// The admin API (docs/contract.md, Administration): every call needs the `admin` role active, so any of them can
+// answer with the step-up 401 once it lapses; callers catch AuthError.stepUp, step up from a fresh click, and retry.
+
+export interface AdminUserSummary {
+  id: string
+  display_name: string | null
+  email: string | null
+  identities: { provider: Provider; label: string }[]
+  roles: string[]
+  created_at: string
+  last_seen_at: string | null
+}
+
+export interface LedgerEntry {
+  id: string
+  type: string
+  delta: number
+  balance_after: number
+  kind: 'grant' | 'spend' | 'refund'
+  note: string | null
+  /** "admin:<uuid>" or "tool:<slug>". */
+  actor: string
+  ref: string | null
+  created_at: string
+}
+
+export interface AdminUser {
+  id: string
+  display_name: string | null
+  email: string | null
+  created_at: string
+  last_seen_at: string | null
+  identities: { provider: Provider; label: string; linked_at: string }[]
+  roles: { held: string[]; web_grantable: string[] }
+  passkeys: {
+    nickname: string
+    tier: Exclude<Tier, 'FEDERATED'>
+    synced: boolean
+    created_at: string
+    last_used_at: string | null
+  }[]
+  credits: { balances: Record<string, number>; recent: LedgerEntry[] }
+}
+
+export const searchUsers = (q: string, cursor: string | null = null) =>
+  request<{ users: AdminUserSummary[]; next: string | null }>(
+    `/auth/admin/users?${new URLSearchParams({ q, limit: '25', ...(cursor ? { cursor } : {}) })}`,
+  )
+
+export const getAdminUser = (id: string) => request<AdminUser>(`/auth/admin/users/${encodeURIComponent(id)}`)
+
+/** Grant or revoke a web_grantable role (never `admin`, which is granted only from the command line). */
+export const setUserRole = (id: string, role: string, held: boolean) =>
+  request<void>(`/auth/admin/users/${encodeURIComponent(id)}/roles/${encodeURIComponent(role)}`, {
+    method: held ? 'PUT' : 'DELETE',
+  })
+
+/**
+ * Add (positive) or remove (negative) credits; the balance never goes below zero (409 insufficient_credits). `ref`
+ * makes it idempotent: the same ref again returns the first result and changes nothing, so a retry after a lost
+ * response can't apply it twice.
+ */
+export const adjustCredits = (id: string, type: string, amount: number, note: string, ref: string) =>
+  request<{ type: string; balance: number; entry: LedgerEntry }>(
+    `/auth/admin/users/${encodeURIComponent(id)}/credits`,
+    { json: { type, amount, note, ref } },
+  )

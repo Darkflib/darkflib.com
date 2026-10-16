@@ -264,6 +264,14 @@ export function DebugPage() {
                 <dd>{session.has_passkey ? 'yes' : 'no'}</dd>
                 <dt>Roles held</dt>
                 <dd>{session.roles ? session.roles.held.join(', ') || 'none' : '— (service without roles)'}</dd>
+                <dt>Credits</dt>
+                <dd>
+                  {session.credits
+                    ? Object.entries(session.credits.balances)
+                        .map(([type, balance]) => `${type}: ${balance}`)
+                        .join(', ') || 'no credit types defined'
+                    : '— (service without credits)'}
+                </dd>
                 <dt>Roles active</dt>
                 <dd>
                   {session.roles ? session.roles.active.join(', ') || 'none (step up to activate a held role)' : '—'}
