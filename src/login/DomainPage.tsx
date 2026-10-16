@@ -869,7 +869,13 @@ function CtLog({ data }: { data: Record<string, unknown> }) {
     <section className="panel debug-panel debug-wide" aria-labelledby="domain-ct-title">
       <h3 id="domain-ct-title" className="domain-h3">
         {'// CERT TRANSPARENCY · LOGS'}
-        <span className="debug-note">{history ? ' crt.sh' : ' Cert Spotter (current only)'}</span>
+        <span className="debug-note">
+          {history
+            ? ' crt.sh'
+            : data.subdomains === false
+              ? ' Cert Spotter (current, this name only)'
+              : ' Cert Spotter (current only)'}
+        </span>
       </h3>
       <p className="debug-note">
         Every certificate a public CA has logged for this name and its subdomains. The names are found passively, from
