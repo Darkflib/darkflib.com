@@ -32,6 +32,12 @@ export const TOOLS: Tool[] = [
     blurb:
       'One URL in a headless browser: screenshot, metadata, links, images, timings, headers, and every request it makes. One page credit a run.',
   },
+  {
+    slug: 'a11y',
+    name: 'ACCESSIBILITY',
+    blurb:
+      'WCAG contrast checker and palette grid, free in your browser; page audits with axe-core for one page credit.',
+  },
 ]
 
 /** The tool's display name, or its slug when this site has no entry for it. */

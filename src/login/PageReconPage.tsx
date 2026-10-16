@@ -303,6 +303,11 @@ export function PageReconPage() {
                     Run again (1 credit)
                   </button>
                   <CopyButton label="Copy run JSON" text={() => JSON.stringify(run, null, 2)} />
+                  {result.accessibility && (
+                    <a className="debug-link" href={`/tools/a11y/?run=${encodeURIComponent(run.id)}`}>
+                      Accessibility detail →
+                    </a>
+                  )}
                 </span>
               )}
             </div>

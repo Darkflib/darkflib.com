@@ -284,6 +284,14 @@ function accessPages(): Page[] {
       description: 'One URL in a headless browser: what it loads, and what stands out.',
       noscript: indent(['<p>Page recon needs JavaScript.</p>', '<p><a href="/tools/">All tools</a></p>']),
     },
+    {
+      ...access,
+      path: '/tools/a11y/',
+      key: 'a11y',
+      title: 'ACCESSIBILITY — TOOLS — DARKFLIB',
+      description: 'WCAG contrast checks, colour-vision previews, and axe-core page audits.',
+      noscript: indent(['<p>The accessibility tool needs JavaScript.</p>', '<p><a href="/tools/">All tools</a></p>']),
+    },
   ]
 }
 
