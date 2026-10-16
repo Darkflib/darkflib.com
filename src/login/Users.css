@@ -1,0 +1,146 @@
+/* /tools/users/: the user-admin tool. Builds on the session debugger's panels (Debug.css). */
+
+.users-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr);
+  gap: 10px;
+  padding: 0 1.25% 20px;
+  position: relative;
+  z-index: 2;
+}
+
+.users-stepup {
+  margin: 0 1.25% 10px;
+  position: relative;
+  z-index: 2;
+}
+
+.users-message {
+  margin: 0 1.25% 10px;
+  position: relative;
+  z-index: 2;
+}
+
+.users-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.users-search {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.users-input {
+  min-width: 0;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid #396482;
+  background: rgba(3, 12, 29, 0.75);
+  color: #effaff;
+  font: inherit;
+  font-size: 12px;
+}
+
+.users-search .users-input {
+  flex: 1;
+}
+
+.users-input:focus {
+  outline: none;
+  border-color: #61eeff;
+}
+
+.users-results {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.users-result {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #30506d;
+  background: #0a1b30bd;
+  color: #c6d6ec;
+  text-align: left;
+  font-size: 11px;
+}
+
+.users-result strong {
+  color: #eaf3ff;
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.users-result:hover,
+.users-result.selected {
+  border-color: #61eeff;
+  background: #102940;
+}
+
+.users-more {
+  border: 0;
+  background: none;
+  padding: 0;
+}
+
+.users-h3 {
+  margin: 18px 0 8px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: #b8e9ff;
+}
+
+.users-roles {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.users-fixed {
+  color: #8faecb;
+}
+
+.users-balance {
+  display: contents;
+}
+
+.users-credits {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+  margin: 0 0 16px;
+  font-size: 11px;
+  color: #8faecb;
+}
+
+.users-credits label {
+  display: grid;
+  gap: 4px;
+}
+
+.users-note {
+  flex: 1;
+  min-width: 160px;
+}
+
+@media (max-width: 800px) {
+  .users-grid {
+    grid-template-columns: 1fr;
+  }
+}

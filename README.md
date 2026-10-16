@@ -43,7 +43,7 @@ docker rm -f darkflib-smoke
 | `src/components/SiteShell.tsx`  | Chrome every page shares: top bar, footer, contact dialog                   |
 | `src/styles/`                   | Reset, self-hosted font faces, and global tokens and primitives             |
 | `src/content.ts`                | Projects, featured posts and tools (linking to mikepreston.org), tech stack  |
-| `src/login/`                    | The access pages and the tools behind them: `/login/`, `/login/enrol/`, `/tools/`, and the session debugger at `/tools/debug/`. See [Private tools](#private-tools). Kept out of search and the sitemap |
+| `src/login/`                    | The access pages and the tools behind them: `/login/`, `/login/enrol/`, `/login/step-up/`, `/login/denied/`, `/tools/`, the session debugger at `/tools/debug/`, and user admin at `/tools/users/`. See [Private tools](#private-tools). Kept out of search and the sitemap |
 | `src/kev/`                      | Reading and summarising the KEV snapshot the site serves at `/feeds/kev.json` |
 | `kev-snapshot/`                 | The Go program that writes that snapshot on the server, hourly              |
 | `src/sw/`                       | Service worker entry and the page↔worker message protocol                   |
@@ -149,31 +149,61 @@ browser ── /login/, /login/enrol/      static pages here (src/login/), talki
   The page redeems the token once and drops it from the address bar, then the visitor signs in with GitHub or Google
   and is sent to `/login/enrol/` to add a passkey. Returning visitors can use either provider or the passkey.
   `?next=` is resolved as a URL and must stay on this origin; anything else goes to `/tools/`.
-- **The gate.** Every `/tools/*` request asks `/auth/verify` first. Without a session, a page load gets a 303 to
-  `/login/?next=<path>` and anything else gets the service's 401. With one, the request goes on carrying
-  `X-Auth-User`, `X-Auth-Level`, and `X-Auth-Federated-At` / `-Standard-At` / `-High-At` (Unix seconds, absent where
-  that level is unproven). Client-sent `X-Auth-*` headers are stripped first, inside a `route` block, because Caddy's
-  default order runs `forward_auth` before `request_header`. Gated responses, including the 303 and the 401, are
-  `private, no-store`.
-- **Levels.** `FEDERATED` is GitHub or Google, `STANDARD` any passkey, `HIGH` a hardware key that passed FIDO MDS3
-  attestation. The gate lets in any session; a tool decides what each action needs. Opening a tool needs nothing
-  more, while anything that spends credits should ask for `STANDARD` within a few minutes.
+- **The gate.** Every `/tools/*` request asks `/auth/verify` first, which checks `/tools/<slug>/` against that tool's
+  roles (below) and `/tools/` itself against the session alone. For page loads Caddy turns the refusals into pages:
+  no session → `/login/?next=<path>`; a role held but not proven recently enough (the step-up 401, told apart by its
+  `WWW-Authenticate: Passkey` header) → `/login/step-up/?next=<path>`, which asks for that proof and goes on to the
+  tool; no role for the tool → `/login/denied/`. Anything else gets the response as is. Allowed requests go on
+  carrying `X-Auth-User`, `X-Auth-Level`, `X-Auth-Federated-At` / `-Standard-At` / `-High-At` (Unix seconds, absent
+  where that level doesn't count now), `X-Auth-Roles` (active roles) and `X-Auth-Tool`. Client-sent `X-Auth-*`
+  headers are stripped first, inside a `route` block, because Caddy's default order runs `forward_auth` before
+  `request_header`. Gated responses, refusals included, are `private, no-store`.
+- **Levels and roles.** `FEDERATED` is GitHub or Google, `STANDARD` any passkey, `HIGH` a hardware key that passed
+  FIDO MDS3 attestation. A **role** (`admin`, `user`) is granted to a user and is **active** while the session has
+  proven the role's level within its `max_age`. Each tool lists the roles that open it (any of them); a tool that
+  isn't listed is refused. Both live in wwff-auth's access file, `quadlet/apps/wwff-auth/files/access.toml` in
+  wwff-tech/gitops, so raising `admin` to `HIGH` once the YubiKey is enrolled is a one-line PR there. `/tools/` lists
+  only the tools the user holds a role for (`GET /auth/tools`), marking those that need a step-up first.
+- **Keys.** `/login/enrol/` adds an ordinary passkey or, with ADD A HARDWARE KEY, asks for `HIGH`; the service grants
+  `HIGH` only to a non-syncing, attested security key, and only after a first-day cooldown. The result says which
+  tier the key got and why.
 - **Second provider.** The session debugger's Linked accounts panel links GitHub to Google (or back) and unlinks them,
   running the passkey step-up the service requires first. By hand: step up, then within five minutes open
   `/auth/<provider>/start?link=1&next=/tools/debug/`. Accounts are never matched by email.
 
 ### Adding a tool
 
+- **Who may open it**: add `[tools.<slug>]` with its `roles` (and, if it spends credits, its `credits` types) to the
+  access file in gitops. Until then the gate refuses it to everyone.
 - **A page with no backend**: add it to `accessPages()` in `scripts/pages.ts` (unlisted, so `noindex` and out of the
   sitemap), a key in `src/login-main.tsx`, an input in `vite.config.ts`, and an entry in `TOOLS` in
-  `src/login/ToolsPage.tsx`. `/tools/*` is gated as a whole, so nothing in the Caddyfile changes.
+  `src/login/tools.ts` (its name and blurb on `/tools/`). `/tools/*` is gated as a whole, so nothing in the Caddyfile
+  changes.
 - **A tool with a backend**: route its path inside the `/tools/*` `route` block in `deploy/Caddyfile`, after
   `forward_auth` and before `file_server` (`reverse_proxy` to a container on darkflib.network), and run that container
   from gitops so nothing but Caddy can reach it: the backend trusts the `X-Auth-*` headers only because of that.
-  Check them per action with wwff-auth's `contrib/python/wwff_auth_headers.py` (copied in, not installed), which
-  answers with the same step-up 401 the service sends. The page calls the backend through wwff-auth's
-  `contrib/ts` `fetchWithStepUp`, which runs the passkey prompt on that 401 and retries once.
-- Add the route's checks to `deploy/scripts/smoke.sh` alongside the existing gate checks.
+  Check them per action with wwff-auth's `contrib/python` helpers (copied in, not installed): `require` for a level
+  and age, `require_role` for a role; both answer as the service would. The page calls the backend through wwff-auth's
+  `contrib/ts` `fetchWithStepUp`, which runs the passkey prompt on a step-up 401 and retries once. A backend that
+  spends credits calls wwff-auth's `/internal/credits/spend` (and `/refund` when a run fails upstream) directly, with
+  its own tool token; see wwff-auth's `docs/operations.md`.
+- Add the route's checks to `deploy/scripts/smoke.sh` alongside the existing gate checks, and teach the stand-in
+  (`deploy/scripts/auth-stub.Caddyfile`) any new answers it needs.
+
+### User admin
+
+`/tools/users/`, gated to `admin`. Search users (email, name, GitHub or Google login, or id), open one to see their
+accounts, passkeys, roles and credits, toggle the roles the access file marks `web_grantable` (`admin` is never one:
+it's granted only with `wwff-auth roles grant` on the server), and add or remove credits of each type with a note.
+The page calls wwff-auth's `/auth/admin/*` API, which checks `admin` itself on every call; once `admin` lapses
+mid-session, the page asks for the step-up on the next click and repeats the action. Every change is audited by the
+service.
+
+### Credits
+
+Credit types (e.g. `domain`) are defined in the access file. Each user has a balance per type, never negative, and an
+append-only history; admins adjust them in `/tools/users/`, tools spend them through wwff-auth's internal API, and
+users see their own balances on `/tools/` and in the session debugger.
 
 ### The session debugger
 

@@ -82,7 +82,19 @@ test('the access pages run under production headers without CSP violations', asy
     'href',
     '/auth/github/start?next=%2Ftools%2Freauth%2F',
   )
+  // User admin: search, open a user, grantable roles as toggles and admin read-only, and a credit adjustment.
+  await page.goto('/tools/users/')
+  await page.getByRole('button', { name: /Alice Example/ }).click()
+  await expect(page).toHaveURL(/\/tools\/users\/\?user=u2$/)
+  await expect(page.getByRole('checkbox', { name: 'user' })).toBeChecked()
+  await expect(page.getByRole('checkbox', { name: 'admin (command line only)' })).toBeDisabled()
+  await page.getByRole('spinbutton', { name: 'Amount' }).fill('5')
+  await page.getByRole('textbox', { name: 'Note' }).fill('smoke')
+  await page.getByRole('button', { name: 'APPLY' }).click()
+  await expect(page.getByText('domain: +5, balance now 8.')).toBeVisible()
+
   await page.goto('/tools/')
+  await expect(page.getByText('Credits: domain 3')).toBeVisible()
 
   // The session debugger: the forwarded headers and the stand-in's passkey render, and a FEDERATED-only session
   // would be asked to step up for anything that needs a passkey.

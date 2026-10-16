@@ -15,6 +15,11 @@ export const TOOLS: Tool[] = [
     name: 'SESSION DEBUGGER',
     blurb: 'Your session, what a tool receives from the gate, your passkeys, and step-ups.',
   },
+  {
+    slug: 'users',
+    name: 'USER ADMIN',
+    blurb: 'Find users, set their roles, and add or remove credits.',
+  },
 ]
 
 /** The tool's display name, or its slug when this site has no entry for it. */

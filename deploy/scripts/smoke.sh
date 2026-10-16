@@ -207,6 +207,12 @@ check "the 403 is never stored" is "$(header cache-control)" "private, no-store"
 fetch darkflib.com /tools/locked/ --header 'Sec-Fetch-Mode: navigate'
 check "no session still goes to sign in, whatever the tool" is "$(header location)" /login/?next=/tools/locked/
 
+fetch darkflib.com /tools/users/ --cookie smoke=1
+check "the user-admin tool is served behind the gate" is "$status" 200
+fetch darkflib.com /auth/admin/users --cookie smoke=1
+check "the admin API is reached through /auth/" is "$status" 200
+check "the admin API is never stored" is "$(header cache-control)" no-store
+
 echo "session debugger (/tools/debug/)"
 fetch darkflib.com /tools/debug/ --cookie smoke=1
 check "the debugger is behind the gate and served" is "$status" 200

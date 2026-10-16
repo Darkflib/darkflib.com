@@ -59,7 +59,7 @@
 		header Cache-Control "public, max-age=600"
 		handle @signed_in {
 			header Content-Type application/json
-			respond `{"user": {"id": "smoke-user", "display_name": "Smoke", "email": null}, "expires_at": "2099-01-01T00:00:00Z", "login_method": "github", "has_passkey": false, "identities": [{"id": "i1", "provider": "github", "label": "smoke"}], "assurance": {"FEDERATED": {"auth_at": "2026-01-01T00:00:00Z", "age": 1}, "STANDARD": null, "HIGH": null}, "roles": {"held": ["user", "admin"], "active": ["user"]}}` 200
+			respond `{"user": {"id": "smoke-user", "display_name": "Smoke", "email": null}, "expires_at": "2099-01-01T00:00:00Z", "login_method": "github", "has_passkey": false, "identities": [{"id": "i1", "provider": "github", "label": "smoke"}], "assurance": {"FEDERATED": {"auth_at": "2026-01-01T00:00:00Z", "age": 1}, "STANDARD": null, "HIGH": null}, "roles": {"held": ["user", "admin"], "active": ["user"]}, "credits": {"balances": {"domain": 3}}}` 200
 		}
 		respond 204
 	}
@@ -70,6 +70,39 @@
 			respond `[{"id": "c1", "nickname": "Smoke key", "tier": "STANDARD", "tier_reason": "not_requested", "created_at": "2026-01-01T00:00:00Z", "last_used_at": null, "synced": true, "in_cooldown": false, "cooldown_until": null, "flagged": false}]` 200
 		}
 		respond `{"reason": "no_session"}` 401
+	}
+
+	# The admin API (wwff-auth docs/contract.md, Administration), stateless: one user, u2, whose details never change.
+	handle /auth/admin/users {
+		handle @signed_in {
+			header Content-Type application/json
+			respond `{"users": [{"id": "u2", "display_name": "Alice Example", "email": "alice@example.com", "identities": [{"provider": "github", "label": "alice"}], "roles": ["user"], "created_at": "2026-01-01T00:00:00Z", "last_seen_at": null}], "next": null}` 200
+		}
+		respond `{"reason": "no_session"}` 401
+	}
+	@admin_role_admin path /auth/admin/users/u2/roles/admin
+	handle @admin_role_admin {
+		header Content-Type application/problem+json
+		respond `{"reason": "role_not_web_grantable"}` 403
+	}
+	@admin_role {
+		path /auth/admin/users/u2/roles/*
+		method PUT DELETE
+	}
+	handle @admin_role {
+		respond 204
+	}
+	@admin_credits {
+		path /auth/admin/users/u2/credits
+		method POST
+	}
+	handle @admin_credits {
+		header Content-Type application/json
+		respond `{"type": "domain", "balance": 8, "entry": {"id": "l2", "type": "domain", "delta": 5, "balance_after": 8, "kind": "grant", "note": "smoke", "actor": "admin:smoke-user", "ref": null, "created_at": "2026-01-02T00:00:00Z"}}` 200
+	}
+	handle /auth/admin/users/u2 {
+		header Content-Type application/json
+		respond `{"id": "u2", "display_name": "Alice Example", "email": "alice@example.com", "created_at": "2026-01-01T00:00:00Z", "last_seen_at": null, "identities": [{"provider": "github", "label": "alice", "linked_at": "2026-01-01T00:00:00Z"}], "roles": {"held": ["admin", "user"], "web_grantable": ["user"]}, "passkeys": [], "credits": {"balances": {"domain": 3}, "recent": [{"id": "l1", "type": "domain", "delta": 3, "balance_after": 3, "kind": "grant", "note": "welcome", "actor": "admin:smoke-user", "ref": null, "created_at": "2026-01-01T00:00:00Z"}]}}` 200
 	}
 
 	handle {

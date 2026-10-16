@@ -26,6 +26,7 @@ export default defineConfig({
         'login-denied': 'login/denied/index.html',
         tools: 'tools/index.html',
         'tools-debug': 'tools/debug/index.html',
+        'tools-users': 'tools/users/index.html',
       },
     },
   },
