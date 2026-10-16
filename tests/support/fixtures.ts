@@ -29,6 +29,17 @@ export const test = base.extend<{ server: TestServer }, { workerServer: TestServ
   baseURL: async ({ workerServer }, use) => {
     await use(workerServer.url)
   },
+  // The site scrolls smoothly (`scroll-behavior: smooth` on :root), and WebKit animates Playwright's own scroll into
+  // view with it: Playwright measures an element's box, then clicks there while the page is still gliding, and the
+  // click lands beside the element. Every scroll is instant under test, as Playwright assumes, in every page.
+  context: async ({ context }, use) => {
+    await context.addInitScript(() => {
+      const instant = () => document.documentElement.style.setProperty('scroll-behavior', 'auto', 'important')
+      if (document.documentElement) instant()
+      else document.addEventListener('readystatechange', instant, { once: true })
+    })
+    await use(context)
+  },
 })
 
 export interface LogRow {
