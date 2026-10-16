@@ -989,20 +989,41 @@ export function summary(id: SectionId, r: PageResult, now = Date.now()): Row[] {
 }
 
 /** What page recon says of the contrast axe left for review and wwff-pagerecon measured another way. */
+/**
+ * How many measured elements fall below AA. The service keeps the worst 100 failures, AA first, so when it dropped
+ * some and the last one kept is still AA, the dropped ones may be AA too: the count is then a lower bound ("100+").
+ */
+export function measuredBelowAA(review: ContrastReview): { count: number; atLeast: boolean; shown: string } {
+  const count = review.failures.filter((failure) => failure.level === 'AA').length
+  const atLeast = review.failures_total > review.failures.length && review.failures.at(-1)?.level === 'AA'
+  return { count, atLeast, shown: `${count}${atLeast ? '+' : ''}` }
+}
+
 function measuredRows(review: ContrastReview | null | undefined): Row[] {
   if (!review) return []
-  const aa = review.failures.filter((failure) => failure.level === 'AA').length
+  const aa = measuredBelowAA(review)
   const measured = review.by_pseudo + review.by_pixels
+  const missed = Object.entries(review.unsettled)
+    .filter(([reason]) => reason.startsWith('not measured'))
+    .reduce((sum, [, n]) => sum + n, 0)
   return [
     {
       label: 'Contrast (measured)',
-      value: `${measured} of ${review.elements} elements axe couldn't judge${aa ? `, ${aa} below AA` : ''}`,
-      ...(aa
+      value: `${measured} of ${review.elements} elements axe couldn't judge${aa.count ? `, ${aa.shown} below AA` : ''}`,
+      ...(aa.count
         ? {
             tone: 'warn' as const,
-            note: `Text contrast measured from the rendering fails WCAG AA (1.4.3) on ${aa} element${aa === 1 ? '' : 's'}`,
+            note: `Text contrast measured from the rendering fails WCAG AA (1.4.3) on ${aa.shown} element${aa.count === 1 && !aa.atLeast ? '' : 's'}`,
           }
-        : { tone: 'good' as const }),
+        : review.error || missed
+          ? {
+              // A pass that failed, or elements it never reached, isn't a clean result.
+              tone: 'warn' as const,
+              note: review.error
+                ? `Part of the contrast measurement failed (${review.error}); what it didn't settle is unchecked`
+                : `${missed} element${missed === 1 ? '' : 's'} axe couldn't judge weren't measured either`,
+            }
+          : { tone: 'good' as const }),
     },
   ]
 }

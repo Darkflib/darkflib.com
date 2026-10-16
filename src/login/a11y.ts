@@ -1,9 +1,9 @@
 // What /tools/a11y/ computes: colours parsed, WCAG 2 contrast and what each level asks of it, the nearest colour that
 // passes, how a pair looks with each kind of colour-vision deficiency, APCA's lightness contrast, and the reading of a
-// page recon run's accessibility audit (wwff-pagerecon docs/contract.md, `accessibility`). No DOM and no runtime
-// imports, so the unit tests run it headless.
+// page recon run's accessibility audit (wwff-pagerecon docs/contract.md, `accessibility`). No DOM, so the unit tests
+// run it headless.
 
-import type { Accessibility, AxeRule, ContrastPair } from './pageView'
+import { type Accessibility, type AxeRule, type ContrastPair, measuredBelowAA } from './pageView.ts'
 
 /** sRGB, 0-255 per channel, and alpha 0-1. */
 export interface Rgb {
@@ -316,6 +316,8 @@ export interface AuditSummary {
   /** Contrast elements axe couldn't judge that were measured another way, and how many of them fail AA. */
   measured: number
   measuredFailures: number
+  /** measuredFailures is a lower bound: the service kept only the worst failures, and dropped ones may be AA. */
+  measuredFailuresAtLeast: boolean
   elements: number
   worst?: string
   failingLevels: string[]
@@ -328,7 +330,8 @@ export function auditSummary(audit: Accessibility): AuditSummary {
   return {
     violations: audit.counts.violations,
     measured: (audit.contrast_review?.by_pseudo ?? 0) + (audit.contrast_review?.by_pixels ?? 0),
-    measuredFailures: (audit.contrast_review?.failures ?? []).filter((failure) => failure.level === 'AA').length,
+    measuredFailures: audit.contrast_review ? measuredBelowAA(audit.contrast_review).count : 0,
+    measuredFailuresAtLeast: audit.contrast_review ? measuredBelowAA(audit.contrast_review).atLeast : false,
     elements: audit.counts.nodes,
     worst: (['critical', 'serious', 'moderate', 'minor'] as const).find(
       (impact) => (audit.counts.by_impact[impact] ?? 0) > 0,

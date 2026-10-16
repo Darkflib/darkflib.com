@@ -23,7 +23,13 @@ import {
   suggest,
   toHex,
 } from '../../src/login/a11y.ts'
-import { type Accessibility, type PageResult, summary } from '../../src/login/pageView.ts'
+import {
+  type Accessibility,
+  type ContrastReview,
+  measuredBelowAA,
+  type PageResult,
+  summary,
+} from '../../src/login/pageView.ts'
 
 const c = (text: string) => {
   const colour = parseColour(text)
@@ -229,6 +235,7 @@ describe('the audit', () => {
       violations: 2,
       measured: 0,
       measuredFailures: 0,
+      measuredFailuresAtLeast: false,
       elements: 3,
       worst: 'critical',
       failingLevels: ['A', 'AA'],
@@ -298,6 +305,40 @@ describe('what axe left for review', () => {
       ],
       [162, 1],
     )
+  })
+
+  it('treats a truncated AA count as a lower bound', () => {
+    const kept = Array.from({ length: 3 }, (_, i) => ({ ...review.failures[0], target: `#t${i}` }))
+    assert.deepEqual(measuredBelowAA({ ...review, failures: kept, failures_total: 7 }), {
+      count: 3,
+      atLeast: true,
+      shown: '3+',
+    })
+    // The last one kept is AAA, so every AA failure was kept.
+    const withAaa = [...kept, { ...review.failures[0], level: 'AAA' as const }]
+    assert.equal(measuredBelowAA({ ...review, failures: withAaa, failures_total: 9 }).shown, '3')
+    const result = {
+      ok: true,
+      accessibility: { ...clean, contrast_review: { ...review, failures: kept, failures_total: 7 } },
+    }
+    const row = summary('accessibility', result as unknown as PageResult).find(
+      (entry) => entry.label === 'Contrast (measured)',
+    )
+    assert.match(row?.value as string, /3\+ below AA/)
+  })
+
+  it('never reads a failed or partial measurement as clean', () => {
+    const failed = { ...review, failures: [], failures_total: 0, error: 'no result within 10000 ms' }
+    const row = (r: ContrastReview) =>
+      summary('accessibility', {
+        ok: true,
+        accessibility: { ...clean, contrast_review: r },
+      } as unknown as PageResult).find((entry) => entry.label === 'Contrast (measured)')
+    assert.equal(row(failed)?.tone, 'warn')
+    assert.match(row(failed)?.note ?? '', /failed/)
+    const partial = { ...review, failures: [], failures_total: 0 }
+    assert.equal(row(partial)?.tone, 'warn') // review.unsettled has a "not measured: gone"
+    assert.equal(row({ ...partial, unsettled: {} })?.tone, 'good')
   })
 
   it("says axe's reasons in words", () => {

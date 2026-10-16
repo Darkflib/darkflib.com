@@ -711,8 +711,9 @@ function Report({ audit, onCheck }: { audit: Accessibility; onCheck: (pair: { fg
         {audit.contrast_review && (
           <div>
             <dt>Contrast measured</dt>
-            <dd className={sum.measuredFailures ? 'page-tone-warn' : 'page-tone-good'}>
-              {sum.measured} · {sum.measuredFailures} below AA
+            <dd className={sum.measuredFailures || audit.contrast_review.error ? 'page-tone-warn' : 'page-tone-good'}>
+              {sum.measured} · {sum.measuredFailures}
+              {sum.measuredFailuresAtLeast && '+'} below AA
             </dd>
           </div>
         )}
