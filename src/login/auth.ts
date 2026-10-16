@@ -293,9 +293,13 @@ export const setUserRole = (id: string, role: string, held: boolean) =>
     method: held ? 'PUT' : 'DELETE',
   })
 
-/** Add (positive) or remove (negative) credits; the balance never goes below zero (409 insufficient_credits). */
-export const adjustCredits = (id: string, type: string, amount: number, note: string) =>
+/**
+ * Add (positive) or remove (negative) credits; the balance never goes below zero (409 insufficient_credits). `ref`
+ * makes it idempotent: the same ref again returns the first result and changes nothing, so a retry after a lost
+ * response can't apply it twice.
+ */
+export const adjustCredits = (id: string, type: string, amount: number, note: string, ref: string) =>
   request<{ type: string; balance: number; entry: LedgerEntry }>(
     `/auth/admin/users/${encodeURIComponent(id)}/credits`,
-    { json: { type, amount, note } },
+    { json: { type, amount, note, ref } },
   )

@@ -147,10 +147,12 @@ export function UsersPage() {
     const note = String(form.get('note')).trim()
     const target = event.currentTarget
     const id = user.id
+    // One ref per submission, kept by the retry after a step-up: the service applies a ref once.
+    const ref = crypto.randomUUID()
     let balance = 0
     run(
       async () => {
-        balance = (await adjustCredits(id, type, amount, note)).balance
+        balance = (await adjustCredits(id, type, amount, note, ref)).balance
       },
       // Applied: clear the form at once, so a failed refresh can't invite applying it again.
       async () => {
