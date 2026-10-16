@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { compareRuns, jsonDiff, runLabel } from '../../src/login/reconCompare.ts'
+import { detailTables } from '../../src/login/reconDetail.ts'
 import {
   certificateDiagram,
   chainSvg,
@@ -305,5 +306,119 @@ describe('reportHtml', () => {
       exportName({ domain_a_label: 'xn--mller-kva.de', created_at: '2026-10-16T09:05:00Z' }, 'html'),
       'recon-xn--mller-kva.de-20261016-0905.html',
     )
+  })
+})
+
+// domaincheck v0.4's nameserver comparison and schema 2.2's TLS scan and assessments, trimmed to what the tables read.
+const nsProbe = (nameserver: string, ip: string, serial: number, mx: string[]) => ({
+  nameserver,
+  ip,
+  family: 4,
+  status: 'answered',
+  error: null,
+  rcode: 'NOERROR',
+  authoritative: true,
+  soa: { mname: 'ns1.example', rname: 'hostmaster.example', serial, refresh: 1, retry: 1, expire: 1, minimum: 1 },
+  answers: { MX: { rcode: 'NOERROR', authoritative: true, values: mx, error: null } },
+})
+const withNameservers = (second: number, mx: string[]) => ({
+  ...dns,
+  nameserver_comparison: {
+    zone: 'example.com',
+    servers: [
+      nsProbe('ns1.example', '192.0.2.1', 7, ['10 mx.example']),
+      nsProbe('ns2.example', '192.0.2.2', second, mx),
+    ],
+  },
+})
+const scanned = (rating: string) => ({
+  ...tls,
+  scan: {
+    complete: true,
+    protocols: [
+      {
+        version: 'TLSv1.2',
+        supported: true,
+        ciphers: [{ name: 'TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA', rating, issues: ['cbc'] }],
+      },
+    ],
+  },
+  assessment: {
+    vulnerabilities: [
+      { id: 'beast', name: 'BEAST', status: rating === 'weak' ? 'vulnerable' : 'not_vulnerable', severity: 'low' },
+    ],
+  },
+})
+const graded = (csp: string) => ({
+  ...headers,
+  assessment: {
+    checks: [{ id: 'csp', name: 'Content-Security-Policy', result: csp }],
+    findings: [{ severity: 'info', title: 'No Permissions-Policy' }],
+  },
+})
+
+describe('detail tables', () => {
+  it('turns the nameserver matrix, cipher suites, weaknesses and header checks into rows', () => {
+    const ns = detailTables('dns', withNameservers(6, []))[0]
+    assert.equal(ns.title, 'Nameservers compared')
+    const serial = ns.rows.find((row) => row.label === 'Serial')
+    assert.equal(serial?.tone, 'warn')
+    assert.match(String(serial?.value), /192\.0\.2\.\d says \d/)
+    assert.equal(
+      detailTables('dns', withNameservers(7, ['10 mx.example']))[0].rows.find((row) => row.label === 'MX')?.value,
+      'all agree: 10 mx.example',
+    )
+    assert.deepEqual(
+      detailTables('tls', scanned('weak')).map((table) => [
+        table.title,
+        table.rows.map((row) => `${row.label} = ${row.value}`),
+      ]),
+      [
+        ['Cipher suites', ['TLSv1.2 ECDHE_RSA_WITH_AES_128_CBC_SHA = weak · cbc']],
+        ['Weaknesses', ['BEAST = vulnerable · low']],
+      ],
+    )
+    assert.deepEqual(
+      detailTables('headers', graded('fail')).map((table) => table.rows.map((row) => `${row.label} = ${row.value}`)),
+      [['Content-Security-Policy = fail'], ['No Permissions-Policy = noted']],
+    )
+    assert.deepEqual(detailTables('rdap', {}), [])
+    assert.deepEqual(detailTables('tls', tls), [])
+  })
+
+  it('are compared like the summaries', () => {
+    const a = run('a', '2026-10-01T00:00:00Z', {
+      dns: ok('dns', withNameservers(7, ['10 mx.example'])),
+      tls: ok('tls', scanned('acceptable')),
+      headers: ok('headers', graded('fail')),
+    })
+    const b = run('b', '2026-10-02T00:00:00Z', {
+      dns: ok('dns', withNameservers(6, ['10 mx.example'])),
+      tls: ok('tls', scanned('weak')),
+      headers: ok('headers', graded('pass')),
+    })
+    const diff = compareRuns(a, b, NOW)
+    const changed = diff.checks.flatMap((check) =>
+      check.tables.flatMap((table) =>
+        table.rows.filter((row) => row.changed).map((row) => `${table.title}: ${row.label}`),
+      ),
+    )
+    assert.deepEqual(changed, [
+      'Nameservers compared: Serial',
+      'Cipher suites: TLSv1.2 ECDHE_RSA_WITH_AES_128_CBC_SHA',
+      'Weaknesses: BEAST',
+      'Header checks: Content-Security-Policy',
+    ])
+    assert.ok(diff.changedRows >= changed.length)
+  })
+
+  it('are in the report', () => {
+    const html = reportHtml(
+      run('a', '2026-10-01T00:00:00Z', { tls: ok('tls', scanned('weak')), headers: ok('headers', graded('fail')) }),
+      new Date(NOW),
+    )
+    for (const title of ['Cipher suites', 'Weaknesses', 'Header checks', 'Lesser findings'])
+      assert.match(html, new RegExp(`<h3>${title}</h3><table>`))
+    assert.match(html, /ECDHE_RSA_WITH_AES_128_CBC_SHA<\/th><td class="tone-warn">weak · cbc/)
   })
 })

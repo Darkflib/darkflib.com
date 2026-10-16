@@ -14,7 +14,19 @@ import {
 } from './recon'
 import { compareRuns, jsonDiff, runLabel } from './reconCompare'
 import { exportName, reportHtml } from './reconReport'
-import { findings, normaliseDomain, show, summary, type Tone, visibleRows } from './reconView'
+import {
+  cipherRows,
+  findings,
+  headerChecks,
+  minorFindings,
+  nameserverMatrix,
+  normaliseDomain,
+  show,
+  summary,
+  type Tone,
+  visibleRows,
+  vulnerabilities,
+} from './reconView'
 import './Debug.css'
 import './Users.css'
 import './Domain.css'
@@ -422,6 +434,7 @@ export function DomainPage() {
               {run.checks.map((check) => (
                 <Result key={check} check={check} result={run.results?.[check]} />
               ))}
+              {run.results?.dns?.ok && run.results.dns.data && <Nameservers data={run.results.dns.data} />}
             </div>
           </>
         )}
@@ -595,9 +608,20 @@ function Comparison({ before, after, onClose }: { before: Run; after: Run; onClo
             </tr>
           </thead>
           {diff.checks.map((check) => {
-            const rows = changedOnly ? check.rows.filter((row) => row.changed) : check.rows
+            const pick = (list: typeof check.rows) => (changedOnly ? list.filter((row) => row.changed) : list)
+            const rows = pick(check.rows)
+            const tables = check.tables
+              .map((table) => ({ title: table.title, rows: pick(table.rows) }))
+              .filter((table) => table.rows.length > 0)
             const outcomeChanged = check.before !== check.after
-            if (changedOnly && rows.length === 0 && !outcomeChanged) return null
+            if (changedOnly && rows.length === 0 && tables.length === 0 && !outcomeChanged) return null
+            const line = (row: (typeof rows)[number], key: string) => (
+              <tr key={key} className={row.changed ? 'domain-diff-changed' : undefined}>
+                <th scope="row">{row.label}</th>
+                <td className={tone(row.beforeTone)}>{show(row.before)}</td>
+                <td className={tone(row.afterTone)}>{show(row.after)}</td>
+              </tr>
+            )
             return (
               <tbody key={check.check}>
                 <tr className={outcomeChanged ? 'domain-diff-changed' : undefined}>
@@ -607,13 +631,15 @@ function Comparison({ before, after, onClose }: { before: Run; after: Run; onClo
                   <td>{OUTCOME(check.before)}</td>
                   <td>{OUTCOME(check.after)}</td>
                 </tr>
-                {rows.map((row) => (
-                  <tr key={row.label} className={row.changed ? 'domain-diff-changed' : undefined}>
-                    <th scope="row">{row.label}</th>
-                    <td className={tone(row.beforeTone)}>{show(row.before)}</td>
-                    <td className={tone(row.afterTone)}>{show(row.after)}</td>
-                  </tr>
-                ))}
+                {rows.map((row) => line(row, row.label))}
+                {tables.flatMap((table) => [
+                  <tr key={`${table.title}:`}>
+                    <th scope="row" colSpan={3} className="domain-compare-table-title">
+                      {table.title}
+                    </th>
+                  </tr>,
+                  ...table.rows.map((row) => line(row, `${table.title}:${row.label}`)),
+                ])}
               </tbody>
             )
           })}
@@ -701,6 +727,7 @@ function Result({ check, result }: { check: Check; result: CollectionResult | un
           {result.error?.retryable && ' (a temporary failure on the other side)'}
         </p>
       )}
+      {result?.ok && result.data && <Detail check={check} data={result.data} />}
       {result && (
         <div className="domain-raw-row">
           <details className="domain-raw">
@@ -712,4 +739,192 @@ function Result({ check, result }: { check: Check; result: CollectionResult | un
       )}
     </section>
   )
+}
+
+/** Every authoritative nameserver address asked the same questions (domaincheck v0.4), side by side. */
+function Nameservers({ data }: { data: Record<string, unknown> }) {
+  const matrix = nameserverMatrix(data)
+  if (!matrix) return null
+  const { columns, rows, unrouted } = matrix
+  const drifting = rows.filter((row) => row.differs).length
+  return (
+    <section className="panel debug-panel debug-wide" aria-labelledby="domain-ns-title">
+      <h3 id="domain-ns-title" className="domain-h3">
+        {'// DNS · NAMESERVERS'}
+        <span className={drifting ? 'domain-tone-warn' : 'domain-tone-good'}>
+          {drifting ? ` ${drifting} DIFFER${drifting === 1 ? 'S' : ''}` : ' AGREE'}
+        </span>
+      </h3>
+      <p className="debug-note">
+        Each address of each nameserver, from the parent's delegation and the zone's own NS set, asked directly. Marked
+        ≠ where one says something other than most do; only authoritative answers count.
+      </p>
+      <div className="domain-ns-scroll">
+        <table className="domain-ns">
+          <caption className="domain-sr">Answers per nameserver address</caption>
+          <thead>
+            <tr>
+              <th scope="col">Record</th>
+              {columns.map((column) => (
+                <th
+                  key={`${column.nameserver} ${column.ip}`}
+                  scope="col"
+                  className={column.tone === 'bad' ? 'domain-ns-uncounted' : undefined}
+                >
+                  <span className="domain-ns-name">{column.nameserver}</span>
+                  <span className="domain-ns-ip">{column.ip}</span>
+                  <span className={`domain-ns-status domain-tone-${column.tone}`}>{column.status}</span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.label} className={row.differs ? 'domain-ns-differs' : undefined}>
+                <th scope="row">
+                  {row.label}
+                  {row.differs && <span className="domain-tone-warn"> ≠</span>}
+                </th>
+                {row.cells.map((cell, index) => (
+                  <td
+                    key={`${columns[index].nameserver} ${columns[index].ip}`}
+                    className={
+                      cell?.differs
+                        ? 'domain-tone-warn domain-ns-odd'
+                        : cell?.counted === false
+                          ? 'domain-ns-uncounted-cell'
+                          : undefined
+                    }
+                    title={
+                      cell?.differs
+                        ? 'Differs from what most nameservers say'
+                        : cell?.counted === false
+                          ? "Not counted: this answer wasn't authoritative, or the query failed"
+                          : undefined
+                    }
+                  >
+                    {cell === null ? (
+                      <span className="domain-ns-none">—</span>
+                    ) : cell.values.length === 0 ? (
+                      <span className="domain-ns-none">(none)</span>
+                    ) : (
+                      cell.values.map((value) => (
+                        <div key={value} className={cell.extra.includes(value) ? 'domain-ns-extra' : undefined}>
+                          {cell.extra.includes(value) && <span className="domain-sr">extra: </span>}
+                          {value}
+                        </div>
+                      ))
+                    )}
+                    {cell?.missing.map((value) => (
+                      <div key={`missing:${value}`} className="domain-ns-missing">
+                        <span className="domain-sr">missing: </span>
+                        {value}
+                      </div>
+                    ))}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {unrouted.length > 0 && (
+        <p className="debug-note">
+          Not checked, as the checker has no IPv6 route: {unrouted.join(', ')}. That says nothing about those servers.
+        </p>
+      )}
+    </section>
+  )
+}
+
+/** The TLS scan's suites and weakness checks, or the HTTP checks, under a check's summary (domaincheck schema 2.2+). */
+function Detail({ check, data }: { check: Check; data: Record<string, unknown> }) {
+  const minor = minorFindings(data)
+  const notes = minor.length > 0 && (
+    <ul className="domain-minor">
+      {minor.map((text) => (
+        <li key={text}>{text}</li>
+      ))}
+    </ul>
+  )
+  if (check === 'tls') {
+    const suites = cipherRows(data)
+    const weaknesses = vulnerabilities(data)
+    if (!suites.length && !weaknesses.length) return notes || null
+    const flagged = suites.some((suite) => suite.tone === 'bad' || suite.tone === 'warn')
+    return (
+      <>
+        {suites.length > 0 && (
+          <details className="domain-detail" open={flagged}>
+            <summary>{`Cipher suites (${suites.length})`}</summary>
+            <table className="debug-table">
+              <thead>
+                <tr>
+                  <th scope="col">Version</th>
+                  <th scope="col">Suite</th>
+                  <th scope="col">Rating</th>
+                  <th scope="col">Group</th>
+                </tr>
+              </thead>
+              <tbody>
+                {suites.map((suite) => (
+                  <tr key={`${suite.version}:${suite.name}`}>
+                    <td>{suite.version}</td>
+                    <th scope="row" title={suite.issues.join(', ') || undefined}>
+                      {suite.name}
+                    </th>
+                    <td className={`domain-tone-${suite.tone}`}>{suite.rating}</td>
+                    <td>{suite.group ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </details>
+        )}
+        {weaknesses.length > 0 && (
+          <details className="domain-detail" open={weaknesses.some((entry) => entry.status === 'vulnerable')}>
+            <summary>Known weaknesses</summary>
+            <table className="debug-table">
+              <tbody>
+                {weaknesses.map((entry) => (
+                  <tr key={entry.id}>
+                    <th scope="row">{entry.name}</th>
+                    <td className={`domain-tone-${entry.tone}`}>{entry.status.replaceAll('_', ' ')}</td>
+                    <td>{entry.detail}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </details>
+        )}
+        {notes}
+      </>
+    )
+  }
+  if (check === 'headers') {
+    const checks = headerChecks(data)
+    if (!checks.length) return notes || null
+    return (
+      <>
+        <details className="domain-detail" open={checks.some((entry) => entry.tone === 'bad')}>
+          <summary>Best-practice checks</summary>
+          <table className="debug-table">
+            <tbody>
+              {checks.map((entry) => (
+                <tr key={entry.name}>
+                  <th scope="row" title={entry.value}>
+                    {entry.name}
+                  </th>
+                  <td className={`domain-tone-${entry.tone}`}>{entry.result}</td>
+                  <td>{entry.detail}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+        {notes}
+      </>
+    )
+  }
+  return null
 }

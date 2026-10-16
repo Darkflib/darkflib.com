@@ -27,6 +27,9 @@ export interface Row {
   note?: string
   /** Left out when there's nothing to show, rather than shown as "—". */
   optional?: boolean
+  /** domaincheck's own assessment (schema 2.2+) already reports this, so when one is present the row only colours
+   * the panel and the finding comes from the assessment, said once. */
+  assessed?: boolean
 }
 
 export interface Finding {
@@ -95,6 +98,248 @@ export function normaliseDomain(input: string): string {
   return text.replace(/\.$/, '').toLowerCase()
 }
 
+/** domaincheck's NameserverProbe (schema 2.1+, `nameserver_comparison.servers`): one nameserver address, asked directly. */
+interface Probe {
+  nameserver: string
+  ip: string
+  family: number
+  status: string
+  error: string | null
+  rcode: string | null
+  authoritative: boolean
+  soa: {
+    serial: number
+    mname: string
+    rname: string
+    refresh: number
+    retry: number
+    expire: number
+    minimum: number
+  } | null
+  answers: Record<string, { values?: string[]; rcode?: string | null; authoritative?: boolean; error?: string | null }>
+}
+
+const probes = (comparison: unknown) => list(at(comparison, 'servers')) as unknown as Probe[]
+
+/** Whether a probe's answers count toward what the nameservers agree on (domaincheck's own rule). */
+const counts = (probe: Probe) =>
+  probe.status === 'answered' && probe.authoritative && (probe.rcode === 'NOERROR' || probe.rcode === 'NXDOMAIN')
+
+/** This checker has no route there (IPv6 from an IPv4-only host): nothing was sent, so it says nothing about the server. */
+const noRoute = (probe: Probe) => probe.status === 'unreachable' && probe.error === 'NoRoute'
+
+const where = (probe: Probe) => `${probe.nameserver} ${probe.ip}`
+
+/** What went wrong with a nameserver address, in words, or undefined when its answers count. */
+function trouble(probe: Probe): string | undefined {
+  if (counts(probe) || noRoute(probe)) return undefined
+  if (probe.status === 'timeout') return 'no answer (timeout)'
+  if (probe.status !== 'answered') return `no answer (${probe.status}${probe.error ? `: ${probe.error}` : ''})`
+  if (probe.rcode !== 'NOERROR' && probe.rcode !== 'NXDOMAIN') return `answered ${probe.rcode}`
+  return 'answered, but not authoritatively'
+}
+
+/** The summary rows drawn from `nameserver_comparison`: serial drift, unanswering servers, NS sets, record drift. */
+function comparisonRows(comparison: Record<string, unknown>): Row[] {
+  const servers = probes(comparison)
+  const serials = list(comparison.serials).map(Number)
+  const troubled = servers.flatMap((probe) => {
+    const why = trouble(probe)
+    return why ? [`${where(probe)}: ${why}`] : []
+  })
+  const asked = servers.filter((probe) => !noRoute(probe))
+  const unrouted = servers.length - asked.length
+  const parentOnly = list(comparison.parent_only).map(String)
+  const zoneOnly = list(comparison.zone_only).map(String)
+  const disagreements = list(comparison.disagreements) as unknown as {
+    record_type: string
+    differing: { nameserver: string; ip: string; missing: string[]; extra: string[] }[]
+  }[]
+  // Zones served by more than one provider (each its own primary) differ in serial and SOA by design.
+  const primaries = [...new Set(servers.filter(counts).flatMap((probe) => (probe.soa ? [probe.soa.mname] : [])))]
+  const multi = primaries.length > 1
+  const drifting = disagreements.filter((entry) => !(multi && entry.record_type === 'SOA'))
+  const drift = drifting.map((entry) => {
+    const first = entry.differing[0]
+    const how = first
+      ? [
+          first.missing.length && `lacks ${first.missing.join(', ')}`,
+          first.extra.length && `adds ${first.extra.join(', ')}`,
+        ]
+          .filter(Boolean)
+          .join(' and ')
+      : ''
+    const more = entry.differing.length > 1 ? ` (and ${entry.differing.length - 1} more)` : ''
+    const label = entry.record_type === 'SOA' ? 'SOA (primary, contact or timers)' : entry.record_type
+    return first ? `${label}: ${first.nameserver} ${first.ip} ${how || 'differs'}${more}` : label
+  })
+  return [
+    multi
+      ? {
+          label: 'Serial',
+          value: serials.join(', '),
+          tone: 'info',
+          note: `${primaries.length} primaries (${primaries.join(', ')}): more than one provider, so serials and SOA fields aren't comparable`,
+        }
+      : serials.length > 1
+        ? {
+            label: 'Serial',
+            value: serials.join(' ≠ '),
+            tone: 'warn',
+            note: `The nameservers serve different SOA serials (${serials.join(', ')}): one has not caught up`,
+          }
+        : { label: 'Serial', value: serials[0] },
+    {
+      label: 'Nameservers answering',
+      value: servers.length
+        ? `${asked.length - troubled.length} of ${asked.length} address${asked.length === 1 ? '' : 'es'}`
+        : undefined,
+      ...(troubled.length
+        ? { tone: 'bad', note: `Nameservers not answering for the zone: ${troubled.join('; ')}` }
+        : asked.length > 0 && { tone: 'good' }),
+    },
+    {
+      label: 'IPv6 not checked',
+      value: unrouted ? `${unrouted} address${unrouted === 1 ? '' : 'es'} (no IPv6 route from the checker)` : undefined,
+      tone: 'info',
+      optional: true,
+    },
+    {
+      label: 'NS sets',
+      value: parentOnly.length || zoneOnly.length ? 'parent and zone differ' : undefined,
+      tone: 'warn',
+      note: `The delegation and the zone list different nameservers: ${[
+        parentOnly.length && `only the parent lists ${parentOnly.join(', ')}`,
+        zoneOnly.length && `only the zone lists ${zoneOnly.join(', ')}`,
+      ]
+        .filter(Boolean)
+        .join('; ')}`,
+      optional: true,
+    },
+    {
+      label: 'Record drift',
+      value: drifting.map((entry) => entry.record_type).join(', '),
+      tone: 'warn',
+      note: `The nameservers give different answers. ${drift.join('; ')}`,
+      optional: true,
+    },
+  ]
+}
+
+export interface MatrixColumn {
+  nameserver: string
+  ip: string
+  family: number
+  /** "ok", or what went wrong ("no answer (timeout)", "no IPv6 route"). */
+  status: string
+  tone: Tone
+  /** Whether its answers count toward the consensus (authoritative, NOERROR or NXDOMAIN). */
+  counted: boolean
+}
+
+export interface MatrixCell {
+  values: string[]
+  /** Whether this answer counts: its address counts, and the answer itself was authoritative and NOERROR/NXDOMAIN. */
+  counted: boolean
+  /** Counted, and not what most counted nameservers said. */
+  differs: boolean
+  /** When it differs: its values the consensus lacks, and the consensus's values it lacks. */
+  extra: string[]
+  missing: string[]
+}
+
+export interface MatrixRow {
+  label: string
+  /** One per column; null where that address gave no answer for it. */
+  cells: (MatrixCell | null)[]
+  differs: boolean
+}
+
+/** A field as one address answered it, and whether that answer counts (authoritative, NOERROR or NXDOMAIN). */
+type Read = { values: string[]; counts: boolean } | null
+
+const soaField =
+  (pick: (soa: NonNullable<Probe['soa']>) => string) =>
+  (probe: Probe): Read =>
+    probe.soa ? { values: [pick(probe.soa)], counts: true } : null
+
+const MATRIX_ROWS: [string, (probe: Probe) => Read][] = [
+  ['Serial', soaField((soa) => String(soa.serial))],
+  ['Primary', soaField((soa) => soa.mname)],
+  ['Contact', soaField((soa) => soa.rname)],
+  [
+    'Timers',
+    soaField((soa) => `refresh ${soa.refresh} · retry ${soa.retry} · expire ${soa.expire} · min ${soa.minimum}`),
+  ],
+  ...['NS', 'A', 'AAAA', 'MX', 'TXT', 'CAA'].map((type): [string, (probe: Probe) => Read] => [
+    type,
+    (probe) => {
+      const answer = probe.answers?.[type]
+      if (!answer || answer.error) return null
+      // A refused or failed query is shown as its rcode, and like a non-authoritative answer, doesn't count.
+      if (answer.rcode !== 'NOERROR' && answer.rcode !== 'NXDOMAIN')
+        return { values: [answer.rcode ?? 'no rcode'], counts: false }
+      return {
+        values: answer.rcode === 'NXDOMAIN' ? ['NXDOMAIN'] : (answer.values ?? []),
+        counts: answer.authoritative !== false,
+      }
+    },
+  ]),
+]
+
+/**
+ * `nameserver_comparison` as a table: a column per nameserver address, a row per compared field, and each cell marked
+ * where a counted nameserver says something other than what most of them say (the first seen wins a tie, as in
+ * domaincheck). Null when the run predates the comparison (domaincheck < v0.4) or found no nameservers.
+ */
+export function nameserverMatrix(
+  data: Record<string, unknown>,
+): { columns: MatrixColumn[]; rows: MatrixRow[]; unrouted: string[] } | null {
+  const every = probes(at(data, 'nameserver_comparison'))
+  // Addresses this checker can't reach at all (no IPv6 route) say nothing about the zone: a note, not a column.
+  const servers = every.filter((probe) => !noRoute(probe))
+  const unrouted = every.filter(noRoute).map(where)
+  if (every.length === 0) return null
+  const columns = servers.map((probe): MatrixColumn => {
+    const why = trouble(probe)
+    return {
+      nameserver: probe.nameserver,
+      ip: probe.ip,
+      family: probe.family,
+      status: why ?? 'ok',
+      tone: why ? 'bad' : 'good',
+      counted: counts(probe),
+    }
+  })
+  const rows = MATRIX_ROWS.map(([label, read]): MatrixRow => {
+    const reads = servers.map((probe, index): Read => {
+      const found = probe.status === 'answered' ? read(probe) : null
+      return found && { values: found.values, counts: found.counts && columns[index].counted }
+    })
+    const key = (cell: string[]) => cell.join('\n')
+    const tally = new Map<string, number>()
+    let consensus: string[] | undefined
+    for (const cell of reads) {
+      if (!cell?.counts) continue
+      tally.set(key(cell.values), (tally.get(key(cell.values)) ?? 0) + 1)
+      if (!consensus || (tally.get(key(cell.values)) ?? 0) > (tally.get(key(consensus)) ?? 0)) consensus = cell.values
+    }
+    const cells = reads.map((cell): MatrixCell | null => {
+      if (cell === null) return null
+      const differs = cell.counts && tally.size > 1 && consensus !== undefined && key(cell.values) !== key(consensus)
+      return {
+        values: cell.values,
+        counted: cell.counts,
+        differs,
+        extra: differs ? cell.values.filter((value) => !consensus?.includes(value)) : [],
+        missing: differs ? (consensus ?? []).filter((value) => !cell.values.includes(value)) : [],
+      }
+    })
+    return { label, cells, differs: cells.some((cell) => cell?.differs) }
+  })
+  return { columns, rows, unrouted }
+}
+
 /** The few fields worth reading first for each check; the full result is under it. */
 export function summary(check: Check, data: Record<string, unknown>, now = Date.now()): Row[] {
   switch (check) {
@@ -155,6 +400,7 @@ export function summary(check: Check, data: Record<string, unknown>, now = Date.
       const skips = list(at(data, 'policy_skips'), (skip) =>
         `${skip.nameserver_name ?? ''} ${skip.nameserver_ip ?? ''}`.trim(),
       )
+      const comparison = at(data, 'nameserver_comparison') as Record<string, unknown> | null | undefined
       return [
         nxdomain
           ? { label: 'Exists', value: 'no (NXDOMAIN)', tone: 'bad', note: 'The name does not exist in DNS' }
@@ -198,9 +444,11 @@ export function summary(check: Check, data: Record<string, unknown>, now = Date.
           note: 'Every subdomain resolves (wildcard record)',
           optional: true,
         },
+        ...(comparison ? comparisonRows(comparison) : []),
+        // Read from the comparison's probes when there is one (domaincheck v0.4), which say it per address.
         {
           label: 'Lame delegations',
-          value: lame.length || undefined,
+          value: comparison ? undefined : lame.length || undefined,
           tone: 'bad',
           note: `${lame.length} nameserver${lame.length === 1 ? '' : 's'} named in the delegation did not answer for the zone`,
           optional: true,
@@ -229,30 +477,99 @@ export function summary(check: Check, data: Record<string, unknown>, now = Date.
       const legacy = versions.filter((version) => /SSL|TLSv1(\.[01])?$/.test(version))
       const names = list(at(data, 'leaf_certificate.san_dns'))
       const verified = at(data, 'chain_validation.verified')
+      const checks = at(data, 'certificate_checks') as Record<string, unknown> | null | undefined
+      const suites = cipherRows(data)
+      const worst = suites.some((suite) => suite.rating === 'insecure')
+        ? 'insecure'
+        : suites.some((suite) => suite.rating === 'weak')
+          ? 'weak'
+          : undefined
+      const flagged = suites.filter((suite) => suite.rating === 'insecure' || suite.rating === 'weak')
+      const weaknesses = vulnerabilities(data).filter((entry) => entry.status === 'vulnerable')
+      const scanned = at(data, 'scan') != null
+      // A scan cut short by its budget never tried some suites or versions: it can't read as clean.
+      const complete = at(data, 'scan.complete') === true
+      const partial = scanned && !complete ? ' (scan incomplete)' : ''
+      const chainIssue =
+        checks?.chain_complete === false
+          ? 'incomplete (missing intermediate)'
+          : checks?.untrusted_root === true
+            ? 'ends at an untrusted root'
+            : undefined
       return [
         { label: 'Protocol', value: str(at(data, 'connection.protocol')) },
         { label: 'Cipher', value: str(at(data, 'connection.cipher_name')) },
         {
           label: 'Versions',
           value: versions.join(', '),
+          assessed: true,
           ...(legacy.length && { tone: 'warn', note: `Accepts legacy ${legacy.join(', ')}` }),
+        },
+        {
+          label: 'Cipher suites',
+          value: scanned ? `${suiteCounts(data)}${partial}` : undefined,
+          optional: true,
+          assessed: true,
+          ...(worst === 'insecure'
+            ? {
+                tone: 'bad',
+                note: `Insecure suites accepted: ${uniq(flagged.filter((s) => s.rating === 'insecure').map((s) => s.name)).join(', ')}`,
+              }
+            : worst === 'weak'
+              ? { tone: 'warn', note: `Weak suites accepted: ${uniq(flagged.map((s) => s.name)).join(', ')}` }
+              : scanned && (complete ? { tone: 'good' } : { tone: 'info', note: 'The cipher scan ran out of time' })),
+        },
+        {
+          label: 'Server order',
+          value: serverOrder(data),
+          optional: true,
+        },
+        {
+          label: 'Weaknesses',
+          value: scanned
+            ? weaknesses.map((entry) => entry.name).join(', ') || (complete ? 'none found' : 'none found so far')
+            : undefined,
+          optional: true,
+          assessed: true,
+          ...(weaknesses.some((entry) => entry.severity === 'high' || entry.severity === 'critical')
+            ? { tone: 'bad', note: `Known weaknesses: ${weaknesses.map((entry) => entry.name).join(', ')}` }
+            : weaknesses.length
+              ? { tone: 'warn', note: `Known weaknesses: ${weaknesses.map((entry) => entry.name).join(', ')}` }
+              : scanned &&
+                (complete
+                  ? { tone: 'good' }
+                  : { tone: 'info', note: 'The cipher scan ran out of time; some checks were not settled' })),
         },
         { label: 'Subject', value: str(at(data, 'leaf_certificate.subject.common_name')) },
         {
           label: 'Names',
           value: names.length > 4 ? `${names.slice(0, 4).join(', ')} +${names.length - 4}` : names.join(', '),
+          assessed: true,
+          ...(checks?.hostname_matches === false && {
+            tone: 'bad',
+            note: 'The certificate is not valid for this name',
+          }),
         },
         {
           label: 'Issuer',
           value: str(at(data, 'leaf_certificate.issuer.common_name')),
+          assessed: true,
           ...(at(data, 'leaf_certificate.is_self_signed') === true && {
             tone: 'bad',
             note: 'The certificate is self-signed',
           }),
         },
         {
+          label: 'Key',
+          value: [str(at(data, 'leaf_certificate.key_type')), at(data, 'leaf_certificate.key_bits')]
+            .filter(Boolean)
+            .join(' '),
+          optional: true,
+        },
+        {
           label: 'Expires',
           value: dated(expires, now),
+          assessed: true,
           ...(left !== undefined &&
             (left < 0
               ? { tone: 'bad', note: 'The certificate has expired' }
@@ -266,11 +583,12 @@ export function summary(check: Check, data: Record<string, unknown>, now = Date.
             verified === true
               ? 'verified'
               : verified === false
-                ? `not verified: ${at(data, 'chain_validation.reason') ?? '?'}`
-                : undefined,
+                ? `not verified: ${chainIssue ?? at(data, 'chain_validation.reason') ?? '?'}`
+                : chainIssue,
           tone: verified === true ? 'good' : 'bad',
-          note: `The chain does not verify (${at(data, 'chain_validation.reason') ?? 'no reason given'})`,
+          note: `The chain does not verify (${chainIssue ?? at(data, 'chain_validation.reason') ?? 'no reason given'})`,
           optional: true,
+          assessed: true,
         },
         { label: 'OCSP stapled', value: at(data, 'ocsp_stapled') as boolean },
         {
@@ -290,7 +608,23 @@ export function summary(check: Check, data: Record<string, unknown>, now = Date.
       const redirects = list(at(data, 'redirect_chain'))
       const upgrade = at(data, 'http_upgrade.redirects_to_https')
       const hsts = security.hsts as Record<string, unknown> | null | undefined
+      const grade = str(at(data, 'assessment.grade'))
+      const software = list(at(data, 'assessment.software'), (entry) =>
+        entry.version ? `${entry.product} ${entry.version}${entry.end_of_life ? ' (end of life)' : ''}` : null,
+      )
+      const endOfLife = list(at(data, 'assessment.software'), (entry) =>
+        entry.end_of_life ? `${entry.product} ${entry.version}` : null,
+      )
       return [
+        {
+          label: 'Grade',
+          value: grade && `${grade} (${at(data, 'assessment.score')})`,
+          optional: true,
+          ...(grade && {
+            tone: /^A/.test(grade) ? 'good' : grade === 'B' ? 'info' : grade === 'F' ? 'bad' : 'warn',
+            note: `HTTP best-practice grade ${grade}`,
+          }),
+        },
         {
           label: 'Status',
           value: status,
@@ -298,6 +632,15 @@ export function summary(check: Check, data: Record<string, unknown>, now = Date.
         },
         { label: 'HTTP', value: str(at(data, 'http_version')) },
         { label: 'Server', value: str(at(data, 'server')) },
+        {
+          label: 'Versions exposed',
+          value: software.join(', '),
+          optional: true,
+          assessed: true,
+          ...(endOfLife.length
+            ? { tone: 'bad', note: `End-of-life software: ${endOfLife.join(', ')}` }
+            : { tone: 'info', note: 'Response headers name software versions' }),
+        },
         {
           label: 'Final URL',
           value: str(at(data, 'final_url')) !== str(at(data, 'url')) ? str(at(data, 'final_url')) : undefined,
@@ -307,6 +650,7 @@ export function summary(check: Check, data: Record<string, unknown>, now = Date.
         {
           label: 'Port 80 → HTTPS',
           value: upgrade as boolean,
+          assessed: true,
           ...(upgrade === false && { tone: 'warn', note: 'Plain HTTP does not redirect to HTTPS' }),
         },
         hsts
@@ -320,8 +664,9 @@ export function summary(check: Check, data: Record<string, unknown>, now = Date.
                 .filter(Boolean)
                 .join(', '),
               tone: 'good',
+              assessed: true,
             }
-          : { label: 'HSTS', value: 'none', tone: 'warn', note: 'No Strict-Transport-Security header' },
+          : { label: 'HSTS', value: 'none', tone: 'warn', note: 'No Strict-Transport-Security header', assessed: true },
         {
           label: 'Security headers',
           value: present.join(', ') || 'none',
@@ -346,7 +691,13 @@ export const show = (value: Value) =>
         : 'no'
       : String(value)
 
-/** What deserves a look across a run's checks, worst first: each warn or bad row, and each check that failed. */
+/** A domaincheck assessment finding (schema 2.2+, tls and headers): high and critical are bad, medium is warn. Low and
+ * info stay in the panel's own lists, so the strip above the panels holds only what deserves a look. */
+const assessedTone = (severity: unknown): Finding['tone'] | undefined =>
+  severity === 'critical' || severity === 'high' ? 'bad' : severity === 'medium' ? 'warn' : undefined
+
+/** What deserves a look across a run's checks, worst first: each warn or bad row, and each check that failed. Where
+ * domaincheck sent its own assessment, its findings stand in for the rows that say the same thing. */
 export function findings(
   checks: Check[],
   results: Partial<Record<Check, CollectionResult>> | undefined,
@@ -360,9 +711,145 @@ export function findings(
       found.push({ check, tone: 'warn', text: `Check failed: ${result.error?.message ?? 'no data'}` })
       continue
     }
+    const assessed = Array.isArray(at(result.data, 'assessment.findings'))
     for (const row of visibleRows(summary(check, result.data, now))) {
+      if (assessed && row.assessed) continue
       if (row.tone === 'warn' || row.tone === 'bad') found.push({ check, tone: row.tone, text: row.note ?? row.label })
+    }
+    if (assessed) {
+      for (const item of list(at(result.data, 'assessment.findings'), (entry) => entry as unknown as Value)) {
+        const entry = item as unknown as Record<string, unknown>
+        const tone = assessedTone(entry.severity)
+        if (tone) found.push({ check, tone, text: String(entry.title ?? entry.id) })
+      }
     }
   }
   return found.sort((a, b) => (a.tone === b.tone ? 0 : a.tone === 'bad' ? -1 : 1))
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// TLS scan and HTTP assessment detail (domaincheck schema 2.2+), for the tables under the summaries.
+
+const uniq = (items: string[]) => [...new Set(items)]
+
+export interface CipherRow {
+  version: string
+  name: string
+  rating: string
+  group?: string
+  issues: string[]
+  tone: Tone
+}
+
+const ratingTone = (rating: string): Tone =>
+  rating === 'insecure' ? 'bad' : rating === 'weak' ? 'warn' : rating === 'strong' ? 'good' : 'info'
+
+/** Every accepted suite, newest protocol first, in the order the server prefers when it has one. */
+export function cipherRows(data: Record<string, unknown>): CipherRow[] {
+  const protocols = at(data, 'scan.protocols')
+  if (!Array.isArray(protocols)) return []
+  return protocols.flatMap((protocol: Record<string, unknown>) =>
+    protocol.supported && Array.isArray(protocol.ciphers)
+      ? protocol.ciphers.map((suite: Record<string, unknown>) => ({
+          version: String(protocol.version),
+          name: String(suite.name).replace(/^TLS_/, ''),
+          rating: String(suite.rating ?? 'acceptable'),
+          group: str(suite.key_exchange_group),
+          issues: list(suite.issues).map(String),
+          tone: ratingTone(String(suite.rating)),
+        }))
+      : [],
+  )
+}
+
+/** "TLSv1.3: 3 · TLSv1.2: 13 (2 weak)". */
+function suiteCounts(data: Record<string, unknown>) {
+  const rows = cipherRows(data)
+  return uniq(rows.map((row) => row.version))
+    .map((version) => {
+      const mine = rows.filter((row) => row.version === version)
+      const bad = mine.filter((row) => row.rating === 'insecure').length
+      const weak = mine.filter((row) => row.rating === 'weak').length
+      const extra = [bad && `${bad} insecure`, weak && `${weak} weak`].filter(Boolean).join(', ')
+      return `${version}: ${mine.length}${extra ? ` (${extra})` : ''}`
+    })
+    .join(' · ')
+}
+
+function serverOrder(data: Record<string, unknown>) {
+  const protocols = at(data, 'scan.protocols')
+  if (!Array.isArray(protocols)) return undefined
+  const known = protocols.filter(
+    (protocol: Record<string, unknown>) =>
+      protocol.supported && protocol.version !== 'TLSv1.3' && typeof protocol.server_preference === 'boolean',
+  )
+  if (!known.length) return undefined
+  return known.every((protocol: Record<string, unknown>) => protocol.server_preference)
+    ? 'server picks'
+    : known.some((protocol: Record<string, unknown>) => protocol.server_preference)
+      ? 'mixed'
+      : 'client picks'
+}
+
+export interface Vulnerability {
+  id: string
+  name: string
+  status: string
+  severity: string
+  detail?: string
+  tone: Tone
+}
+
+/** domaincheck's named weakness checks. Vulnerable is bad (warn for low severity); not tested and unknown are info. */
+export function vulnerabilities(data: Record<string, unknown>): Vulnerability[] {
+  const entries = at(data, 'assessment.vulnerabilities')
+  if (!Array.isArray(entries)) return []
+  return entries.map((entry: Record<string, unknown>) => {
+    const status = String(entry.status)
+    const severity = String(entry.severity ?? 'info')
+    return {
+      id: String(entry.id),
+      name: String(entry.name),
+      status,
+      severity,
+      detail: str(entry.detail),
+      tone:
+        status === 'vulnerable'
+          ? severity === 'low' || severity === 'info'
+            ? 'warn'
+            : 'bad'
+          : status === 'not_vulnerable'
+            ? 'good'
+            : 'info',
+    }
+  })
+}
+
+export interface HeaderCheck {
+  name: string
+  result: string
+  value?: string
+  detail?: string
+  tone: Tone
+}
+
+/** domaincheck's best-practice checks of the response, one per header family. */
+export function headerChecks(data: Record<string, unknown>): HeaderCheck[] {
+  const checks = at(data, 'assessment.checks')
+  if (!Array.isArray(checks)) return []
+  return checks.map((check: Record<string, unknown>) => ({
+    name: String(check.name),
+    result: String(check.result),
+    value: str(check.value),
+    detail: str(check.detail),
+    tone:
+      check.result === 'pass' ? 'good' : check.result === 'fail' ? 'bad' : check.result === 'warn' ? 'warn' : 'info',
+  }))
+}
+
+/** The assessment's lesser findings (low, info), which the strip above the panels leaves out. */
+export function minorFindings(data: Record<string, unknown>): string[] {
+  return list(at(data, 'assessment.findings'), (entry) =>
+    entry.severity === 'low' || entry.severity === 'info' ? String(entry.title) : null,
+  ).map(String)
 }

@@ -230,6 +230,126 @@
   font-size: 12px;
 }
 
+/* The per-nameserver table: a row per record, a column per address; scrolls sideways rather than squeezing. */
+.domain-ns-scroll {
+  overflow-x: auto;
+  margin-top: 4px;
+}
+
+.domain-ns {
+  border-collapse: collapse;
+  font-size: 11px;
+  color: #eaf3ff;
+  min-width: 100%;
+}
+
+.domain-ns th,
+.domain-ns td {
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(143, 174, 203, 0.18);
+  text-align: left;
+  vertical-align: top;
+}
+
+.domain-ns td {
+  max-width: 260px;
+  overflow-wrap: anywhere;
+}
+
+.domain-ns thead th {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.domain-ns tbody th {
+  position: sticky;
+  left: 0;
+  background: #080e1c;
+  color: #8faecb;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.domain-ns-name,
+.domain-ns-ip,
+.domain-ns-status {
+  display: block;
+}
+
+.domain-ns-ip {
+  color: #8faecb;
+}
+
+.domain-ns-status {
+  margin-top: 2px;
+  font-size: 10px;
+}
+
+.domain-ns-uncounted .domain-ns-name {
+  text-decoration: line-through;
+  text-decoration-color: rgba(255, 92, 232, 0.6);
+}
+
+.domain-ns td.domain-ns-odd {
+  background: rgba(255, 200, 97, 0.08);
+  box-shadow: inset 2px 0 0 #ffc861;
+}
+
+.domain-ns-none {
+  color: #5f7d9c;
+}
+
+.domain-ns-extra::before {
+  content: "+ ";
+}
+
+.domain-ns-missing {
+  color: #ff9a6e;
+  text-decoration: line-through;
+}
+
+.domain-ns-missing::before {
+  content: "− ";
+}
+
+.domain-ns td.domain-ns-uncounted-cell {
+  color: #8faecb;
+  font-style: italic;
+}
+
+.domain-detail {
+  margin: 4px 0 10px;
+  overflow-x: auto;
+}
+
+/* Suite names are long unbroken identifiers (ECDHE_RSA_WITH_AES_128_GCM_SHA256): let them break on a phone. */
+.domain-detail .debug-table th {
+  overflow-wrap: anywhere;
+}
+
+.domain-detail summary {
+  cursor: pointer;
+  color: #8faecb;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+.domain-detail .debug-table {
+  margin-top: 6px;
+}
+
+.domain-detail .debug-table th[title] {
+  cursor: help;
+}
+
+.domain-minor {
+  margin: 0 0 10px;
+  padding-left: 16px;
+  color: #8faecb;
+  font-size: 11px;
+}
+
 /* Comparing two runs: the picker under the run's heading, then a table of the summary rows side by side. */
 .domain-compare-pick {
   display: flex;
@@ -294,21 +414,21 @@
   font-size: 12px;
 }
 
-.domain-compare-table th,
-.domain-compare-table td {
+.domain-compare .domain-compare-table th,
+.domain-compare .domain-compare-table td {
   padding: 4px 8px;
   text-align: left;
   vertical-align: top;
   overflow-wrap: anywhere;
 }
 
-.domain-compare-table thead th {
+.domain-compare .domain-compare-table thead th {
   color: #8faecb;
   font-weight: 500;
   font-size: 11px;
 }
 
-.domain-compare-table tbody th {
+.domain-compare .domain-compare-table tbody th {
   width: 24%;
   color: #8faecb;
   font-weight: 400;
@@ -336,4 +456,11 @@
 .domain-diff-pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.domain-compare .domain-compare-table .domain-compare-table-title {
+  padding-top: 8px;
+  color: #c6d6ec;
+  font-size: 11px;
+  letter-spacing: 0.06em;
 }

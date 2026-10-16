@@ -1,8 +1,10 @@
 // A run as a document to keep: one self-contained HTML file (inline CSS and SVG, no script, no request of any kind,
 // and a CSP of its own that forbids one) that reads well on screen and prints cleanly to PDF. Built from reconView's
-// rows and findings, so it shows whatever the page shows, plus three diagrams: the DNS delegation, the certificate
-// chain, and the redirect chain. No DOM, so the unit tests run it headless.
+// rows, its detail tables (through reconDetail) and findings, so it shows whatever the page shows, plus three
+// diagrams: the DNS delegation, the certificate chain, and the redirect chain. No DOM, so the unit tests run it
+// headless.
 
+import { detailTables } from './reconDetail.ts'
 import type { Run } from './reconRun.ts'
 import { at, type Check, findings, show, summary, type Tone, visibleRows } from './reconView.ts'
 
@@ -240,13 +242,24 @@ function checkSection(run: Run, check: Check, now: number): string {
         `<tr><th scope="row">${esc(row.label)}</th><td${toneClass(row.tone)}${row.note ? ` title="${esc(row.note)}"` : ''}>${esc(show(row.value))}</td></tr>`,
     )
     .join('')
+  const tables = detailTables(check, result.data)
+    .map(
+      (table) =>
+        `<h3>${esc(table.title)}</h3><table>${table.rows
+          .map(
+            (row) =>
+              `<tr><th scope="row">${esc(row.label)}</th><td${toneClass(row.tone)}>${esc(show(row.value))}</td></tr>`,
+          )
+          .join('')}</table>`,
+    )
+    .join('')
   const figures = diagrams(check, result.data, now)
     .map(
       (diagram) =>
         `<figure><h3>${esc(diagram.title)}</h3>${chainSvg(diagram)}${diagram.note ? `<figcaption>${esc(diagram.note)}</figcaption>` : ''}</figure>`,
     )
     .join('')
-  return `<section>${head('OK', 'ok')}<table>${rows}</table>${figures}</section>`
+  return `<section>${head('OK', 'ok')}<table>${rows}</table>${tables}${figures}</section>`
 }
 
 /** The whole report. `now` is when it was made: relative dates ("in 30 days") are counted from the run itself. */

@@ -1,9 +1,20 @@
-// Two runs side by side: the same domain at different times, or two domains. Built only from reconView's summary rows
-// and findings, so a row another check adds there shows up here without a change. No DOM, so the unit tests run it
+// Two runs side by side: the same domain at different times, or two domains. Built only from reconView's summary rows,
+// its detail tables (through reconDetail), and its findings, so a row another check adds there shows up here without a
+// change. No DOM, so the unit tests run it
 // headless.
 
+import { detailTables } from './reconDetail.ts'
 import type { Run } from './reconRun.ts'
-import { type Check, type Finding, findings, summary, type Tone, type Value, visibleRows } from './reconView.ts'
+import {
+  type Check,
+  type Finding,
+  findings,
+  type Row,
+  summary,
+  type Tone,
+  type Value,
+  visibleRows,
+} from './reconView.ts'
 
 export interface RowDiff {
   label: string
@@ -20,6 +31,8 @@ export interface CheckDiff {
   before: string | null
   after: string | null
   rows: RowDiff[]
+  /** reconDetail's tables (cipher suites, nameservers compared, …), row by row the same way. */
+  tables: { title: string; rows: RowDiff[] }[]
 }
 
 export interface FindingsDiff {
@@ -44,9 +57,37 @@ const outcome = (run: Run, check: Check) => {
   return result.ok && result.data ? 'ok' : (result.error?.kind ?? 'failed')
 }
 
+const dataOf = (run: Run, check: Check) => {
+  const result = run.results?.[check]
+  return result?.ok && result.data ? result.data : null
+}
+
 const rowsOf = (run: Run, check: Check, now: number) => {
-  const data = run.results?.[check]?.data
-  return run.results?.[check]?.ok && data ? visibleRows(summary(check, data, now)) : []
+  const data = dataOf(run, check)
+  return data ? visibleRows(summary(check, data, now)) : []
+}
+
+const tablesOf = (run: Run, check: Check) => {
+  const data = dataOf(run, check)
+  return data ? detailTables(check, data) : []
+}
+
+/** Lines two lists of rows up by label, the earlier run's order first. `comparable` is false when only one side has
+ * data: every row differs then, which the outcome already says. */
+function diffRows(left: Row[], right: Row[], comparable: boolean): RowDiff[] {
+  const labels = [...new Set([...left.map((row) => row.label), ...right.map((row) => row.label)])]
+  return labels.map((label): RowDiff => {
+    const l = left.find((row) => row.label === label)
+    const r = right.find((row) => row.label === label)
+    return {
+      label,
+      before: l?.value,
+      after: r?.value,
+      beforeTone: l?.tone,
+      afterTone: r?.tone,
+      changed: comparable && !same(l?.value, r?.value),
+    }
+  })
 }
 
 const key = (finding: Finding) => `${finding.check}\u0000${finding.text}`
@@ -64,25 +105,20 @@ export function compareRuns(before: Run, after: Run, now = Date.now()): RunDiff 
     const a = outcome(before, check)
     const b = outcome(after, check)
     if (a === null && b === null) continue
-    const left = rowsOf(before, check, now)
-    const right = rowsOf(after, check, now)
-    const labels = [...new Set([...left.map((row) => row.label), ...right.map((row) => row.label)])]
-    const rows = labels.map((label): RowDiff => {
-      const l = left.find((row) => row.label === label)
-      const r = right.find((row) => row.label === label)
-      const diff = {
-        label,
-        before: l?.value,
-        after: r?.value,
-        beforeTone: l?.tone,
-        afterTone: r?.tone,
-        // Only one side ran it: every row is "changed", which the outcome column already says.
-        changed: a === b ? !same(l?.value, r?.value) : false,
-      }
-      if (diff.changed) changedRows++
-      return diff
-    })
-    checks.push({ check, before: a, after: b, rows })
+    const rows = diffRows(rowsOf(before, check, now), rowsOf(after, check, now), a === b)
+    const left = tablesOf(before, check)
+    const right = tablesOf(after, check)
+    const titles = [...new Set([...left.map((table) => table.title), ...right.map((table) => table.title)])]
+    const tables = titles.map((title) => ({
+      title,
+      rows: diffRows(
+        left.find((table) => table.title === title)?.rows ?? [],
+        right.find((table) => table.title === title)?.rows ?? [],
+        a === b,
+      ),
+    }))
+    changedRows += [...rows, ...tables.flatMap((table) => table.rows)].filter((row) => row.changed).length
+    checks.push({ check, before: a, after: b, rows, tables })
   }
   const was = findings(before.checks, before.results, now)
   const is = findings(after.checks, after.results, now)
