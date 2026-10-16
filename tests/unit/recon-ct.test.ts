@@ -90,8 +90,8 @@ const ct = {
 
 const dnsWith = (records: { tag: string; value: string }[]) => ({
   caa_tree: [
-    { zone: 'www.example.com', records: [] },
     { zone: 'example.com', records: records.map((record) => ({ flags: 0, ...record })) },
+    { zone: 'com', records: [] },
   ],
 })
 
@@ -147,10 +147,12 @@ describe('CT against CAA', () => {
           { tag: 'iodef', value: 'mailto:x@example.com' },
         ]),
       ),
-      { zone: 'example.com', issue: ['letsencrypt.org'], issuewild: ['digicert.com'] },
+      { name: 'example.com', zone: 'example.com', issue: ['letsencrypt.org'], issuewild: ['digicert.com'] },
     )
     assert.equal(caaPolicy(dnsWith([{ tag: 'iodef', value: 'mailto:x@example.com' }])), undefined)
     assert.deepEqual(caaPolicy(dnsWith([{ tag: 'issue', value: ';' }]))?.issue, [])
+    // No issue tag is not issue ";": any CA may issue for the name itself (RFC 8659 §4.2).
+    assert.equal(caaPolicy(dnsWith([{ tag: 'issuewild', value: ';' }]))?.issue, undefined)
   })
 
   it('maps the common issuers, and leaves unknown ones unjudged', () => {
@@ -176,8 +178,36 @@ describe('CT against CAA', () => {
       { tag: 'issuewild', value: 'digicert.com' },
     ])
     assert.deepEqual(caaConflicts(ct, dns), [])
-    assert.equal(rows(ct, dns).CAA.value, 'current issuers allowed (example.com)')
+    assert.equal(rows(ct, dns).CAA.value, 'current issuers allowed for example.com (CAA at example.com)')
     assert.equal(rows(ct, dns).CAA.tone, 'good')
+  })
+})
+
+describe('CAA per name', () => {
+  const only = (over: Record<string, unknown>) => ({ ...ct, certificates: [cert(over)] })
+
+  it("doesn't read an issuewild-only set as forbidding ordinary names", () => {
+    const dns = dnsWith([{ tag: 'issuewild', value: ';' }])
+    assert.deepEqual(caaConflicts(only({}), dns), [])
+    assert.deepEqual(caaConflicts(only({ names: ['*.example.com'], wildcard: true }), dns), [
+      { issuer: "Let's Encrypt", certificates: 1 },
+    ])
+  })
+
+  it('judges the ordinary name on a certificate that also has a wildcard by issue', () => {
+    const dns = dnsWith([
+      { tag: 'issue', value: 'digicert.com' },
+      { tag: 'issuewild', value: 'letsencrypt.org' },
+    ])
+    assert.deepEqual(caaConflicts(only({ names: ['*.example.com'], wildcard: true }), dns), [])
+    assert.deepEqual(caaConflicts(only({ names: ['*.example.com', 'example.com'], wildcard: true }), dns), [
+      { issuer: "Let's Encrypt", certificates: 1 },
+    ])
+  })
+
+  it("leaves subdomains alone: their own CAA set wasn't looked up", () => {
+    const dns = dnsWith([{ tag: 'issue', value: 'digicert.com' }])
+    assert.deepEqual(caaConflicts(only({ names: ['mail.example.com', '*.mail.example.com'] }), dns), [])
   })
 })
 

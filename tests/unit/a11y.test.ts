@@ -106,6 +106,15 @@ describe('suggest', () => {
     assert.deepEqual(suggest(c('#777777'), c('#777777'), 21), [])
   })
 
+  it('measures a new background with translucent text over it', () => {
+    const text = c('rgba(0, 0, 0, 0.8)')
+    const fixes = suggest(text, c('#999999'), 7, 'bg')
+    assert.ok(fixes.length > 0)
+    for (const fix of fixes) assert.ok(contrast(text, c(fix.colour)) >= 7, fix.colour)
+    // Half-transparent black can't reach 4.5:1 on anything: no background is offered rather than a wrong one.
+    assert.deepEqual(suggest(c('rgba(0, 0, 0, 0.5)'), c('#ffffff'), 4.5, 'bg'), [])
+  })
+
   it('can move the background instead', () => {
     const [best] = suggest(c('#ffffff'), c('#aaaaaa'), 4.5, 'bg')
     assert.ok(contrast(c('#ffffff'), c(best.colour)) >= 4.5)

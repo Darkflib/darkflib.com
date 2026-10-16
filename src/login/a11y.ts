@@ -174,31 +174,35 @@ export interface Suggestion {
 export function suggest(fg: Rgb, bg: Rgb, min: number, which: 'fg' | 'bg' = 'fg'): Suggestion[] {
   const pair = resolvePair(fg, bg)
   const moving = which === 'fg' ? pair.fg : pair.bg
-  const fixed = luminance(which === 'fg' ? pair.bg : pair.fg)
   const [h, s, l0] = rgbToHsl(moving)
   const at = (l: number): Rgb => {
     const [r, g, b] = hslToRgb(h, s, l)
     // Quantised as it will be written, so the ratio we report is the ratio the hex has.
     return { r: Math.round(r), g: Math.round(g), b: Math.round(b), a: 1 }
   }
+  // The ratio the pair would have with this candidate in place. A new background is measured with the original
+  // text, since translucent text composites over whatever is under it and so moves with it.
+  const score = (candidate: Rgb) => (which === 'fg' ? contrast(candidate, bg) : contrast(fg, candidate))
   const out: Suggestion[] = []
   for (const direction of ['darker', 'lighter'] as const) {
     const end = direction === 'darker' ? 0 : 1
-    if (ratioOf(luminance(at(end)), fixed) < min) continue
+    if (score(at(end)) < min) continue
     // Lightness moves luminance monotonically, and contrast with it, once past the other colour: bisect for the
     // smallest move that reaches `min`, then step until the rounded colour does.
     let near = l0
     let far = end
     for (let i = 0; i < 40; i++) {
       const mid = (near + far) / 2
-      if (ratioOf(luminance(at(mid)), fixed) >= min) far = mid
+      if (score(at(mid)) >= min) far = mid
       else near = mid
     }
     let l = far
     const step = direction === 'darker' ? -0.001 : 0.001
-    while (ratioOf(luminance(at(l)), fixed) < min && l >= 0 && l <= 1) l += step
+    while (score(at(l)) < min && l >= 0 && l <= 1) l += step
     const colour = at(clamp(l, 0, 1))
-    out.push({ colour: toHex(colour), ratio: ratioOf(luminance(colour), fixed), direction, shift: Math.abs(l - l0) })
+    const ratio = score(colour)
+    if (ratio < min) continue
+    out.push({ colour: toHex(colour), ratio, direction, shift: Math.abs(l - l0) })
   }
   return out.sort((a, b) => a.shift - b.shift)
 }

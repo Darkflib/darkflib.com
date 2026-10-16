@@ -902,16 +902,21 @@ const CAA_IDS: [RegExp, string[]][] = [
 export const caaIdsFor = (issuer: string) => CAA_IDS.find(([pattern]) => pattern.test(issuer))?.[1]
 
 export interface CaaPolicy {
+  /** The name the DNS check walked up from: the only name (with its wildcard) whose relevant CAA set is known. */
+  name: string
+  /** The zone whose records are that set. */
   zone: string
-  /** Issuer domains `issue` allows; empty when `issue ";"` forbids every CA. */
-  issue: string[]
-  /** The same for wildcards, or undefined when there's no `issuewild` (so `issue` applies). */
+  /** Issuer domains `issue` allows: empty when `issue ";"` forbids every CA, undefined when there's no `issue` tag
+   * (any CA may issue for the name itself; RFC 8659 §4.2). */
+  issue?: string[]
+  /** The same for wildcards, or undefined when there's no `issuewild` (so `issue` applies; RFC 8659 §4.3). */
   issuewild?: string[]
 }
 
 /** The CAA set that applies to the name: the closest zone on the DNS check's upward walk with any records. */
 export function caaPolicy(dns: Record<string, unknown> | undefined): CaaPolicy | undefined {
-  const node = records(at(dns, 'caa_tree')).find((entry) => records(entry.records).length > 0)
+  const tree = records(at(dns, 'caa_tree'))
+  const node = tree.find((entry) => records(entry.records).length > 0)
   if (!node) return undefined
   const values = (tag: string) =>
     records(node.records)
@@ -927,10 +932,20 @@ export function caaPolicy(dns: Record<string, unknown> | undefined): CaaPolicy |
   // Only issue/issuewild limit issuance; a set of iodef alone allows any CA.
   if (!issue.length && !wild.length) return undefined
   return {
+    name: String(tree[0].zone).toLowerCase().replace(/\.$/, ''),
     zone: String(node.zone),
-    issue: issue.filter(Boolean),
+    ...(issue.length && { issue: issue.filter(Boolean) }),
     ...(wild.length && { issuewild: wild.filter(Boolean) }),
   }
+}
+
+/** The issuer domains CAA allows for one certificate name, undefined when any CA may issue, or 'unknown' when the
+ * name's relevant CAA set isn't the one the DNS check found (a subdomain may have its own). */
+function allowedFor(name: string, policy: CaaPolicy): string[] | undefined | 'unknown' {
+  const bare = name.toLowerCase().replace(/\.$/, '')
+  if (bare === `*.${policy.name}`) return policy.issuewild ?? policy.issue
+  if (bare === policy.name) return policy.issue
+  return 'unknown'
 }
 
 export interface CaaConflict {
@@ -939,7 +954,9 @@ export interface CaaConflict {
 }
 
 /**
- * Current certificates whose issuer today's CAA records don't allow, per issuer. CAA is checked at issuance, so a
+ * Current certificates whose issuer today's CAA records don't allow, per issuer. Each name on a certificate is judged
+ * on its own (a wildcard by issuewild, the name itself by issue), and only the checked name and its wildcard: other
+ * subdomains may have CAA sets of their own, which the DNS check didn't look up. CAA is checked at issuance, so a
  * conflict can mean the records changed since; either way, that CA could not issue for the name now.
  */
 export function caaConflicts(ct: Record<string, unknown>, dns: Record<string, unknown> | undefined): CaaConflict[] {
@@ -951,8 +968,11 @@ export function caaConflicts(ct: Record<string, unknown>, dns: Record<string, un
     const issuer = String(cert.issuer_name ?? '')
     const ids = caaIdsFor(issuer)
     if (!ids) continue
-    const allowed = cert.wildcard === true && policy.issuewild ? policy.issuewild : policy.issue
-    if (!ids.some((id) => allowed.includes(id))) found.set(issuer, (found.get(issuer) ?? 0) + 1)
+    const refused = list(cert.names).some((name) => {
+      const allowed = allowedFor(String(name), policy)
+      return allowed !== 'unknown' && allowed !== undefined && !ids.some((id) => allowed.includes(id))
+    })
+    if (refused) found.set(issuer, (found.get(issuer) ?? 0) + 1)
   }
   return [...found].map(([issuer, certificates]) => ({ issuer, certificates }))
 }
@@ -1019,7 +1039,7 @@ function ctSummary(data: Record<string, unknown>, now: number, dns: Record<strin
         : conflicts.length
           ? `not allowed: ${conflicts.map((entry) => `${entry.issuer} (${entry.certificates})`).join(', ')}`
           : current > 0
-            ? `current issuers allowed (${policy.zone})`
+            ? `current issuers allowed for ${policy.name} (CAA at ${policy.zone})`
             : undefined,
       optional: true,
       ...(conflicts.length
